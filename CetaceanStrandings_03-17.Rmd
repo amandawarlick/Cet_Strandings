@@ -1,0 +1,2485 @@
+---
+title: "Cetacean Strandings"
+output: 
+  word_document: 
+    reference_docx: markdownstyledoc.docx
+---
+
+```{r include = FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE, fig.width = 4, fig.height = 3.5)
+```
+
+```{r}
+#CHUNK OUTLINE
+
+#Load packages, setup, plot themes
+#Load, clean data
+#Sex class all strandings
+#Sex class of HI strandings
+#Age class of all and HI strandings
+#All strandings over time
+#HI and FI over time
+#HI types over time
+#Species composition over whole study period for all and HI cases
+#Species over time for all and HI cases
+#Proportion of cases that are HI
+#Seasonal analyses for all and HI cases
+#Seasonal analysis for species
+#State-level spatial
+#County-level: WA
+#County-level: OR
+#Creating large tables - county
+#Creating large summary tables - age, sex, species, HI prevalence
+#Maps
+
+
+```
+
+```{r load packages, echo = FALSE}
+
+# install.packages("ggmap") 
+# install.packages("data.table")
+#install.packages("devtools")
+library(devtools)
+#devtools::install_github("hadley/ggplot2")
+#devtools::install_github("adletaw/captioner")
+library(tidyr)
+library(ggmap)
+library(data.table)
+library(ggfortify)
+library(dplyr)
+library(ggplot2)
+library(cowplot)
+library(scales)
+library(captioner)
+library(knitr)
+library(reshape2)
+library(stringr)
+library(magrittr) 
+#library(ggsci)
+#library(packrat)
+#library(ggTimeSeries)
+library(stats) #kruskal.test
+library(PMCMR) # posthoc.kruskal.nemenyi.test https://cran.r-project.org/web/packages/PMCMR/vignettes/PMCMR.pdf
+library(strucchange) # chow test https://cran.r-project.org/web/packages/strucchange/strucchange.pdf  
+library(pgirmess) #kruskalmc https://cran.r-project.org/web/packages/pgirmess/pgirmess.pdf 
+library(coin) #independence_test?? https://cran.r-project.org/web/packages/coin/coin.pdf
+
+setwd("~/Documents/R/Cet_Strandings")
+
+# Define PlotTheme ----
+plot_theme <- function(...) {
+  theme(
+    #text = element_text(size = 11),
+    axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5, color = "black", size = 10), 
+    axis.text = element_text(vjust = 0.5, color = "black", size = 10), 
+    axis.title = element_text(size = 11),
+    axis.line.y = element_line(colour = "black"), 
+    axis.line.x = element_line(colour = "black"), 
+    plot.background = element_rect(), 
+    panel.background = element_blank(), 
+    panel.grid = element_blank(), 
+    legend.title = element_blank(),
+    legend.key = element_blank(),
+    legend.text = element_text(size = 8),
+    ...)
+}
+# Define Function for Publication Plots
+pubfigure_simple_theme <- function(...) {
+  theme(
+    axis.text.x = element_blank(),
+    axis.text.y = element_text(vjust = 0.5, color = "black", size = 10), 
+    axis.title.x = element_blank(),
+    axis.line.y = element_line(colour = "black"), 
+    axis.line.x = element_line(colour = "black"), 
+    plot.background = element_rect(), 
+    panel.background = element_blank(), 
+    panel.grid = element_blank(),
+    legend.title = element_blank(),
+    legend.key = element_blank(),
+    legend.text = element_text(size = 5.5),
+    ...)
+}
+
+# Define Plot Theme
+pubfigure_theme <- function(...) {
+  theme(
+    #text = element_text(size = 11),
+    axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5, color = "black", size = 10),
+    axis.text.y = element_text(vjust = 0.5, color = "black", size = 10), 
+    axis.title = element_text(size = 10),
+    axis.line.y = element_line(colour = "black"), 
+    axis.line.x = element_line(colour = "black"), 
+    plot.background = element_rect(), 
+    panel.background = element_blank(), 
+    panel.grid = element_blank(), 
+    legend.title = element_blank(),
+    legend.key = element_blank(),
+    legend.text = element_text(size = 5.5),
+    ...)
+}
+
+pubfigure_simple_theme <- function(...) {
+  theme(
+    axis.text.x = element_blank(),
+    axis.text.y = element_text(vjust = 0.5, color = "black", size = 10), 
+    axis.title.x = element_blank(),
+    axis.line.y = element_line(colour = "black"), 
+    axis.line.x = element_line(colour = "black"), 
+    plot.background = element_rect(), 
+    panel.background = element_blank(), 
+    panel.grid = element_blank(),
+    legend.title = element_blank(),
+    legend.key = element_blank(),
+    legend.text = element_text(size = 5.5),
+    ...)
+}
+
+pubfigure_theme <- function(...) {
+  theme(
+    #text = element_text(size = 11),
+    axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5, color = "black", size = 10),
+    axis.text.y = element_text(vjust = 0.5, color = "black", size = 10), 
+    axis.title = element_text(size = 10),
+    axis.line.y = element_line(colour = "black"), 
+    axis.line.x = element_line(colour = "black"), 
+    plot.background = element_rect(), 
+    panel.background = element_blank(), 
+    panel.grid = element_blank(), 
+    legend.title = element_blank(),
+    legend.key = element_blank(),
+    legend.text = element_text(size = 5.5),
+    ...)
+}
+case <- function(x)
+  paste0(toupper(substr(x, 1, 1)), tolower(substring(x, 2)))
+
+figs <- captioner(prefix="Figure")
+tbls <- captioner(prefix="Table")
+
+# figs("name")
+# ## [1] "Figure  1: Caption."
+# 
+# figs("name",display="cite")
+# ## [1] "Figure  1"
+# 
+# figs("name",display="num")
+# ## [1] "1"
+
+```
+
+```{r load pre-cleaned csv, echo = FALSE}
+
+cetaceans <- read.csv("cetacean_data_clean.csv", header = TRUE, na.strings = "", stringsAsFactors = FALSE) #%>% filter(Cetacean.Common.Name != 'Harbor porpoise')
+
+cetaceans$Age.Class <- factor(cetaceans$Age.Class,
+          levels = c("Calf", "Yearling", "Subadult", "Adult", "Unid", "NA"))
+
+cetaceans$Month.of.Observation <- factor(cetaceans$Month.of.Observation,
+          levels = c('JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'))
+
+```
+
+```{r sex of all strandings, echo = TRUE}
+#Are there any correlations or patterns in age or sex and strandings?
+
+#Sex and all
+Sex_all <- cetaceans %>%
+  #filter(Sex == 'Male' | Sex == 'Female') %>%
+  group_by(Sex) %>%
+  summarize(cnt = n_distinct(National.Database.Number)) 
+
+Sex_all_yr <- cetaceans %>%
+  filter(Sex == 'Male' | Sex == 'Female') %>%
+  group_by(Sex, Year.of.Observation) %>%
+  summarize(cnt = n_distinct(National.Database.Number)) 
+
+Sex_all_yr_mo <- cetaceans %>%
+  filter(Sex == 'Male' | Sex == 'Female') %>%
+  group_by(Sex, Year.of.Observation, Month.of.Observation) %>%
+  summarize(cnt = n_distinct(National.Database.Number)) 
+
+# ##HELP which of these outputs do I use? Mean monthly or mean annual? Monthly averages have smaller stdev, but maybe because differeneces between sex are smaller when not summed to the year level.
+# #Anova shows annual mean stranding is different between sexes, p < 0.05
+# summary(aov(cnt ~ Sex, Sex_all_yr))
+# sd(Sex_all_yr$cnt)
+# 
+# #Anova shows monthly mean stranding is different between sexes, p < 0.05
+# summary(aov(cnt ~ Sex, Sex_all_yr_mo)) #mean monthly
+# summary(aov(cnt ~ Sex + Year.of.Observation, Sex_all_yr_mo)) #mean monthly given difs in years?
+# sd(Sex_all_yr_mo$cnt)
+
+#100% stacked bar chart - year - not much variation across years, though low perc females in 09-10.
+Sex_all_yr_figure_stack <- ggplot(Sex_all_yr, 
+        aes(x = as.factor(Year.of.Observation), y = cnt, fill = Sex)) +
+  geom_bar(stat = 'identity', position = 'fill') +
+  xlab("") + ylab("Proportion of Strandings") +
+  plot_theme(legend.position = 'top')
+ggsave(Sex_all_yr_figure_stack, file = "./Figures_nohp/Sex_all_yr_figure_stack.pdf")
+
+Sex_all_yr_figure <- 
+  ggplot(Sex_all_yr, aes(x = as.factor(Year.of.Observation), y = cnt, fill = Sex)) +
+  geom_bar(stat = 'identity') +
+  scale_y_continuous(labels = comma) +
+  xlab("") + ylab("Total Strandings") +
+  plot_theme(legend.position = 'top')
+ggsave(Sex_all_yr_figure, file = "./Figures_nohp/Sex_all_yr_figure.pdf")
+
+#Larger IQR for males
+Sex_all_yr_boxplot <- 
+  ggplot(Sex_all_yr_mo, 
+      aes(x = as.factor(Year.of.Observation), y = cnt, fill = Sex)) +
+  geom_boxplot() +
+  scale_y_continuous(labels = comma) +
+  xlab("") + ylab("Mean Monthly Strandings") +
+  plot_theme(legend.position = 'top')
+ggsave(Sex_all_yr_boxplot, file = "./Figures_nohp/Sex_all_yr_boxplot.pdf")
+
+#100% stacked bar chart - month - higher female percentage in august compared to december
+Sex_all_month_figure <- 
+  ggplot(Sex_all_yr_mo, aes(x = as.factor(Month.of.Observation), y = cnt, fill = Sex)) +
+  geom_bar(stat = 'identity', position = 'fill') +
+  xlab("") + ylab("Proportion of Strandings") +
+  plot_theme(legend.position = 'top')
+ggsave(Sex_all_month_figure, file = "./Figures_nohp/Sex_all_mo_figure.pdf")
+
+#summary(aov(cnt ~ Month.of.Observation*Sex, Sex_all_yr_mo))
+
+#glm shows seasonal peak, males dif from females, and males seasonal peak in jul/aug?
+sex_all_mo_model <- summary(glm(cnt ~ Month.of.Observation*Sex, family = poisson(link = log), Sex_all_yr_mo))
+
+
+#Tukey comparisons show which months males and females are different from each other and different from themselves. 
+#sexmonthsTukey <- TukeyHSD(aov(cnt ~ Sex + Month.of.Observation + Month.of.Observation*Sex, Sex_all_yr_mo))
+
+# #Would be great to subset for sig p values
+#sigmonths <- sexmonthsTukey$Sex[4] < 0.01
+
+```
+
+```{r Sex of HI cases}
+#From above, we can see that there are differences between sexes for overall cases, but are these differences also apparent for human interaction cases?
+
+#Sex and HI
+
+Sex_HI <- cetaceans %>%
+  filter(Sex == 'Male' | Sex == 'Female') %>%
+  group_by(Sex, Findings.of.Human.Interaction) %>%
+  summarize(cnt = n_distinct(National.Database.Number)) %>%
+  dcast(Sex ~ Findings.of.Human.Interaction, value.var = 'cnt') 
+
+Sex_HI_yr <- cetaceans %>%
+  filter(Sex == 'Male' | Sex == 'Female') %>%
+  filter(Findings.of.Human.Interaction == 'Y') %>%
+  group_by(Sex, Year.of.Observation) %>%
+  summarize(cnt = n_distinct(National.Database.Number)) 
+
+Sex_HI_mo <- cetaceans %>%
+  filter(Sex == 'Male' | Sex == 'Female') %>%
+  filter(Findings.of.Human.Interaction == 'Y') %>%
+  group_by(Sex, Month.of.Observation) %>%
+  summarize(cnt = n_distinct(National.Database.Number)) 
+
+#males different from females
+sex_HI_model <- glm(cnt ~ Sex, family = poisson(link = log), Sex_HI_mo)
+summary(sex_HI_model)
+
+#same as sex_all_mo_model above - season peak, m/f different, seasonal peak for males?
+sex_HI_mo_model <- glm(cnt ~ Month.of.Observation*Sex, family = poisson(link = log), Sex_HI_mo)
+summary(sex_HI_mo_model)
+
+#Anova shows interaction types are different, sexes are different, and types for each sex are different. Look below at pairwise for specific differences.
+#summary(aov(cnt ~ Sex + Interaction.Type + Sex*Interaction.Type, Sex_HI_yr))
+
+#Tukey comparisons show which sex/type combinations are different from each other. I would prefer to just compare Male-Female gunshot wounds, not male gunshots versus female fisheries.
+#TukeyHSD(aov(cnt ~ Sex*Interaction.Type, Sex_HI_yr))
+
+
+```
+
+```{r age class}
+#Do specific age classes strand more or less frequently than others?
+
+age_all <- cetaceans %>%
+  group_by(Age.Class) %>%
+  summarize(cnt = n_distinct(National.Database.Number)) %>%
+  transform(Age.Class = factor(Age.Class))
+ 
+#age_all$prop <- round(age_all$cnt/sum(age_all$cnt), 2)*100
+
+# age_all_table <- age_all
+# colnames(age_all_table) <- c("Age", "Number", "Proportion (%)")
+
+age_sex_all <- cetaceans %>%
+  group_by(Sex, Age.Class) %>%
+  summarize(cnt = n_distinct(National.Database.Number)) 
+
+age_sex_all_figure <-
+  ggplot(age_sex_all, aes(x = as.factor(Age.Class), y = cnt, fill = Sex)) +
+  geom_bar(stat = 'identity', position = 'fill') +
+  xlab("") + ylab("Proportion of Strandings") +
+  plot_theme(legend.position = 'top') +
+  scale_fill_brewer(palette = 'Set1')
+ggsave(age_sex_all_figure, file = "./Figures_nohp/age_sex_all_figure.pdf")
+
+age_sex_table <- age_sex_all %>% 
+  dcast(Age.Class ~ Sex, value.var = 'cnt') %>% 
+  filter(Age.Class != 'NA') %>%
+  transform(Prop.Fem = round(Female/(Female + Male + Unid), 3)*100,
+            Prop.Male = round(Male/(Female + Male + Unid), 3)*100,
+            Prop.Unid = round(Unid/(Female + Male + Unid), 3)*100) %>%
+  merge(age_all, by = 'Age.Class') %>%
+  arrange(Age.Class) %>%
+  select(c(Age.Class, cnt, Female, Prop.Fem, Male, Prop.Male, Unid, Prop.Unid)) 
+  
+colnames(age_sex_table) <- c("Age.Class", "Total (N)", "Female (N)", "Female (%)", "Male (N)", "Male (%)", "Unid. (N)", "Unid. (%)")
+average_sex <- c(as.character("Average"), "--", "--", round(mean(age_sex_table[,4]), 1), "--", round(mean(age_sex_table[,6]), 1), "--", round(mean(age_sex_table[,8]), 1))
+
+age_sex_table <- rbind(age_sex_table, average_sex, stringsAsFactors = F)
+
+age_sex_table <- write.csv(age_sex_table, file = "./Figures_nohp/age_sex_table.csv", row.names = F)
+
+
+```
+
+```{r all strandings over time}
+
+#Are the number of cases of all combined species increasing or decreasing over time?
+
+data_by_year <- cetaceans %>% 
+  group_by(Year.of.Observation) %>%
+  dplyr::summarize(cnt = n_distinct(National.Database.Number)) 
+
+#Statistically significant change in all stranding cases in OR and WA combined over time (p < 0.05, 25 strandings per year increase).
+timeseries_all_model <- glm(cnt ~ Year.of.Observation, family = poisson(link = log), data = data_by_year)
+timeseries_all_model <- lm(cnt ~ Year.of.Observation, data = data_by_year)
+summary(timeseries_all_model)
+plot(timeseries_all_model)
+
+all_yr_figure <- 
+  ggplot(data_by_year, aes(x = Year.of.Observation, y = cnt)) + 
+  geom_point(position = "identity") +
+  geom_smooth(method = "loess", se = FALSE, col = 'black', linetype = 3) +
+  xlab("") + ylab("Annual Strandings") +
+  plot_theme() +
+  scale_color_brewer(palette = 'Set1') 
+ggsave(all_yr_figure, file = "./Figures_nohp/all_year_figure.pdf")
+
+```
+
+```{r HI and FI number of cases over time}
+
+#Are the number of HI cases of all combined species increasing or decreasing over time?
+
+HI_by_year <- cetaceans %>%
+  filter(Findings.of.Human.Interaction == 'Y') %>%
+  group_by(Year.of.Observation) %>%
+  summarize(cnt = n_distinct(National.Database.Number)) 
+
+#Regression shows significant increase (6/yr) of all HI cases, p < 0.05
+timeseries_HI_model <- glm(cnt ~ Year.of.Observation, family = poisson(link = log), data = HI_by_year)
+timeseries_HI_model <- lm(cnt ~ Year.of.Observation, data = HI_by_year)
+autoplot(timeseries_HI_model)
+summary(timeseries_HI_model)
+
+#anova confirms years are different, p-val < 0.05
+summary(aov(cnt ~ Year.of.Observation, data = HI_by_year))
+
+HI_year_figure <- 
+  ggplot(HI_by_year, aes(x = Year.of.Observation, y = cnt)) + 
+  geom_point(position = "identity") +
+  geom_smooth(method = "lm", se = FALSE, col = 'black', linetype = 3) +
+  xlab("") + ylab("Annual Human Interaction Cases") +
+  scale_x_continuous(breaks = c(2001:2017)) +
+  plot_theme(legend.position = 'top') +
+  scale_color_brewer(palette = 'Set1')
+ggsave(HI_year_figure, file = "./Figures_nohp/HI_year_figure.pdf")
+```
+
+```{r HI types over time}
+#Are specific types of HI cases changing over time?
+
+# HI_by_year_type <- cetaceans %>%
+#   filter(Findings.of.Human.Interaction == 'Y' & Interaction.Type != 'NA') %>%
+#   group_by(Interaction.Type, Year.of.Observation) %>%
+#   summarize(cnt = n_distinct(National.Database.Number)) 
+# 
+# #Regression shows there is an effect of year for all HI types, that they are increasing over time (approx 1-2 cases/year for fish, gunshot, and other).
+# timeseries_HI_type_model <- glm(cnt ~ Year.of.Observation + Interaction.Type, family = poisson(link = log), data = HI_by_year_type)
+# summary(timeseries_HI_type_model)
+# autoplot(timeseries_HI_type_model)
+
+
+#Tukey shows average annual HI types are not all different from one another (boat has significantly less)
+# TukeyHSD(aov(cnt ~ Interaction.Type, data = HI_by_year_type))
+# 
+# HI_type_year_figure <- 
+#   ggplot(HI_by_year_type, aes(x = Year.of.Observation, y = cnt, 
+#                               group = Interaction.Type, col = Interaction.Type)) + 
+#   geom_point(position = "identity") +
+#   geom_smooth(method = "lm", se = FALSE) +
+#   xlab("") + ylab("Human Interaction Cases") +
+#   plot_theme(legend.position = 'top') + 
+#   scale_color_brewer(palette = 'Set1')
+#ggsave(HI_type_year_figure, file = "./Figures_nohp/HI_type_year_figure.pdf")
+
+```
+
+```{r categorical species comparison for all years all HI and FI}
+
+#Do some species strand more frequently than others?  All years combined here, time series in below chunk.
+
+# Yes, harbor seals, CSL, and stellers strand more
+
+species <- cetaceans %>%
+  group_by(Cetacean.Common.Name) %>%
+  summarize(cnt = n_distinct(National.Database.Number))
+kruskal.test(species)
+
+species_year <- cetaceans %>%
+  filter(Cetacean.Common.Name != 'Unidentified') %>%
+  group_by(Year.of.Observation, Cetacean.Common.Name) %>%
+  summarize(cnt = n_distinct(National.Database.Number)) 
+  
+species_year_mean <- cetaceans %>%
+  group_by(Year.of.Observation, Cetacean.Common.Name) %>%
+  summarize(cnt = n_distinct(National.Database.Number)) %>%
+  group_by(Cetacean.Common.Name) %>%
+  summarize(mean = mean(cnt))
+
+species_figure <- species_year %>%
+  filter(Cetacean.Common.Name != 'Unidentified') %>%
+  ggplot(aes(Cetacean.Common.Name, cnt)) +
+  geom_boxplot() +
+  scale_y_continuous(labels = comma) +
+  xlab("") + ylab("Annual Strandings") +
+  plot_theme()
+ggsave(species_figure, file = "./Figures_nohp/species_figure.pdf")
+
+
+#Are HI and FI cases signficantly different between species as well?
+##HI cases
+species_year_HI <- cetaceans %>%
+  filter(Cetacean.Common.Name != 'Unidentified') %>%
+  filter(Findings.of.Human.Interaction == 'Y') %>%
+  group_by(Year.of.Observation, Cetacean.Common.Name) %>%
+  summarize(cnt = n_distinct(National.Database.Number))
+
+species_year_HI_figure <- 
+  ggplot(species_year_HI, aes(Cetacean.Common.Name, cnt)) +
+  geom_boxplot() +
+  xlab("") + ylab("Annual Human Interaction Cases") +
+  scale_y_continuous(labels = comma) +
+  plot_theme()
+ggsave(species_year_HI_figure, file = "./Figures_nohp/species_year_HI_figure.pdf")
+
+#Anova shows that yes, the mean annual HI strandings are different across species.
+#Harbor seals are different from everything else, but no other sig difs
+summary(aov(cnt ~ Cetacean.Common.Name, data = species_year_HI))
+
+TukeyHSD(aov(cnt ~ Cetacean.Common.Name, data = species_year_HI))
+
+```
+
+```{r timeline species comparison for all HI and FI}
+
+#Are strandings or HI FI cases of certain species increasing or decreasing over time?
+#We would expect proportions of certain types of cases to remain constant over time, so are the proportions of HI and FI cases changing?
+
+#All species changing over time (HS and CSL increasing, others decreasing); HELP output suggests negative slope, but looks like an increasing trend in figure for stellers 
+timeseries_all_model_sp <- glm(cnt ~ Cetacean.Common.Name + Year.of.Observation, family = poisson(link = log), data = species_year)
+summary(timeseries_all_model_sp)
+autoplot(timeseries_all_model_sp)
+
+#All species HI changing over time, increasing for CSL and HS by less than a case per year, others decreasing by up to 2 cases/yr
+timeseries_HI_model_sp <- glm(cnt ~ Cetacean.Common.Name + Year.of.Observation, family = poisson(link = log), data = species_year_HI)
+summary(timeseries_HI_model_sp)
+
+species_all_figure <- 
+  ggplot(species_year, aes(x = Year.of.Observation, y = cnt, 
+                group = Cetacean.Common.Name, col = Cetacean.Common.Name)) +
+  geom_point(stat = 'identity', position = 'jitter') + 
+  geom_smooth(method = 'lm', se = F) +
+  ylab("Annual Strandings") + xlab("") + 
+  scale_y_continuous(labels = comma) +
+  plot_theme(legend.position = 'top') #+ 
+  #scale_color_brewer(palette = 'Set2')
+ggsave(species_all_figure, file = "./Figures_nohp/species_all_figure.pdf")
+
+#strandings by year, species stacked
+species_all_figure_stacked <- 
+  ggplot(species_year, aes(x = factor(Year.of.Observation), y = cnt, fill = Cetacean.Common.Name)) +
+  geom_bar(stat = 'identity') + 
+  ylab("Annual Strandings") + xlab("") + 
+  scale_y_continuous(labels = comma) +
+  plot_theme(legend.position = 'top')  
+  #scale_fill_brewer(palette = 'Set2')  
+ggsave(species_all_figure_stacked, file = "./Figures_nohp/species_all_figure_stacked.pdf")
+
+species_HI_figure <- 
+  ggplot(species_year_HI, aes(x = factor(Year.of.Observation), y = cnt, 
+                col = Cetacean.Common.Name, group = Cetacean.Common.Name)) +
+  geom_point(stat = 'identity') + 
+  geom_smooth(method = 'lm', se = F) +
+  ylab("Human Interaction Cases") + xlab("") + 
+  plot_theme(legend.position = 'top') #+ 
+  #scale_color_brewer(palette = 'Set1')
+ggsave(species_HI_figure, file = "./Figures_nohp/species_HI_figure.pdf")
+
+
+```
+
+```{r proportion of cases}
+#Is the proportion of HI cases changing? More an artifact of improving diagnostics, but interesting nonetheless
+#Proportion of HI cases goes up
+#Proportion of FI cases doesn't seem to go up as much
+#Proportion of shots goes up
+
+#Updated: attempt at prop.trend.test: (successes, totals) - see stranding stats.Rmd
+
+year_prop_HI <- cetaceans %>%
+  group_by(Findings.of.Human.Interaction, Year.of.Observation) %>%
+  summarize(cnt = n_distinct(National.Database.Number)) %>%
+  dcast(Year.of.Observation ~ Findings.of.Human.Interaction, value.var = 'cnt') %>%
+  transform(Prop.HI = round(Y/(Y + N + CBD), 2)*100)
+
+#test prevalence for year groups?
+HI_prev_species <- cetaceans %>%
+  filter(Cetacean.Common.Name != 'Unidentified') %>% 
+  group_by(Cetacean.Common.Name, Year.of.Observation, Findings.of.Human.Interaction) %>%
+  summarize(cnt = n_distinct(National.Database.Number)) %>%
+  dcast(Cetacean.Common.Name + Year.of.Observation ~ Findings.of.Human.Interaction, value.var = 'cnt')
+HI_prev_species[is.na(HI_prev_species)] <- 0
+HI_prev_species <- HI_prev_species %>%
+    transform(Prop.HI = round(Y/(Y+N+CBD), 2))
+
+ggplot(HI_prev_species, aes(Year.of.Observation, Prop.HI, col = Cetacean.Common.Name)) +
+  geom_point(stat = 'identity') + 
+  #geom_line() +
+  geom_smooth(method = 'lm', se = F) +
+  pubfigure_theme(legend.position = 'top')
+
+#proportion of HI per species - prevalence
+HI_prev_species_table <- cetaceans %>%
+  filter(Cetacean.Common.Name != 'Unidentified') %>% 
+  group_by(Cetacean.Common.Name, Year.of.Observation, Findings.of.Human.Interaction) %>%
+  summarize(cnt = n_distinct(National.Database.Number)) %>%
+  dcast(Cetacean.Common.Name + Year.of.Observation ~ Findings.of.Human.Interaction, value.var = 'cnt')
+HI_prev_species_table[is.na(HI_prev_species_table)] <- 0
+HI_prev_species_table <- HI_prev_species_table %>%
+    transform(Prop.HI = round(Y/(Y+N+CBD), 2))
+
+ggplot(HI_prev_species_table, aes(Year.of.Observation, Prop.HI, col = Cetacean.Common.Name)) +
+  geom_point(stat = 'identity') + 
+  geom_line() +
+  #geom_smooth(method = 'lm', se = F) +
+  pubfigure_theme(legend.position = 'top')
+
+#Prevalence of all combined species
+HI_prev <- cetaceans %>%
+  group_by(Year.of.Observation, Findings.of.Human.Interaction) %>%
+  summarize(cnt = n_distinct(National.Database.Number)) %>%
+  dcast(Year.of.Observation ~ Findings.of.Human.Interaction, value.var = 'cnt')
+HI_prev[is.na(HI_prev)] <- 0
+HI_prev <- HI_prev %>%
+    transform(Prop.HI = round(Y/(Y+N+CBD), 2))
+
+HI_prev_all_fig <- ggplot(HI_prev, aes(Year.of.Observation, Prop.HI)) +
+  geom_point(stat = 'identity') + 
+  geom_line() +
+  geom_smooth(method = 'lm', se = F, col = "black", linetype = 3) +
+  xlab("") + ylab("Prevalence of Human Interactions") +
+  pubfigure_theme(legend.position = 'top')
+ggsave(HI_prev_all_fig, file = "./Figures_nohp/HI_prev_all_fig.pdf")
+
+
+#Need stats for proportions over time - can I do regression on a proportion?
+timeseries_HIprev_model <- glm(Prop.HI ~ Year.of.Observation, family = poisson(link = log), data = HI_prev)
+summary(timeseries_HIprev_model)
+autoplot(timeseries_HIprev_model)
+
+#Need stats for proportions over time - can I do regression on a proportion?
+timeseries_HIprev_model_sp <- glm(Prop.HI ~ Year.of.Observation + Cetacean.Common.Name, family = poisson(link = log), data = HI_prev_species_table)
+summary(timeseries_HIprev_model_sp)
+autoplot(timeseries_HIprev_model_sp)
+
+#Prevalence of specific HI types per species over time in chunk near bottom - "allprev"
+
+
+# #Proportion of fisheries
+# year_prop_FI <- cetaceans %>%
+#   group_by(Fishery.Interaction, Year.of.Observation) %>%
+#   summarize(cnt = n_distinct(National.Database.Number)) %>%
+#   dcast(Year.of.Observation ~ Fishery.Interaction, value.var = 'cnt') %>%
+#   transform(Prop.FI = round(Y/(Y + N), 2))
+# 
+# year_prop_shot <- cetaceans %>%
+#   group_by(Shot, Year.of.Observation) %>%
+#   summarize(cnt = n_distinct(National.Database.Number)) %>%
+#   dcast(Year.of.Observation ~ Shot, value.var = 'cnt') %>%
+#   transform(Prop.shot = round(Y/(Y + N), 2))
+# 
+# sp_prop_FI_shot <- cetaceans %>%
+#   filter(Sex != 'Unid') %>%
+#   group_by(Shot, Fishery.Interaction, Cetacean.Common.Name, Sex) %>%
+#   summarize(cnt = n_distinct(National.Database.Number)) %>%
+#   transform(Fishery.Shot = 
+#               ifelse(Fishery.Interaction == 'Y', "Y", 
+#                      ifelse(Shot == 'Y', "Y", "N"))) %>%
+#   group_by(Fishery.Shot, Cetacean.Common.Name, Sex) %>%
+#   summarize(sum = sum(cnt)) %>%
+#   dcast(Cetacean.Common.Name + Sex ~ Fishery.Shot, value.var = 'sum') %>%
+#   transform(Prop.FI.shot = round(Y/(Y + N), 2))
+# 
+# sp_prop_shot <- cetaceans %>%
+#   filter(Sex != 'Unid') %>%
+#   group_by(Shot, Cetacean.Common.Name, Sex) %>%
+#   summarize(cnt = n_distinct(National.Database.Number)) %>%
+#   # transform(Fishery.Shot = 
+#   #             ifelse(Fishery.Interaction == 'Y', "Y", 
+#   #                    ifelse(Shot == 'Y', "Y", "N"))) %>%
+#   group_by(Shot, Cetacean.Common.Name, Sex) %>%
+#   summarize(sum = sum(cnt)) %>%
+#   dcast(Cetacean.Common.Name + Sex ~ Shot, value.var = 'sum') %>%
+#   transform(Prop.shot = round(Y/(Y + N), 2))
+# 
+# HI_species_prev <- cetaceans %>%
+#   filter(Cetacean.Common.Name != 'Unidentified') %>%
+#   group_by(Year.of.Observation, 
+#            Findings.of.Human.Interaction, Cetacean.Common.Name) %>%
+#   summarize(cnt = n_distinct(National.Database.Number)) %>%
+#   dcast(Year.of.Observation + Cetacean.Common.Name ~ Findings.of.Human.Interaction, value.var = 'cnt')
+# HI_species_prev[is.na(HI_species_prev)] <- 0
+# HI_species_prev <- HI_species_prev %>%
+#     transform(Prop.HI = round(Y/(Y+N+CBD), 2))
+# 
+# #by species
+# HI_species_prev_figure <- 
+#   ggplot(HI_species_prev, aes(x = Year.of.Observation, y = Prop.HI)) +
+#   #geom_point(stat = 'identity', position = 'identity') + 
+#   geom_smooth(aes(Year.of.Observation, Prop.HI), col = 'black') +
+#   geom_line(aes(Year.of.Observation, Prop.HI, group = Cetacean.Common.Name, col = Cetacean.Common.Name)) +
+#   #geom_smooth(aes(Year.of.Observation, Prop.HI, group = Cetacean.Common.Name, col = Cetacean.Common.Name), se = F) +
+#   xlab("") + ylab("Proportion of HI") +
+#   pubfigure_theme(legend.position = 'top') + 
+#   scale_color_grey()
+
+HI_prev_condition <- cetaceans %>%
+  group_by(Findings.of.Human.Interaction, Observation.Status.clean) %>%
+  summarize(cnt = n_distinct(National.Database.Number)) %>%
+  dcast(Observation.Status.clean ~ Findings.of.Human.Interaction, value.var = 'cnt')
+HI_prev_condition[is.na(HI_prev_condition)] <- 0
+HI_prev_condition <- HI_prev_condition %>%
+    transform(Prop.HI = round(Y/(Y+N+CBD), 2))
+
+HI_prev_allconds <- cetaceans %>%
+  group_by(Findings.of.Human.Interaction) %>%
+  summarize(cnt = n_distinct(National.Database.Number)) %>%
+  dcast(. ~ Findings.of.Human.Interaction) %>%
+  transform(prop = Y/(CBD+N))
+HI_prev_allconds[is.na(HI_prev_allconds)] <- 0
+HI_prev_allconds <- HI_prev_allconds %>%
+    transform(Prop.HI = round(Y/(Y+N+CBD), 2))
+
+```
+
+```{r monthly all HI FI}
+
+#Are there seasonal patterns in all stranding cases? Only alive and fresh dead because timing matters - hard to tell when decomposed individuals stranded
+monthly_all <- cetaceans %>%
+  #filter(Observation.Status == 'ALIVE' | Observation.Status == 'FRESH DEAD') %>%
+  group_by(Year.of.Observation, Month.of.Observation, Sex, Age.Class, Water.Body) %>%
+  summarize(cnt = n_distinct(National.Database.Number))
+
+monthly_stats <- monthly_all %>%
+  group_by(Year.of.Observation, Month.of.Observation) %>%
+  summarize(cnt = sum(cnt))
+
+#Overall anova and pairwise tests show that there is a seasonal peak (ie some months are different than others)
+# summary(aov(cnt ~ Month.of.Observation, data = monthly_stats))
+# TukeyHSD(aov(cnt ~ Month.of.Observation, data = monthly_stats))
+#pairwise.t.test(monthly_all$cnt, monthly_all$Month.of.Observation, p.adj = "none")
+
+#Kruskal-Wallis
+kruskal.test(monthly_stats)
+kruskalmc(monthly_stats$cnt ~ monthly_stats$Month.of.Observation)
+posthoc.kruskal.nemenyi.test(cnt ~ Month.of.Observation, monthly_stats, dist = "Tukey")
+posthoc.kruskal.nemenyi.test(cnt ~ Month.of.Observation, monthly_stats, dist = "Chisquare")
+
+#Poisson - shows all months are different from the mean? but doesn't show which are dif from eachother?
+monthly_all_model <- glm(cnt ~ Month.of.Observation, family = poisson(link = log), data = monthly_stats)
+summary(monthly_all_model)
+
+#All monthly cases by region
+monthly_reg_figure <-
+  monthly_all %>% filter(Water.Body != 'NA') %>%
+  group_by(Month.of.Observation, Water.Body) %>%
+  summarize(sum = sum(cnt)) %>%
+ggplot(aes(x = factor(Month.of.Observation), y = sum, fill = Water.Body)) +
+  geom_bar(stat = 'identity') +
+  ylab("Total Strandings") + xlab("") + 
+  scale_y_continuous(labels = comma) +
+  plot_theme(legend.position = 'top') + 
+  scale_fill_brewer(palette = 'Set1')
+ggsave(monthly_reg_figure, file = "./Figures_nohp/monthly_reg_figure.pdf")
+
+#All monthly cases by sex
+monthly_sex_figure <- 
+  monthly_all %>% group_by(Month.of.Observation, Sex) %>%
+  summarize(sum = sum(cnt)) %>%
+ggplot(aes(x = factor(Month.of.Observation), y = sum, fill = Sex)) +
+  geom_bar(stat = 'identity') +
+  ylab("Total Strandings") + xlab("") + 
+  scale_y_continuous(labels = comma) +
+  plot_theme(legend.position = 'top') + 
+  scale_fill_brewer(palette = 'Set1')
+ggsave(monthly_sex_figure, file = "./Figures_nohp/monthly_sex_figure.pdf")
+
+#Monthly strandings by age class
+monthly_age_figure <- monthly_all %>% 
+  group_by(Month.of.Observation, Age.Class) %>%
+  summarize(sum = sum(cnt)) %>%
+  ggplot(aes(x = factor(Month.of.Observation), y = sum, fill = as.factor(Age.Class))) +
+  geom_bar(stat = 'identity') +
+  ylab("Total Strandings") + xlab("") + 
+  scale_y_continuous(labels = comma) +
+  plot_theme(legend.position = 'top') + 
+  scale_fill_brewer(palette = 'Set3')
+ggsave(monthly_age_figure, file = "./Figures_nohp/monthly_age_figure.pdf")
+
+monthly_age_stats <- monthly_all %>% 
+  group_by(Month.of.Observation, Year.of.Observation, Age.Class) %>%
+  summarize(cnt = sum(cnt))
+
+# kruskal.test(monthly_age_stats)
+# kruskalmc(monthly_age_stats$cnt ~ monthly_age_stats$Month.of.Observation)
+# posthoc.kruskal.nemenyi.test(cnt ~ Month.of.Observation + Age.Class, monthly_age_stats, dist = "Tukey")
+# posthoc.kruskal.nemenyi.test(cnt ~ Month.of.Observation + Age.Class, monthly_age_stats, dist = "Chisquare")
+
+##Stats for age HI type
+age_HI_stats <- cetaceans %>%
+  filter(Findings.of.Human.Interaction == 'Y' & 
+           Interaction.Type != 'NA' & Age.Class != 'Unid') %>%
+  group_by(Age.Class, Year.of.Observation, Interaction.Type) %>%
+  summarize(cnt = n_distinct(National.Database.Number)) 
+
+summary(aov(cnt ~ Age.Class + Interaction.Type, data = age_HI_stats))
+TukeyHSD(aov(cnt ~ Age.Class + Interaction.Type + Age.Class*Interaction.Type, data = age_HI_stats))
+
+#Seasonal age composition - pups are the only one that has the seasonal peak
+monthly_age <- cetaceans %>% group_by(Month.of.Observation, Age.Class) %>%
+  summarize(cnt = n_distinct(National.Database.Number)) %>%
+  dcast(Month.of.Observation ~ Age.Class, value.var = 'cnt') %>%
+  transform(Tot = Pup + Yearling + Subadult + Adult + Unid) %>%
+  transform(Pup.prop = round(Pup/Tot, 2)*100)
+
+monthly_age_HI <- cetaceans %>%
+  filter(Findings.of.Human.Interaction == 'Y' & Interaction.Type != 'NA') %>%
+  group_by(Month.of.Observation, Age.Class) %>%
+  summarize(cnt = n_distinct(National.Database.Number)) %>%
+  dcast(Month.of.Observation ~ Age.Class, value.var = 'cnt') %>%
+  transform(Tot = Pup + Yearling + Subadult + Adult + Unid) %>%
+  transform(Pup.prop = round(Pup/Tot, 2)*100)
+
+# #Peaks by the years
+# monthly_years_figure <- 
+#   ggplot(monthly_all, aes(x = factor(Month.of.Observation), y = cnt, 
+#         group = factor(Year.of.Observation), color = factor(Year.of.Observation))) +
+#   #geom_area() +
+#   geom_line(aes(group = factor(Year.of.Observation))) + 
+#   #geom_smooth(se = F) +
+#   ylab("Strandings per Month") + xlab("") + 
+#   scale_y_continuous(labels = comma) +
+#   plot_theme() #+ 
+#   #scale_color_brewer()
+# #ggsave(monthly_years_figure, file = "./Figures_nohp/monthly_years_figure.pdf")
+
+#Are there seasonal patterns in HI cases?
+
+monthly_HI <- cetaceans %>%
+  filter(Findings.of.Human.Interaction == 'Y') %>%
+  #filter(Observation.Status == 'ALIVE' | Observation.Status == 'FRESH DEAD') %>%
+  group_by(Month.of.Observation, Year.of.Observation, Sex, Age.Class, Water.Body) %>%
+  summarize(cnt = n_distinct(National.Database.Number))
+
+monthly_HI_yr_mo <- cetaceans %>%
+  filter(Findings.of.Human.Interaction == 'Y') %>%
+  #filter(Observation.Status == 'ALIVE' | Observation.Status == 'FRESH DEAD') %>%
+  group_by(Month.of.Observation, Year.of.Observation) %>%
+  summarize(cnt = n_distinct(National.Database.Number))
+
+#Regression shows different in Jan and summer
+monthly_HI_model <- glm(cnt ~ Month.of.Observation, family = poisson(link = log), data = monthly_HI_yr_mo)
+summary(monthly_HI_model)
+
+#summary(aov(cnt ~ Month.of.Observation, data = monthly_HI_yr_mo))
+
+#plot of HI types over season per region
+regplotdata <- monthly_HI %>% 
+  #filter(Interaction.Type == 'Gunshot') %>%
+  group_by(Month.of.Observation, Water.Body) %>% 
+  summarize(cnt = sum(cnt))
+reg_figure <- ggplot(regplotdata, aes(x = factor(Month.of.Observation), y = cnt, group = Water.Body, col = Water.Body)) +
+  geom_line() + 
+  ylab("Human Interaction Cases") + xlab("") + 
+  plot_theme(legend.position = 'top') + 
+  scale_fill_brewer(palette = 'Set1') 
+ggsave(reg_figure, file = "./Figures_nohp/reg_figure.pdf")
+
+monthly_HI_YNCBD <- cetaceans %>% 
+  #filter(Observation.Status == 'ALIVE' | Observation.Status == 'FRESH DEAD') %>%
+  group_by(Findings.of.Human.Interaction, Month.of.Observation) %>% 
+  summarize(cnt = n_distinct(National.Database.Number)) 
+
+monthly_HI_YNCBD_prop <- cetaceans %>% 
+  #filter(Observation.Status == 'ALIVE' | Observation.Status == 'FRESH DEAD') %>%
+  group_by(Findings.of.Human.Interaction, Month.of.Observation) %>% 
+  summarize(cnt = n_distinct(National.Database.Number)) %>%
+  dcast(Month.of.Observation ~ Findings.of.Human.Interaction, value.var = 'cnt') %>%
+  transform(prop.Y = round(Y/(CBD+N+Y), 2)*100)
+
+#Bar chart showing proportion of Y, N, and CBD HI cases
+HI_status <- ggplot(monthly_HI_YNCBD, aes(x = factor(Month.of.Observation), y = cnt, fill = Findings.of.Human.Interaction)) +
+  geom_bar(stat = 'identity') + 
+  ylab("Total Human Interaction Cases") + xlab("") + 
+  plot_theme(legend.position = 'top') + 
+  scale_fill_brewer(palette = 'Set1') 
+ggsave(HI_status, file = "./Figures_nohp/HI_status.pdf")
+
+#Bar chart showing only HI cases - sum of total ever cases in each month
+monthly_HI_figure <- monthly_HI %>%
+  group_by(Month.of.Observation) %>%
+  summarize(cnt = sum(cnt)) %>%
+  ggplot(aes(x = factor(Month.of.Observation), y = cnt)) +
+  geom_bar(stat = 'identity') +
+  ylab("Total Human Interaction Cases") + xlab("") +
+  scale_y_continuous(labels = comma) +
+  plot_theme() + 
+  scale_fill_brewer(palette = 'Set1')
+ggsave(monthly_HI_figure, file = "./Figures_nohp/monthly_HI_figure.pdf")
+
+# #Bar chart showing monthly strandings by interaction type
+# monthly_HI_figure_stacked <- monthly_HI %>% 
+#   filter(Interaction.Type != 'NA') %>%
+#   group_by(Month.of.Observation, Interaction.Type) %>%
+#   summarize(sum = sum(cnt)) %>%
+#   ggplot(aes(x = factor(Month.of.Observation), y = sum, fill = Interaction.Type)) +
+#   geom_bar(stat = 'identity') +
+#   ylab("Total Human Interaction Cases") + xlab("") + 
+#   plot_theme(legend.position = 'top') + 
+#   scale_fill_brewer(palette = 'Set1')
+# #ggsave(monthly_HI_figure_stacked, file = "./Figures_nohp/monthly_HI_figure_stacked.pdf")
+
+#Bar chart showing monthly strandings by sex
+monthly_HI_sex_figure <- monthly_HI %>% group_by(Month.of.Observation, Sex) %>%
+  summarize(sum = sum(cnt)) %>%
+ggplot(aes(x = factor(Month.of.Observation), y = sum, fill = Sex)) +
+  geom_bar(stat = 'identity') +
+  ylab("Total Human Interaction Cases") + xlab("") + 
+  plot_theme(legend.position = 'top') + 
+  scale_fill_brewer(palette = 'Set1')
+ggsave(monthly_HI_sex_figure, file = "./Figures_nohp/monthly_HI_sex_figure.pdf")
+
+#Monthly HI strandings by age class
+monthly_HI_age_figure <- 
+  monthly_HI %>% group_by(Month.of.Observation, Age.Class) %>%
+  summarize(sum = sum(cnt)) %>%
+ggplot(aes(x = factor(Month.of.Observation), y = sum, fill = Age.Class)) +
+  geom_bar(stat = 'identity') +
+  ylab("Total Human Interaction Cases") + xlab("") + 
+  plot_theme(legend.position = 'top') + 
+  scale_fill_brewer(palette = 'Set1')
+ggsave(monthly_HI_age_figure, file = "./Figures_nohp/monthly_HI_age_figure.pdf")
+
+# #Is there an effect of month on FI?
+# monthly_FI <- cetaceans %>%
+#   filter(Fishery.Interaction == 'Y') %>%
+#   filter(Observation.Status == 'ALIVE' | Observation.Status == 'FRESH DEAD') %>%
+#   group_by(Year.of.Observation, Month.of.Observation) %>%
+#   summarize(cnt = n_distinct(National.Database.Number))
+# 
+# #HELP - in theory, can I do regressions on month? Now I'm not sure what that really means.... Regression output shows some months dif than others
+# summary(lm(cnt ~ Month.of.Observation, data = monthly_FI))
+# 
+# summary(aov(cnt ~ Month.of.Observation, data = monthly_FI))
+# 
+# #Peaks by the years
+# monthly_FI_year_figure <- 
+#   ggplot(monthly_FI, aes(x = factor(Month.of.Observation), y = cnt, 
+#               group = factor(Year.of.Observation), color = factor(Year.of.Observation))) +
+#   geom_line(aes(group = factor(Year.of.Observation))) + 
+#   geom_smooth(se = F) +
+#   ylab("Monthly Fisheries Interactions") + xlab("") + 
+#   plot_theme() #+ 
+#  # scale_color_brewer(palette = 'Set3')
+# #ggsave(monthly_FI_year_figure, file = "./Figures_nohp/monthly_FI_year_figure.pdf")
+```
+
+```{r monthly by species}
+#Monthly per species
+#HELP: should this be done per species per month per year, so it is monthly FI cases in a given year (here)? Or just per species all years combined each month, so it is summed across years (as above in HI and all cases per species)? 
+
+monthly_species <- cetaceans %>%
+  #filter(Observation.Status == 'ALIVE' | Observation.Status == 'FRESH DEAD') %>%
+  filter(Cetacean.Common.Name != 'Unidentified') %>%
+  group_by(Month.of.Observation, Cetacean.Common.Name, Year.of.Observation) %>%
+  summarize(cnt = n_distinct(National.Database.Number))
+
+#Help - Harbor seals only one really showing seasonal peak, maybe small small for ES and SSL, later for CSL. How do I answer the question: which species show seasonal peak? 
+#Regression shows different from each other, but we already know that from the above. I think I got the summer harbors peak here: 
+# monthly_all_model_sp <- glm(cnt ~ Month.of.Observation*Cetacean.Common.Name, family = poisson(link = log), data = monthly_species)
+# summary(monthly_all_model_sp)
+#summary(aov(cnt ~ Month.of.Observation*Cetacean.Common.Name, data = monthly_species))
+
+monthly_species_figure <- 
+  cetaceans %>%
+  #filter(Observation.Status == 'ALIVE' | Observation.Status == 'FRESH DEAD') %>%
+  filter(Cetacean.Common.Name != 'Unidentified') %>%
+  group_by(Month.of.Observation, Cetacean.Common.Name) %>%
+  summarize(cnt = n_distinct(National.Database.Number)) %>%
+  ggplot(aes(x = factor(Month.of.Observation), y = cnt, 
+          group = Cetacean.Common.Name, color = Cetacean.Common.Name)) +
+  geom_line(aes(group = Cetacean.Common.Name)) + 
+  geom_smooth(se = F) + 
+  #geom_point() +
+  ylab("Total Monthly Strandings") + xlab("") + 
+  plot_theme(legend.position = 'top') #+ 
+  #scale_color_brewer(palette = 'Set3')
+ggsave(monthly_species_figure, file = "./Figures_nohp/monthly_species_figure.pdf")
+
+#HI by month per each species
+#HELP COMPARE: should this be done per species per month per year, so it is monthly FI cases in a given year (here)? Or just per species per all time series months combined, so it is summed across years (as above in HI and all cases per species)?
+
+monthly_species_HI <- cetaceans %>%
+  #filter(Observation.Status == 'ALIVE' | Observation.Status == 'FRESH DEAD') %>%
+  filter(Cetacean.Common.Name != 'Unidentified') %>%
+  filter(Findings.of.Human.Interaction == 'Y') %>%
+  group_by(Month.of.Observation, Cetacean.Common.Name, Year.of.Observation) %>%
+  summarize(cnt = n_distinct(National.Database.Number)) 
+
+#HS only one showing seasonal peak for HI cases, short peak for CSL in feb
+monthly_HI_model_sp <- glm(cnt ~ Month.of.Observation*Cetacean.Common.Name, family = poisson(link = log), data = monthly_species_HI)
+summary(monthly_HI_model_sp)
+
+summary(aov(cnt ~ Month.of.Observation + Cetacean.Common.Name, data = monthly_species_HI))
+
+monthly_species_HI_figure <- 
+  cetaceans %>%
+  #filter(Observation.Status == 'ALIVE' | Observation.Status == 'FRESH DEAD') %>%
+  filter(Findings.of.Human.Interaction == 'Y') %>%
+  group_by(Month.of.Observation, Cetacean.Common.Name) %>%
+  summarize(cnt = n_distinct(National.Database.Number)) %>%
+  ggplot(aes(x = factor(Month.of.Observation), y = cnt, group = Cetacean.Common.Name, color = Cetacean.Common.Name)) +
+  geom_line(aes(group = Cetacean.Common.Name)) + 
+  geom_smooth(se = F) +
+  ylab("Total Monthly Human Interaction Cases") + xlab("") + 
+  plot_theme(legend.position = 'top') + 
+  scale_color_brewer(palette = 'Set3')
+#ggsave(monthly_species_HI_figure, file = "./Figures_nohp/monthly_species_HI_figure.pdf")
+
+#Human interactions monthly each year
+
+monthly_HI_year <- cetaceans %>% 
+  filter(Cetacean.Common.Name != 'Unidentified') %>%
+  filter(Findings.of.Human.Interaction == 'Y') %>%
+  group_by(Month.of.Observation, Year.of.Observation) %>%
+  summarize(cnt = n_distinct(National.Database.Number)) 
+
+monthly_HI_year_figure <- 
+  ggplot(monthly_HI_year, 
+       aes(x = factor(Month.of.Observation), y = cnt, 
+           group = factor(Year.of.Observation), 
+           color = factor(Year.of.Observation))) +
+  #geom_line(aes(group = factor(Year.of.Observation))) + 
+  geom_smooth(se = F) +
+  ylab("Monthly Human Interaction Cases") + xlab("") + 
+  plot_theme() #+ 
+  #scale_color_brewer(palette = 'Set3')
+ggsave(monthly_HI_year_figure, file = "./Figures_nohp/monthly_HI_year_figure.pdf")
+
+#Monthly species FI
+
+#FI by month per each species
+#HELP COMPARE: should this be done per species per month per year, so it is monthly FI cases in a given year (here)? Or just per species per all time series months combined, so it is summed across years (as above in HI and all cases per species)?
+ 
+monthly_species_FI_shot <- cetaceans %>%
+  filter(Cetacean.Common.Name != 'Unidentified') %>%
+  filter(Fishery.Interaction == 'Y' | Shot == 'Y') %>%
+  group_by(Month.of.Observation, Cetacean.Common.Name, Year.of.Observation) %>%
+  summarize(cnt = n_distinct(National.Database.Number))
+
+# #Again, uncertain how to answer the question of whether some species are experiencing a seasonal peak while others are not
+# summary(glm(cnt ~ Month.of.Observation*Cetacean.Common.Name, family = poisson(link = log), data = monthly_species_FI_shot))
+# 
+# summary(aov(cnt ~ Month.of.Observation*Cetacean.Common.Name, data = monthly_species_FI_shot))
+# 
+# #Better if this is summed across years?
+# monthly_FI_shot_year_figure <- monthly_species_FI_shot %>%
+#   group_by(Cetacean.Common.Name, Month.of.Observation) %>%
+#   summarize(cnt = sum(cnt)) %>%
+#   ggplot(aes(x = factor(Month.of.Observation), y = cnt, 
+#           group = Cetacean.Common.Name, color = Cetacean.Common.Name)) +
+#   #geom_line(aes(group = Cetacean.Common.Name)) + 
+#   geom_smooth(se = F) +
+#   ylab("Total Strandings") + xlab("") + 
+#   plot_theme(legend.position = 'top') + 
+#   scale_color_brewer(palette = 'Set3')
+# #ggsave(monthly_FI_shot_year_figure, file = "./Figures_nohp/monthly_FI_shot_year_figure.pdf")
+
+```
+
+```{r spatial state}
+#All by state
+year_month_state <- cetaceans %>%
+  filter(State != 'NA') %>%
+  group_by(State, Year.of.Observation, Month.of.Observation) %>%
+  summarize(cnt = n_distinct(National.Database.Number))
+
+year_state_boxplot <- 
+  ggplot(year_month_state, aes(x = as.factor(Year.of.Observation), y = cnt, fill = State)) +
+  geom_boxplot() +
+  xlab("") + ylab("Monthly Strandings") +
+  plot_theme(legend.position = 'top') +
+  scale_fill_brewer(palette = 'Set1')
+ggsave(year_state_boxplot, file = "./Figures_nohp/year_state_boxplot.pdf")
+
+year_state_prop <- cetaceans %>%
+  group_by(State, Year.of.Observation) %>%
+  summarize(cnt = n_distinct(National.Database.Number)) %>%
+  dcast(Year.of.Observation ~ State, value.var = 'cnt') %>%
+  transform(prop.or = round(OR/(OR+WA), 2)*100)
+  
+mean(year_state_prop$prop.or)
+sum(year_state_prop$OR)/sum(year_month_state$cnt)
+
+#Increasing in WA and OR, though at a greater rate in WA
+summary(glm(cnt ~ Year.of.Observation + State, family = poisson(link = log), data = year_month_state))
+
+#Tukey - average annual strandings in states are significantly different from each other
+summary(aov(cnt ~ Year.of.Observation + State, data = year_month_state))
+
+#Bar chart of strandings by state shows slightly more in WA, but similar trends through time. Higher in OR in 2015 and higher in WA in 2010.
+all_state_figure <- cetaceans %>% filter(State != 'NA') %>%
+  group_by(State, Year.of.Observation) %>%
+  summarize(cnt = n_distinct(National.Database.Number)) %>%
+ggplot(aes(x = factor(Year.of.Observation), y = cnt, fill = State)) +
+  geom_bar(stat = 'identity', position = position_dodge(width = 0.8), width = 0.6) + 
+   ylab("Total Annual Strandings") + xlab("") + 
+   plot_theme() + 
+   scale_fill_brewer(palette = 'Set1') 
+ggsave(all_state_figure, file = "./Figures_nohp/all_state_figure.pdf")
+
+#HI by state
+# HI_year_state <- cetaceans %>%
+#   filter(Findings.of.Human.Interaction == 'Y' & Interaction.Type != 'NA') %>%
+#   group_by(State, Year.of.Observation, Interaction.Type) %>%
+#   summarize(cnt = n_distinct(National.Database.Number))
+# 
+# HI_state_prop <- HI_year_state %>%
+#   group_by(State, Interaction.Type) %>%
+#   summarize(cnt = sum(cnt)) %>%
+#   dcast(Interaction.Type ~ State, value.var = 'cnt') %>%
+#   transform(prop.or = round(OR/(OR+WA), 2)*100)
+#   
+# mean(HI_state_prop$prop.or)
+# sum(HI_state_prop$OR)/sum(HI_year_state$cnt)
+
+#Same as overall cases - HI cases are increasing in both states, faster in WA
+summary(glm(cnt ~ Year.of.Observation + State, family = poisson(link = log), data= HI_year_state))
+
+#Tukey - average annual strandings in states are significantly different from each other
+summary(aov(cnt ~ State, data = HI_year_state))
+
+#Bar chart of HI strandings by state shows growing number in OR
+HI_state_year_figure <- cetaceans %>% filter(State != 'NA') %>%
+  filter(Findings.of.Human.Interaction == 'Y') %>%
+  group_by(State, Year.of.Observation) %>%
+  summarize(cnt = n_distinct(National.Database.Number)) %>%
+    
+ggplot(aes(x = factor(Year.of.Observation), y = cnt, fill = State)) +
+  geom_bar(stat = 'identity', position = position_dodge(width = 0.8), width = 0.6) + 
+   ylab("Annual Human Interaction Cases") + xlab("") + 
+   plot_theme() + 
+   scale_fill_brewer(palette = 'Set1') 
+ggsave(HI_state_year_figure, file = "./Figures_nohp/HI_state_year_figure.pdf")
+
+#Species by state
+
+state_species <- cetaceans %>% filter(State != 'NA') %>%
+  filter(Cetacean.Common.Name != 'Unidentified') %>%
+  group_by(Cetacean.Common.Name, State) %>%
+  summarize(cnt = n_distinct(National.Database.Number)) 
+
+#Bar chart
+state_species_prop_figure <- 
+  ggplot(state_species, aes(Cetacean.Common.Name, cnt, fill = State)) + 
+  geom_bar(stat = 'identity', position = position_dodge(width = 0.8), width = 0.6) +
+  xlab("") + ylab("Total Strandings") +
+  scale_y_continuous(labels = comma) +
+  plot_theme() + 
+   scale_fill_brewer(palette = 'Set1')
+ggsave(state_species_prop_figure, file = "./Figures_nohp/state_species_prop_figure.pdf")
+
+#100% stacked
+state_species_prop_figure <- 
+  ggplot(state_species, aes(Cetacean.Common.Name, cnt, fill = State)) + 
+  geom_bar(stat = 'identity', position = 'fill') +
+  xlab("") + ylab("Proportion of Strandings") +
+  plot_theme() + 
+   scale_fill_brewer(palette = 'Set1')
+ggsave(state_species_prop_figure, file = "./Figures_nohp/state_species_prop_figure.pdf")
+
+```
+
+```{r WA counties}
+#all strandings by county - WA
+
+allWA_bycounty <- cetaceans %>% 
+  filter(County != 'NA' & County != 'Unknown' & State == 'WA') %>% 
+  group_by(County, Year.of.Observation) %>%
+  summarize(cnt = n_distinct(National.Database.Number)) 
+
+allWA_bycounty_figure <- ggplot(allWA_bycounty, aes(x = County, y = cnt)) + 
+  geom_bar(stat = 'identity')  + 
+  ylab("Total Strandings") + xlab("") + 
+  scale_y_continuous(labels = comma) +
+  plot_theme() + 
+  scale_fill_brewer(palette = 'Set1')
+ggsave(allWA_bycounty_figure, file = "./Figures_nohp/allWA_bycounty_figure.pdf")
+
+#Some counties have higher/lower strandings compared to others
+summary(aov(cnt ~ County, allWA_bycounty))
+
+#Increasing in some counties, decreasing in others
+WAcounty_model <- glm(cnt ~ County + Year.of.Observation, family = poisson(link = log), data = allWA_bycounty)
+
+summary(WAcounty_model)
+autoplot(WAcounty_model)
+
+#all HI by county - WA
+
+WAHI_bycounty <- cetaceans %>% 
+  filter(County != 'NA' & State == 'WA' & 
+           Findings.of.Human.Interaction == 'Y' & 
+           Interaction.Type != 'NA') %>% 
+  group_by(County, Interaction.Type, Year.of.Observation) %>%
+  summarize(cnt = n_distinct(National.Database.Number))
+
+#Interaction types different overall
+#summary(aov(cnt ~ County + Interaction.Type + Year.of.Observation, WAHI_bycounty))
+
+#human interaction cases higher in grays, pacific, pierce, whatcom
+WAcounty_HI_model <- glm(cnt ~ County, family = poisson(link = log), WAHI_bycounty)
+summary(WAcounty_HI_model)
+autoplot(WAcounty_HI_model)
+
+#increasing in grays harbor, pacific, pierce, none decreasing
+summary(glm(cnt ~ County + Year.of.Observation, family = poisson(link = log), data = WAHI_bycounty))
+
+#Interaction types in each county - Help - same as below - am I getting this right? Shows gunshots is increasing in grays, but when year is added in, slope becomes negative?
+summary(glm(cnt ~ County*Interaction.Type*Year.of.Observation, family = poisson(link = log), WAHI_bycounty))
+
+#HELPPPPPPP - Need to show that certain counties are disproportionally represented compared to overall strandings
+#objects copied from below
+bigtable_WA_stats <- cetaceans %>% 
+  filter(County != 'NA' & State == 'WA' & County != 'Unknown') %>% 
+  group_by(County) %>%
+  summarize(all.cnt = n_distinct(National.Database.Number)) %>%
+  transform(all.prop = round(all.cnt/sum(all.cnt), 2)*100)
+
+bigtable_WA_HI_stats <- cetaceans %>% 
+  filter(County != 'NA' & State == 'WA' & County != 'Unknown' & 
+           Findings.of.Human.Interaction == 'Y' & 
+           Interaction.Type != 'NA') %>% 
+  group_by(County) %>%
+  summarize(HI.cnt = n_distinct(National.Database.Number)) %>%
+  transform(HI.prop = round(HI.cnt/sum(HI.cnt), 2)*100) %>%
+  merge(bigtable_WA_stats, by = 'County')
+
+#Not quite right - shows which proportions are different from each other
+pairwise.prop.test(bigtable_WA_HI_stats$HI.cnt, bigtable_WA_HI_stats$all.cnt)
+#Not quite right either - shows that proportions are different from each other, not different from the county-level distribution of all strandings
+prop.test(bigtable_WA_HI_stats$HI.cnt, bigtable_WA_HI_stats$all.cnt)
+
+#So I think I need to test the proportions, because that would assume n is the baseline?
+bigtable_WA_props <- cetaceans %>% 
+  filter(County != 'NA' & State == 'WA' & County != 'Unknown') %>% 
+  group_by(County) %>%
+  summarize(all.cnt = n_distinct(National.Database.Number)) %>%
+  transform(all.prop = all.cnt/sum(all.cnt))
+
+bigtable_WA_HI_props <- cetaceans %>% 
+  filter(County != 'NA' & State == 'WA' & County != 'Unknown' & 
+           Findings.of.Human.Interaction == 'Y' & 
+           Interaction.Type != 'NA') %>% 
+  group_by(County) %>%
+  summarize(HI.cnt = n_distinct(National.Database.Number)) %>%
+  transform(HI.prop = HI.cnt/sum(HI.cnt)) %>%
+  merge(bigtable_WA_props, by = 'County') %>%
+  select(County, all.prop, HI.prop)
+
+#https://www.r-bloggers.com/comparison-of-two-proportions-parametric-z-test-and-non-parametric-chi-squared-methods/
+#https://ww2.coastal.edu/kingw/statistics/R-tutorials/proport.html
+
+# smokers  <- c( 83, 90, 129, 70 )
+# patients <- c( 86, 93, 136, 82 )
+# pairwise.prop.test(smokers, patients)
+# prop.test(smokers, patients)
+
+####
+WAHI_bycounty_figure <- 
+  ggplot(WAHI_bycounty, aes(x = County, y = cnt, fill = Interaction.Type)) + 
+  geom_bar(stat = 'identity')  + 
+  ylab("Total Human Interaction Cases") + xlab("") + 
+  scale_y_continuous(labels = comma) +
+  plot_theme(legend.position = 'top') + 
+  scale_fill_brewer(palette = 'Set1') 
+#ggsave(WAHI_bycounty_figure, file = "./Figures_nohp/WAHI_bycounty_figure.pdf")
+
+
+```
+
+```{r OR counties}
+
+#all strandings by county - OR
+
+OR_bycountyallsplit <- cetaceans %>%
+  filter(County != 'NA' & County != 'Unknown' & State == 'OR') %>% 
+  group_by(County, Year.of.Observation) %>%
+  summarize(cnt = n_distinct(National.Database.Number))
+  
+allOR_bycounty <- cetaceans %>% 
+  filter(County != 'NA' & County != 'Unknown' & State == 'OR') %>% 
+  group_by(County, Year.of.Observation) %>%
+  summarize(cnt = n_distinct(National.Database.Number))
+
+#Significant differences across counties
+# summary(aov(cnt ~ County, allOR_bycounty))
+# TukeyHSD(aov(cnt ~ County, allOR_bycounty))
+
+#Significant differences across counties
+ORcounty_model <- glm(cnt ~ County, family = poisson(link = log), allOR_bycounty)
+summary(ORcounty_model)
+autoplot(ORcounty_model)
+
+#Increasing in Clatsop, Coos, and Lincoln, Curry, Tillamook, Clackamas
+ORcounty_model_yr <- glm(cnt ~ County + Year.of.Observation, family = poisson(link = log), allOR_bycounty)
+summary(ORcounty_model_yr)
+autoplot(ORcounty_model_yr)
+
+allOR_bycounty_figure <- 
+  ggplot(allOR_bycounty, aes(x = County, y = cnt)) + 
+  geom_bar(stat = 'identity')  + 
+  ylab("Total Strandings") + xlab("") + 
+  scale_y_continuous(labels = comma) +
+  plot_theme() + 
+  scale_fill_brewer(palette = 'Set1')
+ggsave(allOR_bycounty_figure, file = "./Figures_nohp/allOR_bycounty_figure.pdf")
+
+
+#all HI by county - OR
+
+ORHI_bycounty <- cetaceans %>% 
+  filter(County != 'NA' & State == 'OR' & 
+           Findings.of.Human.Interaction == 'Y') %>% 
+  group_by(County, Year.of.Observation) %>%
+  summarize(cnt = n_distinct(National.Database.Number)) 
+
+###Overall HI
+#Significant differences across counties
+# summary(aov(cnt ~ County, ORHI_bycounty))
+# TukeyHSD(aov(cnt ~ County, ORHI_bycounty))
+
+#Significant difference in Clatstop
+ORcounty_HI_model <- glm(cnt ~ County, family = poisson(link = log), ORHI_bycounty)
+summary(ORcounty_HI_model)
+autoplot(ORcounty_HI_model)
+
+#Increasing just in Clallam and Clatsop, not changing either way anywhere else
+summary(glm(cnt ~ County + Year.of.Observation, family = poisson(link = log), ORHI_bycounty))
+
+###Specific HI types in specific counties changing over time - help - doesn't seem quite right
+
+summary(glm(cnt ~ County*Interaction.Type + Year.of.Observation, family = poisson(link = log), ORHI_bycounty))
+
+
+ORHI_bycounty_figure <- 
+  ggplot(ORHI_bycounty, aes(x = County, y = cnt)) + 
+  geom_bar(stat = 'identity')  + 
+  ylab("Human Interaction Cases") + xlab("") + 
+  plot_theme(legend.position = 'top') + 
+  scale_fill_brewer(palette = 'Set1')
+ggsave(ORHI_bycounty_figure, file = "./Figures_nohp/ORHI_bycounty_figure.pdf")
+
+
+```
+
+```{r big counties tables}
+
+#Washington
+bigtable_WA <- cetaceans %>% 
+  filter(County != 'NA' & State == 'WA' & County != 'Unknown') %>% 
+  group_by(County) %>%
+  summarize(cnt = n_distinct(National.Database.Number)) %>%
+  transform(all.prop = round(cnt/sum(cnt), 3)*100)
+
+bigtable_WA_HI <- cetaceans %>% 
+  filter(County != 'NA' & State == 'WA' & County != 'Unknown' & 
+           Findings.of.Human.Interaction == 'Y' & 
+           Interaction.Type != 'NA') %>% 
+  group_by(County) %>%
+  summarize(cnt = n_distinct(National.Database.Number)) %>%
+  transform(HI.prop = round(cnt/sum(cnt), 3)*100) %>%
+  merge(bigtable_WA, by = 'County')
+
+bigtable_WA_HI_type <- cetaceans %>% 
+  filter(County != 'NA' & State == 'WA' & County != 'Unknown' &
+           Findings.of.Human.Interaction == 'Y' & 
+           Interaction.Type != 'NA') %>% 
+  group_by(County, Interaction.Type) %>%
+  summarize(cnt = n_distinct(National.Database.Number)) %>%
+  dcast(County ~ Interaction.Type, value.var = 'cnt') 
+
+bigtable_WA_HI_type[is.na(bigtable_WA_HI_type)] <- 0
+
+bigtable_WA_HI_table <- bigtable_WA_HI_type %>%
+  transform(Prop.boat = round((Boat/(Boat + Fisheries + Gunshot + Other)*100), 1),
+            Prop.fish = round((Fisheries/(Boat + Fisheries + Gunshot + Other)*100), 1),
+            Prop.shot = round((Gunshot/(Boat + Fisheries + Gunshot + Other)*100), 1),
+            Prop.other = round((Other/(Boat + Fisheries + Gunshot + Other)*100), 1)) %>%
+  dplyr::select(County, Prop.boat, Prop.fish, Prop.shot, Prop.other) %>%
+  merge(bigtable_WA_HI, by = 'County') %>%
+  dplyr::select(County, cnt.y, all.prop, cnt.x, HI.prop, Prop.fish, Prop.shot, Prop.boat, Prop.other)
+colnames(bigtable_WA_HI_table) <- c("County", "All Strandings (n)", "All Strandings (%)", "HI Cases (n)", "HI Prevalence (%)", "Fisheries (%)", "Gunshot (%)", "Boat (%)", "Other (%)")
+
+WAcounties_table <- write.csv(bigtable_WA_HI_table, file = "./Figures_nohp/WAcounties_table.csv", row.names = F)
+
+#OR
+bigtable_OR <- cetaceans %>% 
+  filter(County != 'NA' & State == 'OR' & County != 'Unknown') %>% 
+  group_by(County) %>%
+  summarize(cnt = n_distinct(National.Database.Number)) %>%
+  transform(all.prop = round(cnt/sum(cnt), 3)*100)
+
+bigtable_OR_HI <- cetaceans %>% 
+  filter(County != 'NA' & State == 'OR' & County != 'Unknown' &
+           Findings.of.Human.Interaction == 'Y' & 
+           Interaction.Type != 'NA') %>% 
+  group_by(County) %>%
+  summarize(cnt = n_distinct(National.Database.Number)) %>%
+  transform(HI.prop = round(cnt/sum(cnt), 3)*100) %>%
+  merge(bigtable_OR, by = 'County')
+
+bigtable_OR_HI_type <- cetaceans %>% 
+  filter(County != 'NA' & State == 'OR' & County != 'Unknown' &
+           Findings.of.Human.Interaction == 'Y' & 
+           Interaction.Type != 'NA') %>% 
+  group_by(County, Interaction.Type) %>%
+  summarize(cnt = n_distinct(National.Database.Number)) %>%
+  dcast(County ~ Interaction.Type, value.var = 'cnt') 
+
+bigtable_OR_HI_type[is.na(bigtable_OR_HI_type)] <- 0
+
+bigtable_OR_HI_table <- bigtable_OR_HI_type %>%
+  transform(Prop.boat = round((Boat/(Boat + Fisheries + Gunshot + Other)*100), 1),
+            Prop.fish = round((Fisheries/(Boat + Fisheries + Gunshot + Other)*100), 1),
+            Prop.shot = round((Gunshot/(Boat + Fisheries + Gunshot + Other)*100), 1),
+            Prop.other = round((Other/(Boat + Fisheries + Gunshot + Other)*100), 1)) %>%
+  dplyr::select(County, Prop.boat, Prop.fish, Prop.shot, Prop.other) %>%
+  merge(bigtable_OR_HI, by = 'County') %>%
+  dplyr::select(County, cnt.y, all.prop, cnt.x, HI.prop, Prop.fish, Prop.shot, Prop.boat, Prop.other)
+colnames(bigtable_OR_HI_table) <- c("County", "All Strandings (n)", "All Strandings (%)", "HI Cases (n)", "HI Prevalence (%)", "Fisheries (%)", "Gunshot (%)", "Boat (%)", "Other (%)")
+
+ORcounties_table <- write.csv(bigtable_OR_HI_table, file = "./Figures_nohp/ORcounties_table.csv", row.names = F)
+```
+
+```{r weight length, eval = FALSE, echo = FALSE}
+
+#Anything interesting here?
+
+# weightlength <- cetaceans %>% 
+#   filter(Length != 'NA' & Weight != 'NA') %>% filter(Length > 0 & Weight > 0) %>%
+#   select(National.Database.Number, Year.of.Observation, Month.of.Observation, Age.Class, Sex, County, Findings.of.Human.Interaction, Interaction.Type, Cetacean.Common.Name, Latitude, Longitude , Length, Length.Units, Weight, Weight.Units) 
+# 
+# weightlength$Length <- as.numeric(weightlength$Length)
+# weightlength$Weight <- as.numeric(weightlength$Weight)
+# weightlength$Length.in <- ifelse(weightlength$Length.Units == 'cm', as.integer(weightlength$Length/2.54), 
+#                                ifelse(weightlength$Length.Units == 'in', weightlength$Length, ''))
+# weightlength$Weight.lbs <- ifelse(weightlength$Weight.Units == 'kg', as.integer(weightlength$Weight/0.453), 
+#                                   ifelse(weightlength$Weight.Units == 'lb', weightlength$Weight, ''))
+# 
+# ggplot(weightlength, aes(Weight.lbs, Length.in)) +
+#   geom_point(position = 'jitter') +
+#   xlab("Weight (lbs)") + ylab("Length") +
+#   plot_theme()
+# 
+# qplot(weightlength$Weight.lbs)
+# qplot(weightlength$Length.in)
+# 
+# ggplot(weightlength, aes(Weight.lbs)) + geom_histogram(stat = 'identity', binwidth = 20)
+
+```
+
+```{r summary tables}
+
+#Proportion of species all years
+species_prop <- cetaceans %>%
+  group_by(Cetacean.Common.Name) %>%
+  summarize(cnt = n_distinct(National.Database.Number)) %>%
+  transform(all.prop = round(cnt/sum(cnt), 2) *100) %>%
+  #filter(Cetacean.Common.Name != 'Unidentified') %>%
+  select(Cetacean.Common.Name, all.prop)
+
+#colnames(species_prop) <- c("Species", "Number", "Percent")
+
+# species_prop_table <- write.csv(species_prop, file = "./Figures_nohp/species_prop_table.csv", row.names = FALSE)
+                  
+
+#Big proportion table for sex
+
+sex_table <- cetaceans %>%
+  group_by(Sex) %>%
+  summarize(all.cnt = n_distinct(National.Database.Number))
+
+sex_table$All.prop <- round(sex_table$all.cnt/sum(sex_table$all.cnt), 3)*100
+
+#Adding in HI proportion - actually added below
+sex_HI_table <- cetaceans %>%
+  filter(Findings.of.Human.Interaction == 'Y' & Interaction.Type != 'NA') %>%
+  group_by(Sex) %>%
+  summarize(HI.cnt = n_distinct(National.Database.Number)) %>%
+  merge(sex_table, by = 'Sex') %>%
+  transform(HI.prop = round((HI.cnt)/(all.cnt), 3)*100)
+
+#Adding in HI type and merging all three mini tables
+Sex_HI_type_table <- cetaceans %>%
+  filter(Findings.of.Human.Interaction == 'Y' & Interaction.Type != 'NA') %>%
+  group_by(Sex, Interaction.Type) %>%
+  summarize(cnt = n_distinct(National.Database.Number)) %>%
+  dcast(Sex ~ Interaction.Type, value.var = 'cnt') %>%
+  transform(Prop.boat = round(Boat/(Boat + Fisheries + Gunshot + Other)*100, 1),
+            Prop.fish = round(Fisheries/(Boat + Fisheries + Gunshot + Other)*100, 1),
+            Prop.shot = round(Gunshot/(Boat + Fisheries + Gunshot + Other)*100, 1),
+            Prop.other = round(Other/(Boat + Fisheries + Gunshot + Other)*100, 1)) %>%
+  dplyr::select(c(Sex, Prop.boat, Prop.fish, Prop.shot, Prop.other)) %>%
+  merge(sex_HI_table, by = 'Sex') %>%
+  #merge(sex_region, by = 'Sex') %>%
+  dplyr::select(c(Sex, all.cnt, All.prop, HI.cnt, HI.prop, Prop.fish, Prop.shot, Prop.boat, Prop.other))
+colnames(Sex_HI_type_table) <- c("Class", "All Strandings (n)", "All Strandings (%)", "HI Cases (n)", "HI Prevalence (%)", "Fisheries Interactions (%)", "Gunshots (%)", "Boat Injuries (%)", "Other (%)")
+
+#Big table for age class
+
+Age_table <- cetaceans %>%
+  transform(Age.Class = ifelse(Year.of.Observation < 2002, 'NA', as.character(Age.Class))) %>%
+  group_by(Age.Class) %>%
+  summarize(all.cnt = n_distinct(National.Database.Number)) %>%
+  filter(Age.Class != 'NA')
+
+Age_table$All.prop <- round(Age_table$all.cnt/sum(Age_table$all.cnt), 3)*100
+
+#Prevalence
+age_HI_prev <- cetaceans %>%
+  transform(Age.Class = ifelse(Year.of.Observation < 2002, 'NA', as.character(Age.Class))) %>%
+  group_by(Age.Class, Findings.of.Human.Interaction) %>%
+  summarize(cnt = n_distinct(National.Database.Number)) %>%
+  dcast(Age.Class ~ Findings.of.Human.Interaction, value.var = 'cnt') %>%
+  filter(Age.Class != 'NA')
+age_HI_prev[is.na(age_HI_prev)] <- 0
+age_HI_prev <- age_HI_prev %>%
+    transform(Prev.HI = round(Y/(Y+N+CBD), 3)*100) %>%
+  merge(Age_table, by = 'Age.Class') %>%
+  rename(HI.cnt = Y) %>%
+  dplyr::select(Age.Class, all.cnt, All.prop, HI.cnt, Prev.HI)
+
+#Adding in HI type and merging all three mini tables
+Age_HI_type_table <- cetaceans %>%
+  filter(Findings.of.Human.Interaction == 'Y' & Interaction.Type != 'NA') %>%
+  group_by(Age.Class, Interaction.Type) %>%
+  summarize(cnt = n_distinct(National.Database.Number)) %>%
+  dcast(Age.Class ~ Interaction.Type, value.var = 'cnt') %>%
+  transform(Prop.boat = round(Boat/(Boat + Fisheries + Gunshot + Other)*100, 1),
+            Prop.fish = round(Fisheries/(Boat + Fisheries + Gunshot + Other)*100, 1),
+            Prop.shot = round(Gunshot/(Boat + Fisheries + Gunshot + Other)*100, 1),
+            Prop.other = round(Other/(Boat + Fisheries + Gunshot + Other)*100, 1)) %>%
+  dplyr::select(c(Age.Class, Prop.boat, Prop.fish, Prop.shot, Prop.other)) %>%
+  merge(age_HI_prev, by = 'Age.Class') %>%
+  #merge(age_region, by = 'Age.Class') %>%
+  dplyr::select(c(Age.Class, all.cnt, All.prop, HI.cnt, Prev.HI, Prop.fish, Prop.shot, Prop.boat, Prop.other))
+Age_HI_type_table <- Age_HI_type_table[order(Age_HI_type_table$Age),]
+colnames(Age_HI_type_table) <- c("Class", "All Strandings (n)", "All Strandings (%)", "HI Cases (n)", "HI Prevalence (%)", "Fisheries Interactions (%)", "Gunshots (%)", "Boat Injuries (%)", "Other (%)")
+
+#Combinining into one larger table
+comb_age_sex_comp <- bind_rows(Sex_HI_type_table, Age_HI_type_table)
+comb_age_sex_comp[3, 1] <- "Unid. Sex"
+comb_age_sex_comp[8, 1] <- "Unid. Age"
+age_sex_composition_table <- write.csv(comb_age_sex_comp, file = "./Figures_nohp/age_sex_composition_table.csv", row.names = FALSE)
+
+#Species and age/sex composition
+# species_age_props <- cetaceans %>%
+#   transform(Age.Class = ifelse(Year.of.Observation < 2002, 'NA', Age.Class)) %>%
+#   filter(Cetacean.Common.Name != 'Unidentified') %>%
+#   group_by(Cetacean.Common.Name, Age.Class) %>%
+#   summarize(cnt = n_distinct(National.Database.Number)) %>%
+#   filter(Age.Class != 'NA') %>%
+#   ggplot(., aes(Age.Class, cnt)) +
+#   #geom_boxplot() +
+#     geom_bar(stat = 'identity') +
+#     xlab("") + ylab("Strandings") +
+#     facet_wrap(~ Cetacean.Common.Name) +
+#     pubfigure_theme()
+
+species_sex_props <- cetaceans %>%
+  #filter(Cetacean.Common.Name != 'Unidentified') %>%
+  group_by(Cetacean.Common.Name, Sex) %>%
+  summarize(cnt = n_distinct(National.Database.Number))
+
+# ggplot(species_sex_props, aes(Cetacean.Common.Name, cnt, fill = Sex)) +
+#   geom_bar(stat = 'identity', position = 'fill') +
+#   xlab("") + ylab("Strandings") +
+#   pubfigure_theme()
+
+formerge <- species_sex_props %>% 
+  dcast(Cetacean.Common.Name ~ Sex, value.var = 'cnt') %>%
+  transform(Prop.Fem = round(Female/(Female+Male+Unid), 3)*100,
+            Prop.Male = round(Male/(Female+Male+Unid), 3)*100,
+            Prop.Unid = round(Unid/(Female+Male+Unid), 3)*100) %>%
+  dplyr::select(Cetacean.Common.Name, Prop.Fem, Prop.Male, Prop.Unid)
+
+species_props <- cetaceans %>%
+  #filter(Cetacean.Common.Name != 'Unidentified') %>%
+  transform(Age.Class = ifelse(Year.of.Observation < 2002, 'NA', as.character(Age.Class))) %>%
+  group_by(Cetacean.Common.Name, Age.Class) %>%
+  summarize(cnt = n_distinct(National.Database.Number)) %>%
+  filter(Age.Class != 'NA') %>%
+  dcast(Cetacean.Common.Name ~ Age.Class, value.var = 'cnt') %>%
+  transform(Tot = Pup+Yearling+Subadult+Adult+Unid) %>%
+  transform(Prop.pup = round(Pup/(Tot), 3)*100, 
+            Prop.year = round(Yearling/(Tot), 3)*100,
+            Prop.sub = round(Subadult/(Tot), 3)*100,
+            Prop.ad = round(Adult/(Tot), 3)*100,
+            Prop.un = round(Unid/(Tot), 3)*100) %>%
+  merge(formerge, by = 'Cetacean.Common.Name') %>%
+  merge(species_prop, by = 'Cetacean.Common.Name') %>%
+  dplyr::select(Cetacean.Common.Name, Tot, all.prop, Prop.Male, Prop.Fem, Prop.Unid, Prop.pup, Prop.year, Prop.sub, Prop.ad, Prop.un)
+colnames(species_props) <- c("Species", "All Strandings (n)", "All Strandings (%)", "Male (%)", "Female (%)", "Unid. Sex (%)", "Pup (%)", "Yearling (%)", "Subadult (%)", "Adult (%)", "Unid. Age (%)")
+
+#by sex
+by_sex <- cetaceans %>%
+  group_by(Sex) %>%
+  summarize(cnt = n_distinct(National.Database.Number))
+# 
+# test <- cetaceans %>%
+#   filter(is.na(Sex))
+  
+#by age
+by_age <- cetaceans %>%
+  transform(Age.Class = ifelse(Year.of.Observation < 2002, 'NA', as.character(Age.Class))) %>%
+  group_by(Age.Class) %>%
+  summarize(cnt = n_distinct(National.Database.Number)) %>%
+  filter(Age.Class != 'NA')
+
+average_species_props <- c("Average", "--", "--",
+                round(as.numeric(by_sex[by_sex$Sex == 'Male', 'cnt']/sum(by_sex$cnt)*100),1),
+                round(as.numeric(by_sex[by_sex$Sex == 'Female', 'cnt']/sum(by_sex$cnt)*100), 1),
+                round(as.numeric(by_sex[by_sex$Sex == 'Unid', 'cnt']/sum(by_sex$cnt)*100), 1),
+                round(as.numeric(by_age[by_age$Age.Class == 'Pup', 'cnt']/sum(by_age$cnt)*100), 1),
+                round(as.numeric(by_age[by_age$Age.Class == 'Yearling', 'cnt']/sum(by_age$cnt)*100), 1),
+                round(as.numeric(by_age[by_age$Age.Class == 'Subadult', 'cnt']/sum(by_age$cnt)*100), 1),
+                round(as.numeric(by_age[by_age$Age.Class == 'Adult', 'cnt']/sum(by_age$cnt)*100), 1),
+                round(as.numeric(by_age[by_age$Age.Class == 'Unid', 'cnt']/sum(by_age$cnt)*100), 1))
+
+species_age_sex_composition <- rbind(species_props, average_species_props, stringsAsFactors = F)
+  
+species_age_sex_composition <- write.csv(species_age_sex_composition, file =
+                      "./Figures_nohp/species_age_sex_composition.csv", row.names = FALSE)
+
+########same but HI - looks very similar to all combined strandings
+formerge_HI <- cetaceans %>%
+  filter(Findings.of.Human.Interaction == 'Y') %>%
+  group_by(Cetacean.Common.Name, Sex) %>%
+  summarize(cnt = n_distinct(National.Database.Number)) %>%
+  dcast(Cetacean.Common.Name ~ Sex, value.var = 'cnt') %>%
+  transform(Prop.Fem = round(Female/(Female+Male+Unid), 3)*100,
+            Prop.Male = round(Male/(Female+Male+Unid), 3)*100) %>%
+  select(Cetacean.Common.Name, Prop.Fem, Prop.Male)
+
+species_props_HI <- cetaceans %>%
+  transform(Age.Class = ifelse(Year.of.Observation < 2002, 'NA', as.character(Age.Class))) %>%
+  filter(Findings.of.Human.Interaction == 'Y') %>%
+  group_by(Cetacean.Common.Name, Age.Class) %>%
+  summarize(cnt = n_distinct(National.Database.Number)) %>%
+  dcast(Cetacean.Common.Name ~ Age.Class, value.var = 'cnt') %>%
+  #filter(Age.Class != 'NA') %>%
+  transform(Tot = Pup+Yearling+Subadult+Adult+Unid) %>%
+  transform(Prop.pup = round(Pup/(Tot), 3)*100, 
+            Prop.year = round(Yearling/(Tot), 3)*100,
+            Prop.sub = round(Subadult/(Tot), 3)*100,
+            Prop.ad = round(Adult/(Tot), 3)*100,
+            Prop.un = round(Unid/(Tot), 3)*100) %>%
+  merge(formerge_HI, by = 'Cetacean.Common.Name') %>%
+  select(Cetacean.Common.Name, Tot, Prop.Male, Prop.Fem, Prop.pup, Prop.year, Prop.sub, Prop.ad, Prop.un)
+```
+
+```{r species comp table}
+##Species composition table
+
+#It looks like, for example, harbor seals comrpise the majority of all cases, but FI and HI are more evenly distributed across species?
+ 
+# #Big table for species
+# species_prop_reg <- cetaceans %>%
+#   filter(!is.na(Water.Body)) %>% # help fix these NAs
+#   group_by(Cetacean.Common.Name, Water.Body) %>%
+#   summarize(cnt = n_distinct(National.Database.Number))  %>%
+#   dcast(Cetacean.Common.Name ~ Water.Body, value.var = 'cnt') 
+# species_prop_reg[is.na(species_prop_reg)] <- 0
+# species_prop_reg <- species_prop_reg %>%
+#   transform(prop.or = round(OR_Coast/(OR_Coast + WA_Coast + Inland_WA), 3)*100,
+#             prop.wa_in = round(Inland_WA/(OR_Coast + WA_Coast + Inland_WA), 3)*100,
+#             prop.wa_coast = round(WA_Coast/(OR_Coast + WA_Coast + Inland_WA), 3)*100) %>%
+#   dplyr::select(Cetacean.Common.Name, prop.or, prop.wa_in, prop.wa_coast)
+# 
+# species_bigtable <- cetaceans %>%
+#   group_by(Cetacean.Common.Name) %>%
+#   summarize(cnt = n_distinct(National.Database.Number)) %>%
+#   transform(all.prop = round(cnt/sum(cnt), 3)*100)
+# 
+# species_HI_prev <- cetaceans %>%
+#   #filter(Cetacean.Common.Name != 'Unidentified') %>% 
+#   transform(drop_HI = ifelse(Findings.of.Human.Interaction == 'Y' & Interaction.Type == 'NA', 'Y', 'N')) %>%
+#   filter(drop_HI == 'N') %>%
+#   group_by(Cetacean.Common.Name, Findings.of.Human.Interaction) %>%
+#   summarize(cnt = n_distinct(National.Database.Number)) %>%
+#   dcast(Cetacean.Common.Name ~ Findings.of.Human.Interaction, value.var = 'cnt')
+# species_HI_prev[is.na(species_HI_prev)] <- 0
+# species_HI_prev <- species_HI_prev %>%
+#     transform(Prev.HI = round(Y/(Y+N+CBD), 3)*100) %>%
+#   rename(HI.cnt = Y) %>%
+#   dplyr::select(Cetacean.Common.Name, HI.cnt, Prev.HI) %>%
+#   merge(species_bigtable, by = 'Cetacean.Common.Name')
+# 
+# species_prop_HI <- cetaceans %>%
+#   filter(Findings.of.Human.Interaction == 'Y' & Interaction.Type != 'NA') %>%
+#   group_by(Cetacean.Common.Name, Interaction.Type) %>%
+#   summarize(cnt = n_distinct(National.Database.Number)) %>%
+#   dcast(Cetacean.Common.Name ~ Interaction.Type, value.var = 'cnt') 
+# species_prop_HI[is.na(species_prop_HI)] <- 0
+# species_prop_HI <- species_prop_HI %>%
+#   transform(Total = Boat + Gunshot + Fisheries + Other) %>%
+#   transform(Prop.Boat = round(Boat/Total, 3)*100,
+#             Prop.Fisheries = round(Fisheries/Total, 3)*100,
+#             Prop.Gunshot = round(Gunshot/Total, 3)*100,
+#             Prop.Other = round(Other/Total, 3)*100) %>%
+#   merge(species_HI_prev, by = 'Cetacean.Common.Name') %>%
+#   merge(species_prop_reg, by = 'Cetacean.Common.Name') %>%
+#   dplyr::select(Cetacean.Common.Name, cnt, all.prop, prop.or, prop.wa_coast, prop.wa_in, HI.cnt, Prev.HI, Prop.Fisheries, Prop.Gunshot, Prop.Boat, Prop.Other) 
+# colnames(species_prop_HI) <- c("Species", "Total (n)", "All Strandings (%)", "OR (%)", "WA Coast (%)", "WA Inland (%)", "HI Cases (n)", "HI Prevalence (%)", "Fisheries (%)", "Gunshot (%)", "Boat (%)", "Other (%)")
+# 
+# #Calculating averages for average line
+# #by region
+# region <- cetaceans %>%
+#   filter(Water.Body != 'NA') %>% group_by(Water.Body) %>%
+#   summarize(cnt = n_distinct(National.Database.Number))
+# HI <- cetaceans %>%
+#   transform(drop_HI = ifelse(Findings.of.Human.Interaction == 'Y' & Interaction.Type == 'NA', 'Y', 'N')) %>%
+#   filter(drop_HI == 'N') %>%
+#   filter(Findings.of.Human.Interaction == 'Y') 
+#   summarize(cnt = round((n_distinct(National.Database.Number)/14729*100), 1))
+# HI_type_p <- cetaceans %>%
+#   filter(Findings.of.Human.Interaction == 'Y' & Interaction.Type != 'NA') %>%
+#   group_by(Interaction.Type) %>%
+#   summarize(cnt = n_distinct(National.Database.Number)) 
+# 
+# average_species_prop_HI <- c("Average", "--", "--",
+#         round(as.numeric(region[region$Water.Body == 'OR_Coast', 'cnt']/sum(region$cnt)*100), 1),
+#         round(as.numeric(region[region$Water.Body == 'WA_Coast', 'cnt']/sum(region$cnt)*100), 1),
+#         round(as.numeric(region[region$Water.Body == 'Inland_WA', 'cnt']/sum(region$cnt)*100), 1),
+#         "--",
+#         as.numeric(HI$cnt),
+#         round(as.numeric(HI_type_p[HI_type_p$Interaction.Type == 'Fisheries', 'cnt']/sum(HI_type_p$cnt)*100), 1),
+#         round(as.numeric(HI_type_p[HI_type_p$Interaction.Type == 'Gunshot', 'cnt']/sum(HI_type_p$cnt)*100), 1),
+#         round(as.numeric(HI_type_p[HI_type_p$Interaction.Type == 'Boat', 'cnt']/sum(HI_type_p$cnt)*100), 1),
+#         round(as.numeric(HI_type_p[HI_type_p$Interaction.Type == 'Other', 'cnt']/sum(HI_type_p$cnt)*100), 1))
+# 
+# species_prop_HI <- rbind(species_prop_HI, average_species_prop_HI, stringsAsFactors = F)
+# 
+# species_HI_prop_table <- write.csv(species_prop_HI, file = "./Figures_nohp/species_HI_prop_table.csv", row.names = F)
+# 
+# ##Big Prevalence over time Table(s)
+# ##all species combined, interaction types as a proportion of all cases, not just HI cases
+# 
+# numberperyear <- cetaceans %>% 
+#   group_by(Year.of.Observation) %>%
+#   summarize(yr.cnt = n_distinct(National.Database.Number))
+# 
+# allprev <- cetaceans %>%
+#   group_by(Findings.of.Human.Interaction, Year.of.Observation) %>%
+#   summarize(cnt = n_distinct(National.Database.Number)) %>%
+#   dcast(Year.of.Observation ~ Findings.of.Human.Interaction, value.var = 'cnt') 
+# allprev[is.na(allprev)] <- 0
+# allprev <- allprev %>% transform(HI.Prev = Y/(Y+N+CBD)) %>%
+#   merge(numberperyear, by = 'Year.of.Observation') %>%
+#   select(Year.of.Observation, yr.cnt, HI.Prev)
+# 
+# allprev_type <- cetaceans %>%
+#   group_by(Interaction.Type, Year.of.Observation) %>%
+#   summarize(cnt = n_distinct(National.Database.Number)) %>%
+#   dcast(Year.of.Observation ~ Interaction.Type, value.var = 'cnt') 
+# allprev_type[is.na(allprev_type)] <- 0
+# allprev_type <- allprev_type %>%
+#   merge(allprev, by = 'Year.of.Observation') %>%
+#   transform(Boat = (Boat/yr.cnt), 
+#             Fisheries = (Fisheries/yr.cnt),
+#             Gunshot = (Gunshot/yr.cnt),
+#             Other = (Other/yr.cnt)) %>%
+#   select(Year.of.Observation, yr.cnt, HI.Prev, Boat, Gunshot, Fisheries, Other)
+# 
+# allprev_stats <- allprev_type %>% 
+#   select(-c(yr.cnt, HI.Prev)) %>% melt(id.vars = "Year.of.Observation") 
+# 
+# HI_type_prev_figure <- 
+#   ggplot(allprev_stats, aes(Year.of.Observation, value, group = variable, col = variable)) +
+#   geom_point() + 
+#   geom_line() + 
+# #geom_smooth(method = 'lm', se = F) +
+#   xlab("") + ylab("Prevalence") +
+#   pubfigure_theme(legend.position = 'top') + 
+#   scale_color_brewer(palette = 'Set1')
+# 
+# #Shows increasing significantly for all types - can I use regression here in this way?
+# HItype_model <- lm(value ~ Year.of.Observation + variable, data = allprev_stats)
+# summary(HItype_model)
+# autoplot(HItype_model)
+# #very different results using poisson
+# HItype_model_poisson <- glm(value ~ Year.of.Observation + variable, family = poisson(link = log), data = allprev_stats)
+# summary(HItype_model_poisson)
+# autoplot(HItype_model_poisson)
+# 
+# ##individual species
+# numberperyearperspecies <- cetaceans %>% 
+#   group_by(Year.of.Observation, Cetacean.Common.Name) %>%
+#   summarize(yr.cnt = n_distinct(National.Database.Number))
+# 
+# allprev_species <- cetaceans %>%
+#   group_by(Findings.of.Human.Interaction, Year.of.Observation, Cetacean.Common.Name) %>%
+#   summarize(cnt = n_distinct(National.Database.Number)) %>%
+#   dcast(Year.of.Observation + Cetacean.Common.Name ~ Findings.of.Human.Interaction, value.var = 'cnt') 
+# allprev_species[is.na(allprev_species)] <- 0
+# allprev_species <- allprev_species %>% transform(HI.Prev = Y/(Y+N+CBD)) %>%
+#   merge(numberperyearperspecies, by = c('Year.of.Observation', 'Cetacean.Common.Name')) %>%
+#   select(Year.of.Observation, Cetacean.Common.Name, yr.cnt, HI.Prev)
+# 
+# allprev_type_species <- cetaceans %>%
+#   group_by(Interaction.Type, Year.of.Observation, Cetacean.Common.Name) %>%
+#   summarize(cnt = n_distinct(National.Database.Number)) %>%
+#   dcast(Year.of.Observation + Cetacean.Common.Name ~ Interaction.Type, value.var = 'cnt') 
+# allprev_type_species[is.na(allprev_type_species)] <- 0
+# allprev_type_species <- allprev_type_species %>%
+#   merge(allprev_species, by = c('Year.of.Observation', 'Cetacean.Common.Name')) %>%
+#   transform(Boat = (Boat/yr.cnt), 
+#             Fisheries = (Fisheries/yr.cnt),
+#             Gunshot = (Gunshot/yr.cnt),
+#             Other = (Other/yr.cnt)) %>%
+#   select(Year.of.Observation, Cetacean.Common.Name, HI.Prev, Boat, Gunshot, Fisheries, Other)
+# 
+# write.csv(allprev_type_species, "allprev.csv", row.names = F)
+# 
+# allprev_species_stats <- allprev_type_species %>% 
+#   select(-c(HI.Prev)) %>% 
+#   melt(id.vars = c("Year.of.Observation", "Cetacean.Common.Name")) %>%
+#   filter(Cetacean.Common.Name != 'Unidentified')
+# 
+# #Shows increasing significantly for fisheries for nfs and gfs and decreasing for gunshot wounds, but overall gunshot has positive slope?! HELP.
+# HItype_model_sp <- glm(value ~ Year.of.Observation + Cetacean.Common.Name*variable, family = poisson(link = log), data = allprev_species_stats)
+# summary(HItype_model_sp)
+# autoplot(HItype_model_sp)
+# 
+# summary(lm(value ~ Year.of.Observation + Cetacean.Common.Name*variable, data = allprev_species_stats))
+# autoplot((lm(value ~ Year.of.Observation + Cetacean.Common.Name*variable, data = allprev_species_stats)))
+# 
+# #Composition of species for each HI type
+# # species_prop_HI_2 <- cetaceans %>%
+# #   filter(Findings.of.Human.Interaction == 'Y' & Interaction.Type != 'NA') %>%
+# #   group_by(Cetacean.Common.Name, Interaction.Type) %>%
+# #   summarize(cnt = as.integer(n_distinct(National.Database.Number))) %>%
+# #   dcast(Interaction.Type ~ Cetacean.Common.Name, value.var = 'cnt')
+# #
+# # species_prop_HI_2[is.na(species_prop_HI_2)] <- 0
+# 
+# #chisq.test(species_prop_HI_2)
+
+```
+
+
+```{r mapping, echo = FALSE, eval = FALSE}
+##MAPPING
+
+# latlong.cleaning <- cetaceans %>%
+#   transform(Longitude = as.numeric(Longitude),
+#             Latitude = as.numeric(Latitude)) %>%
+#   filter(Latitude < 46.5 & Latitude > 46 & Longitude > -123.3) %>%
+#   select(National.Database.Number, Year.of.Observation, State, City, County, Latitude, Longitude)
+
+allbox <- c(-126, 41.8, -121.7, 49.1)
+ORbox <- c(-125, 41.91, -121.5, 46.28)
+WAbox <- c(-125.2, 46, -121.7, 49.1)
+pugetbox <- c(-123.4, 46.96, -121.7, 48.86)
+
+cetaceans_mapping <- cetaceans %>%
+  transform(Longitude = as.numeric(Longitude),
+            Latitude = as.numeric(Latitude)) %>%
+  filter(Longitude != 'NA')
+
+#All WA OR - all strandings - black dots
+allstrands <- 
+  ggmap(get_map(location = allbox, source = "osm")) +
+   geom_point(data = cetaceans_mapping, aes(x = Longitude, y = Latitude), size = .7, alpha = .5, color = 'grey50') +
+scale_alpha(range = c(0, 0.3), guide = FALSE) +
+  xlab("") + ylab("") +
+  theme(
+    axis.ticks = element_blank(),
+    axis.text = element_blank())
+
+##State-based maps no longer used from manuscript:
+#OR HI - facet
+# HI_heatmap_OR_facet <-
+#   ggmap(get_map(location = allbox, source = "google", maptype = "roadmap")) +
+#   geom_point(data = cetaceans_mapping_HI, aes(x = Longitude, y = Latitude), color = 'grey50', size = 0.3, alpha = 0.5)  +
+#   geom_density2d(data = cetaceans_mapping_HI, aes(x = Longitude, y = Latitude), bins = 4, col = 'grey20') +
+#   scale_alpha(range = c(0, 0.1), guide = FALSE) +
+#   xlab("") + ylab("") +
+#   theme(
+#     axis.line = element_blank(),
+#     axis.ticks = element_blank(),
+#     axis.text = element_blank(),
+#     strip.text = element_text(size = 10),
+#     strip.background = element_blank(),
+#     panel.border = element_blank()) +
+#     #panel.border = element_rect(colour = "black", size = 1)) 
+#   scale_x_continuous(limits = c(-125, -123)) + scale_y_continuous(limits = c(40, 50)) +
+#   facet_wrap(~ Interaction.Type)
+# figs("HI_heatmap_OR_facet", caption = "Kernel density plot showing hotspots of human interaction cases in Oregon, with fisheries and boat collisions distributed along the northern coast, and gunshot wounds focused near Astoria and the Columbia River.")
+
+#All strandings - black dots - stamen attempt
+# stamen <- get_stamenmap(bbox = c(-126.7, 41.79, -119.19, 50.078), maptype = "terrain", zoom = 5, size = 2, color = "bw")
+# 
+# ggmap(stamen) +
+#    geom_point(data = cetaceans, aes(x = Longitude, y = Latitude)) +
+# scale_alpha(range = c(0, 0.3), guide = FALSE) +
+#   xlab("") + ylab("") +
+#   theme(
+#     axis.ticks = element_blank(),
+#     axis.text = element_blank())
+
+
+#ggsave(allstrands, file = "./Figures_nohp/Maps/allstrands.pdf")
+
+#Washington all strandings - black dots
+WAstrands <- 
+  ggmap(get_map(location = WAbox, source = "osm")) +
+  geom_point(data = cetaceans_mapping, aes(x = Longitude, y = Latitude), size = 0.7, alpha = .5, color = 'grey50') +
+ scale_alpha(range = c(0, 0.3), guide = FALSE) +
+  #xlab("") + ylab("") +
+  theme(
+    legend.key = element_blank(),
+    #axis.ticks = element_blank(),
+    #axis.text = element_blank(),
+    legend.position = 'top',
+    panel.border = element_rect(colour = "black", fill = "NA", size = .5))
+#ggsave(WAstrands, file = "./Figures_nohp/Maps/WAstrands.pdf")
+
+#Greater Puget Sound all strandings - black dots
+pugetstrands <- 
+  ggmap(get_map(location = pugetbox, source = "osm")) +
+  geom_point(data = cetaceans_mapping, aes(x = Longitude, y = Latitude), size = 0.7, alpha = .5, color = 'grey50') +
+ scale_alpha(range = c(0, 0.3), guide = FALSE) +
+  #xlab("") + ylab("") +
+  theme(
+    legend.key = element_blank(),
+    #axis.ticks = element_blank(),
+    #axis.text = element_blank(),
+    legend.position = 'top',
+    panel.border = element_rect(colour = "black", fill = "NA", size = .5))
+#ggsave(pugetstrands, file = "./Figures_nohp/Maps/pugetstrands.pdf")
+
+#All strandings heatmap
+allheatmap <- 
+  ggmap(get_map(location = allbox, source = "osm")) +
+  geom_point(data = cetaceans_mapping, aes(x = Longitude, y = Latitude), size = 0.7, alpha = .5, color = 'grey50')  +
+  stat_density2d(data = cetaceans_mapping, aes(x = Longitude, y = Latitude, fill = ..level.., alpha = ..level..), size = 0.01, bins = 100, geom = "polygon") +
+
+  scale_fill_gradient(low = "yellow", high = "red", guide = FALSE) +
+  scale_alpha(range = c(0, 0.3), guide = FALSE) +
+  xlab("") + ylab("") +
+  theme(
+    axis.ticks = element_blank(),
+    axis.text = element_blank())
+#ggsave(allheatmap, file = "./Figures_nohp/Maps/allheatmap.pdf")
+
+#WA heatmap - all strandings
+WAheatmap <- 
+  ggmap(get_map(location = WAbox, source = "osm")) +
+  geom_point(data = cetaceans_mapping, aes(x = Longitude, y = Latitude), size = 0.7, alpha = .5, color = 'grey50')  +
+  stat_density2d(data = cetaceans_mapping, aes(x = Longitude, y = Latitude, fill = ..level.., alpha = ..level..), size = 0.01, bins = 100, geom = "polygon") +
+  scale_fill_gradient(low = "yellow", high = "red", guide = FALSE) +
+  scale_alpha(range = c(0, 0.1), guide = FALSE) +
+  xlab("") + ylab("") +
+  theme(
+    legend.position = 'none',
+    #axis.ticks = element_blank(),
+    #axis.text = element_blank(),
+    panel.border = element_rect(colour = "black", fill = "NA", size = .5))
+#ggsave(WAheatmap, file = "./Figures_nohp/Maps/WAheatmap.pdf")
+
+#Puget sound heatmap - all strandings, watercolor
+pugetheatmap_water <-
+  ggmap(get_map(location = "Puget Sound", source = "stamen", maptype = "watercolor")) +
+  geom_point(data = cetaceans.mapping, aes(x = long_corr, y = lat_corr), size = 0.7)  +
+  stat_density2d(data = cetaceans_mapping, aes(x = Longitude, y = Latitude, fill = ..level.., alpha = ..level..), size = 0.01, bins = 100, geom = "polygon") +
+  scale_fill_gradient(low = "yellow", high = "red", guide = FALSE) +
+  scale_alpha(range = c(0, 0.1), guide = FALSE) +
+  xlab("") + ylab("") +
+  theme(
+    axis.ticks = element_blank(),
+    axis.text = element_blank(),
+    panel.border = element_rect(colour = "black", fill = "NA", size = .5))
+# ggsave(pugetheatmap_water, file = "./Figures_nohp/pugetheatmap_water.pdf")
+
+#Oregon coast heatmap - all strandings
+ORheatmap <- 
+  ggmap(get_map(location = ORbox, source = "osm")) +
+  geom_point(data = cetaceans_mapping, aes(x = Longitude, y = Latitude), size = 0.7, alpha = .5, color = 'grey50')  +
+  stat_density2d(data = cetaceans_mapping, aes(x = Longitude, y = Latitude, fill = ..level.., alpha = ..level..), size = 0.01, bins = 60, geom = "polygon") +
+
+  scale_fill_gradient(low = "yellow", high = "red", guide = FALSE) +
+  scale_alpha(range = c(0, 0.3), guide = FALSE) + 
+  xlab("") + ylab("") +
+  theme(
+    axis.ticks = element_blank(),
+    axis.text = element_blank(),
+    panel.border = element_rect(colour = "black", fill = "NA", size = .5))
+ggsave(ORheatmap, file = "./Figures_nohp/Maps/ORheatmap.pdf")
+
+#######HI Series
+cetaceans_mapping_HI <- cetaceans_mapping %>% 
+  filter(Findings.of.Human.Interaction == 'Y' & Interaction.Type != 'NA')
+
+# cetaceans.mapping_HI_boat <- cetaceans.mapping %>% 
+#   filter(Findings.of.Human.Interaction == 'Y' & Interaction.Type == 'Boat')
+# cetaceans.mapping_HI_fish <- cetaceans.mapping %>% 
+#   filter(Findings.of.Human.Interaction == 'Y' & Interaction.Type == 'Fisheries')
+# cetaceans.mapping_HI_shot <- cetaceans.mapping %>% 
+#   filter(Findings.of.Human.Interaction == 'Y' & Interaction.Type == 'Gunshot')
+
+#Human interactions - dots by HI type
+HI_type_map <- 
+  ggmap(get_map(location = allbox, source = "osm")) +
+  geom_point(data = cetaceans_mapping_HI, aes(x = Longitude, y = Latitude, color = Interaction.Type), size = 0.7) +
+#scale_alpha(range = c(0, 0.3), guide = FALSE) +
+  xlab("") + ylab("") +
+  plot_theme(
+    legend.key = element_blank(),
+    axis.ticks = element_blank(),
+    axis.text = element_blank(),
+    legend.position = 'top',
+    panel.border = element_rect(colour = "black", fill = "NA", size = .5))
+ggsave(HI_type_map, file = "./Figures_nohp/Maps/HI_type_map.pdf")
+
+#All HI - colors
+HI_heatmap_colors <- 
+ggmap(get_map(location = allbox, source = "osm")) +
+  geom_point(data = cetaceans_mapping_HI, aes(x = Longitude, y = Latitude), size = 0.3, alpha = .5)  +
+  geom_density2d(data = cetaceans_mapping_HI, aes(x = Longitude, y = Latitude, color = as.factor(Interaction.Type)), bins = 4, size = 1.5, alpha = .6) +
+  # stat_density2d(data = cetaceans_mapping_sp, aes(x = Longitude, y = Latitude, fill = ..level.., alpha = ..level..), size = 0.1, geom = "polygon") +
+  scale_color_brewer(palette = 'Set2') +
+  scale_alpha(range = c(0, 0.1), guide = FALSE) +
+  xlab("") + ylab("") +
+  theme(
+    legend.position = 'top', 
+    legend.title = element_blank(), 
+    legend.text = element_text(size = 9),
+    legend.key = element_blank(),
+    axis.ticks = element_blank(),
+    axis.text = element_blank(),
+    strip.text = element_text(size = 10), 
+    strip.background = element_blank(),
+    panel.border = element_rect(colour = "black", fill = "NA", size = 1)) 
+ggsave(HI_heatmap_colors, file = "./Figures_nohp/HI_heatmap_colors.pdf")
+
+#All HI - facet
+HI_heatmap_facet <-  
+  ggmap(get_map(location = allbox, source = "osm")) +
+  geom_point(data = cetaceans_mapping_HI, aes(x = Longitude, y = Latitude), color = 'grey50', size = 0.3, alpha = 0.5)  +
+  geom_density2d(data = cetaceans_mapping_HI, aes(x = Longitude, y = Latitude), bins = 4, col = 'grey20') +
+  scale_alpha(range = c(0, 0.1), guide = FALSE) +
+  xlab("") + ylab("") +
+  theme(
+    axis.ticks = element_blank(),
+    axis.text = element_blank(),
+    strip.text = element_text(size = 10), 
+    strip.background = element_blank(),
+    panel.border = element_rect(colour = "black", size = 1)) +
+  facet_wrap(~ Interaction.Type)
+ggsave(HI_heatmap_facet, file = "./Figures_nohp/HI_heatmap_facet.pdf")
+
+
+###HI - WA
+
+#WA HI - colors
+WAHI_heatmap_colors <- 
+ggmap(get_map(location = WAbox, source = "osm")) +
+  geom_point(data = cetaceans_mapping_HI, aes(x = Longitude, y = Latitude), size = 0.3, alpha = .5)  +
+  geom_density2d(data = cetaceans_mapping_HI, aes(x = Longitude, y = Latitude, color = as.factor(Interaction.Type)), bins = 4, size = 1.5, alpha = .6) +
+  # stat_density2d(data = cetaceans_mapping_sp, aes(x = Longitude, y = Latitude, fill = ..level.., alpha = ..level..), size = 0.1, geom = "polygon") +
+  scale_color_brewer(palette = 'Set2') +
+  scale_alpha(range = c(0, 0.1), guide = FALSE) +
+  xlab("") + ylab("") +
+  theme(
+    legend.position = 'top', 
+    legend.title = element_blank(), 
+    legend.text = element_text(size = 9),
+    legend.key = element_blank(),
+    axis.ticks = element_blank(),
+    axis.text = element_blank(),
+    strip.text = element_text(size = 10), 
+    strip.background = element_blank(),
+    panel.border = element_rect(colour = "black", fill = "NA", size = 1)) 
+ggsave(HI_heatmap_WA_colors, file = "./Figures_nohp/HI_heatmap_WA_colors.pdf")
+
+#WA HI - facet
+HI_heatmap_WA_facet <-  
+  ggmap(get_map(location = WAbox, source = "osm")) +
+  geom_point(data = cetaceans_mapping_HI, aes(x = Longitude, y = Latitude), color = 'grey50', size = 0.3, alpha = 0.5)  +
+  geom_density2d(data = cetaceans_mapping_HI, aes(x = Longitude, y = Latitude), bins = 4, col = 'grey20') +
+  scale_alpha(range = c(0, 0.1), guide = FALSE) +
+  xlab("") + ylab("") +
+  theme(
+    axis.ticks = element_blank(),
+    axis.text = element_blank(),
+    strip.text = element_text(size = 10), 
+    strip.background = element_blank()) +
+    #panel.border = element_rect(colour = "black", size = 1)) +
+  facet_wrap(~ Interaction.Type)
+ggsave(HI_heatmap_WA_facet, file = "./Figures_nohp/HI_heatmap_WA_facet.pdf")
+
+###HI Series - OR
+
+#OR HI - colors
+ORHI_heatmap_colors <- 
+ggmap(get_map(location = ORbox, source = "osm")) +
+  geom_point(data = cetaceans_mapping_HI, aes(x = Longitude, y = Latitude), size = 0.3, alpha = .5)  +
+  geom_density2d(data = cetaceans_mapping_HI, aes(x = Longitude, y = Latitude, color = as.factor(Interaction.Type)), bins = 4, size = 1.5, alpha = .6) +
+  scale_color_brewer(palette = 'Set2') +
+  scale_alpha(range = c(0, 0.1), guide = FALSE) +
+  xlab("") + ylab("") +
+  theme(
+    legend.position = 'top', 
+    legend.title = element_blank(), 
+    legend.text = element_text(size = 9),
+    legend.key = element_blank(),
+    axis.ticks = element_blank(),
+    axis.text = element_blank(),
+    strip.text = element_text(size = 10), 
+    strip.background = element_blank(),
+    panel.border = element_rect(colour = "black", fill = "NA", size = 1)) 
+ggsave(HI_heatmap_OR_colors, file = "./Figures_nohp/HI_heatmap_OR_colors.pdf")
+
+#OR HI - facet
+HI_heatmap_OR_facet <-  
+  ggmap(get_map(location = ORbox, source = "osm")) +
+  geom_point(data = cetaceans_mapping_HI, aes(x = Longitude, y = Latitude), color = 'grey50', size = 0.3, alpha = 0.5)  +
+  geom_density2d(data = cetaceans_mapping_HI, aes(x = Longitude, y = Latitude), bins = 4, col = 'grey20') +
+  scale_alpha(range = c(0, 0.1), guide = FALSE) +
+  xlab("") + ylab("") +
+  theme(
+    axis.ticks = element_blank(),
+    axis.text = element_blank(),
+    strip.text = element_text(size = 10), 
+    strip.background = element_blank(),
+    panel.border = element_rect(colour = "black", size = 1)) +
+  facet_wrap(~ Interaction.Type)
+ggsave(HI_heatmap_OR_facet, file = "./Figures_nohp/HI_heatmap_OR_facet.pdf")
+
+
+#######Species Series
+cetaceans_mapping_sp <- cetaceans_mapping %>% filter(Cetacean.Common.Name != 'Unidentified') 
+
+#colored by species - WA
+WAheatmap_species <-   
+  ggmap(get_map(location = WAbox, source = "osm")) +
+  geom_point(data = cetaceans_mapping_sp, aes(x = Longitude, y = Latitude), size = 0.3, alpha = .5)  +
+  geom_density2d(data = cetaceans_mapping_sp, aes(x = Longitude, y = Latitude, color = as.factor(Cetacean.Common.Name)), bins = 4, size = 1.5, alpha = .6) +
+  # stat_density2d(data = cetaceans_mapping_sp, aes(x = Longitude, y = Latitude, fill = ..level.., alpha = ..level..), size = 0.1, geom = "polygon") +
+  scale_color_brewer(palette = 'Set2') +
+  scale_alpha(range = c(0, 0.1), guide = FALSE) +
+  xlab("") + ylab("") +
+  theme(
+    legend.position = 'top', 
+    legend.title = element_blank(), 
+    legend.text = element_text(size = 9),
+    legend.key = element_blank(),
+    axis.ticks = element_blank(),
+    axis.text = element_blank(),
+    strip.text = element_text(size = 10), 
+    strip.background = element_blank(),
+    panel.border = element_rect(colour = "black", fill = "NA", size = 1)) 
+
+#faceted species - WA
+WAheatmap_species_facet <-   
+  ggmap(get_map(location = WAbox, source = "osm")) +
+  geom_point(data = cetaceans_mapping_sp, aes(x = Longitude, y = Latitude), color = 'grey50', size = 0.3, alpha = 0.5)  +
+  geom_density2d(data = cetaceans_mapping_sp, aes(x = Longitude, y = Latitude), bins = 4, col = 'grey20') +
+  # stat_density2d(data = cetaceans_mapping_sp, aes(x = Longitude, y = Latitude, fill = ..level.., alpha = ..level..), size = 0.1, geom = "polygon") +
+  #scale_fill_gradient(low = "yellow", high = "red", guide = FALSE) +
+  scale_alpha(range = c(0, 0.1), guide = FALSE) +
+  xlab("") + ylab("") +
+  theme(
+    axis.ticks = element_blank(),
+    axis.text = element_blank(),
+    strip.text = element_text(size = 10), 
+    strip.background = element_blank(),
+    panel.border = element_rect(colour = "black", size = 1)) +
+  facet_wrap(~ Cetacean.Common.Name)
+ggsave(WAheatmap_species_facet, file = "./Figures_nohp/WAheatmap_species_facet.pdf")
+
+#Colored by species - OR
+ORheatmap_species <-   
+  ggmap(get_map(location = ORbox, source = "osm")) +
+  geom_point(data = cetaceans_mapping_sp, aes(x = Longitude, y = Latitude), size = 0.3, alpha = .5)  +
+  geom_density2d(data = cetaceans_mapping_sp, aes(x = Longitude, y = Latitude, color = as.factor(Cetacean.Common.Name)), bins = 4, size = 1.5, alpha = .6) +
+  # stat_density2d(data = cetaceans_mapping_sp, aes(x = Longitude, y = Latitude, fill = ..level.., alpha = ..level..), size = 0.1, geom = "polygon") +
+  scale_color_brewer(palette = 'Set2') +
+  scale_alpha(range = c(0, 0.1), guide = FALSE) +
+  xlab("") + ylab("") +
+  theme(
+    legend.position = 'top', 
+    legend.title = element_blank(), 
+    legend.text = element_text(size = 9),
+    legend.key = element_blank(),
+    axis.ticks = element_blank(),
+    axis.text = element_blank(),
+    strip.text = element_text(size = 10), 
+    strip.background = element_blank(),
+    panel.border = element_blank())
+    #panel.border = element_rect(colour = "black", fill = "NA", size = 1)) 
+
+#faceted species - OR
+ORheatmap_species_facet <-   
+  ggmap(get_map(location = ORbox, source = "osm")) +
+  geom_point(data = cetaceans_mapping_sp, aes(x = Longitude, y = Latitude), color = 'grey50', size = 0.3, alpha = 0.5)  +
+  geom_density2d(data = cetaceans_mapping_sp, aes(x = Longitude, y = Latitude), bins = 4, col = 'grey20') +
+  # stat_density2d(data = cetaceans_mapping_sp, aes(x = Longitude, y = Latitude, fill = ..level.., alpha = ..level..), size = 0.1, geom = "polygon") +
+  #scale_fill_gradient(low = "yellow", high = "red", guide = FALSE) +
+  scale_alpha(range = c(0, 0.1), guide = FALSE) +
+  xlab("") + ylab("") +
+  theme(
+    axis.ticks = element_blank(),
+    axis.text = element_blank(),
+    strip.text = element_text(size = 10), 
+    strip.background = element_blank(),
+    panel.border = element_rect(colour = "black", size = 1)) +
+  facet_wrap(~ Cetacean.Common.Name)
+ggsave(ORheatmap_species_facet, file = "./Figures_nohp/ORheatmap_species_facet.pdf")
+
+
+#Seasonal map exploration
+pinniped_mapping_seasons <- cetaceans %>% 
+  transform(Longitude = as.numeric(Longitude),
+            Latitude = as.numeric(Latitude)) %>%
+  filter(Longitude != 'NA') %>%
+  transform(season = 
+              ifelse(Month.of.Observation == 'DEC' | Month.of.Observation == 'JAN' |Month.of.Observation == 'FEB', 'Winter', 
+                ifelse(Month.of.Observation == 'MAR' | Month.of.Observation == 'APR' |Month.of.Observation == 'MAY', 'Spring',
+                       ifelse(Month.of.Observation == 'JUN' |Month.of.Observation == 'JUL' |Month.of.Observation == 'AUG', 'Summer', 'Fall')))) 
+
+WAheatmap_CSL_seasons <-   
+  ggmap(get_map(location = WAbox, source = "google", maptype = "roadmap")) +
+  geom_point(data = pinniped_mapping_seasons %>% filter(Cetacean.Common.Name == 'California sea lion'), 
+      aes(x = Longitude, y = Latitude), color = 'grey50', size = 0.3, alpha = 0.5)  +
+  geom_density2d(data = pinniped_mapping_seasons %>% filter(Cetacean.Common.Name == 'California sea lion'), aes(x = Longitude, y = Latitude), bins = 4, col = 'grey20') +
+  scale_alpha(range = c(0, 0.1), guide = FALSE) +
+  xlab("") + ylab("") +
+  theme(
+    axis.ticks = element_blank(),
+    axis.text = element_blank(),
+    strip.text = element_text(size = 10), 
+    strip.background = element_blank(),
+    panel.border = element_rect(colour = "black", size = 1)) +
+  facet_wrap(~ season)
+
+```
+
+```{r extra maps}
+
+#Harbor seals
+cetaceans_mapping_hs <- cetaceans_mapping %>% filter(Cetacean.Common.Name == 'Harbor seal') 
+WAheatmap_hs <-   
+  ggmap(get_map(location = WAbox, source = "osm")) +
+  geom_point(data = cetaceans_mapping_hs, aes(x = Longitude, y = Latitude), size = 0.7, alpha = .5, color = 'grey65')  +
+  stat_density2d(data = cetaceans_mapping_hs, aes(x = Longitude, y = Latitude, fill = ..level.., alpha = ..level..), size = 0.01, bins = 100, geom = "polygon") +
+  scale_fill_gradient(low = "yellow", high = "red", guide = FALSE) +
+  scale_alpha(range = c(0, 0.1), guide = FALSE) +
+  xlab("") + ylab("") + ggtitle("Harbor Seals") +
+  theme(
+    axis.ticks = element_blank(),
+    axis.text = element_blank(),
+    panel.border = element_rect(colour = "black", fill = "NA", size = .5))
+ggsave(WAheatmap_hs, file = "./Figures_nohp/Maps/WAheatmap_hs.pdf")
+
+##CSL
+cetaceans_mapping_csl <- cetaceans_mapping %>% filter(Cetacean.Common.Name == 'California sea lion') 
+WAheatmap_csl <-   
+  ggmap(get_map(location = WAbox, source = "osm")) +
+  geom_point(data = cetaceans.mapping_csl, aes(x = Longitude, y = Latitude), size = 0.7, alpha = .5, color = 'grey65')  +
+  stat_density2d(data = cetaceans_mapping_csl, aes(x = Longitude, y = Latitude, fill = ..level.., alpha = ..level..), size = 0.01, bins = 100, geom = "polygon") +
+  scale_fill_gradient(low = "yellow", high = "red", guide = FALSE) +
+  scale_alpha(range = c(0, 0.1), guide = FALSE) +
+  xlab("") + ylab("") + ggtitle("California Sea Lion") +
+  theme(
+    axis.ticks = element_blank(),
+    axis.text = element_blank(),
+    panel.border = element_rect(colour = "black", fill = "NA", size = .5))
+ggsave(WAheatmap_csl, file = "./Figures_nohp/Maps/WAheatmap_csl.pdf")
+
+##SSL
+cetaceans_mapping_ssl <- cetaceans_mapping %>% filter(Cetacean.Common.Name == 'Steller sea lion') 
+WAheatmap_ssl <-   
+  ggmap(get_map(location = WAbox, source = "osm")) +
+  geom_point(data = cetaceans.mapping_ssl, aes(x = Longitude, y = Latitude), size = 0.7, alpha = .5, color = 'grey65')  +
+  stat_density2d(data = cetaceans.mapping_ssl, aes(x = Longitude, y = Latitude, fill = ..level.., alpha = ..level..), size = 0.01, bins = 100, geom = "polygon") +
+  scale_fill_gradient(low = "yellow", high = "red", guide = FALSE) +
+  scale_alpha(range = c(0, 0.1), guide = FALSE) +
+  xlab("") + ylab("") + ggtitle("Steller Sea Lion") +
+  theme(
+    axis.ticks = element_blank(),
+    axis.text = element_blank(),
+    panel.border = element_rect(colour = "black", fill = "NA", size = .5))
+ggsave(WAheatmap_ssl, file = "./Figures_nohp/Maps/WAheatmap_ssl.pdf")
+
+##NEL
+cetaceans_mapping_nel <- cetaceans_mapping %>% filter(Cetacean.Common.Name == 'Northern elephant seal') 
+WAheatmap_nel <-   
+  ggmap(get_map(location = WAbox, source = "osm")) +
+  geom_point(data = cetaceans_mapping_nel, aes(x = Longitude, y = Latitude), size = 0.7, alpha = .5, color = 'grey65')  +
+  stat_density2d(data = cetaceans_mapping_nel, aes(x = Longitude, y = Latitude, fill = ..level.., alpha = ..level..), size = 0.01, bins = 100, geom = "polygon") +
+  scale_fill_gradient(low = "yellow", high = "red", guide = FALSE) +
+  scale_alpha(range = c(0, 0.1), guide = FALSE) +
+  xlab("") + ylab("") + ggtitle("Northern Elephant Seal") +
+  theme(
+    axis.ticks = element_blank(),
+    axis.text = element_blank(),
+    panel.border = element_rect(colour = "black", fill = "NA", size = .5))
+ggsave(WAheatmap_nel, file = "./Figures_nohp/Maps/WAheatmap_nel.pdf")
+
+```
+
+```{r figure requests}
+
+#Lesanna 2-16
+
+#Number per year per state
+all_state_line_fig <- cetaceans %>%
+  filter(State != 'CA') %>%
+  transform(State = ifelse(State == 'OR', 'Oregon', 'Washington')) %>%
+  group_by(State, Year.of.Observation) %>%
+  summarize(cnt = n_distinct(National.Database.Number)) %>%
+  ggplot(aes(Year.of.Observation, cnt, group = State, col = State)) + 
+  geom_point(size = 1) +
+  geom_line() +
+  geom_smooth(method = 'lm', se = F) +
+  xlab("") + ylab("Total Annual Strandings") +
+  pubfigure_theme(legend.position = 'top') +
+  scale_color_brewer(palette = 'Set1')
+
+#Number per year per species faceted per state
+all_state_sp_fig <- cetaceans %>%
+  filter(State != 'CA' & Cetacean.Common.Name != 'Unidentified') %>%
+  transform(State = ifelse(State == 'OR', 'Oregon', 'Washington')) %>%
+  group_by(State, Year.of.Observation, Cetacean.Common.Name) %>%
+  summarize(cnt = n_distinct(National.Database.Number)) %>%
+  ggplot(aes(Year.of.Observation, cnt, group = Cetacean.Common.Name, col = Cetacean.Common.Name)) + 
+  #geom_point() +
+  geom_line() +
+  xlab("") + ylab("Total Annual Strandings") +
+  theme(
+    axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5, color = "black", size = 9),
+    axis.text.y = element_text(vjust = 0.5, color = "black", size = 9), 
+    axis.line.y = element_line(colour = "black"), 
+    axis.line.x = element_line(colour = "black"), 
+    plot.background = element_rect(), 
+    panel.background = element_blank(), 
+    panel.grid = element_blank(), 
+    legend.title = element_blank(),
+    legend.key = element_blank(),
+    legend.text = element_text(size = 8),
+    legend.position = 'top',
+    strip.background = element_blank(),
+    strip.text = element_text(size = 10)) +
+  facet_wrap(~ State) +
+  scale_color_manual(values = color1)
+
+#Alt paper figures
+#species with separate regression lines
+cetaceans %>% 
+  filter(Cetacean.Common.Name != 'Unidentified') %>%
+  group_by(Year.of.Observation, Cetacean.Common.Name) %>%
+  summarize(cnt = n_distinct(National.Database.Number)) %>%
+  ggplot(aes(x = Year.of.Observation, y = cnt)) + 
+  #geom_point(position = "identity") +
+  geom_smooth(method = "lm", se = FALSE, col = 'black', size = 0.8) +
+  geom_line(aes(y = cnt, x = Year.of.Observation), size = .8, col = 'grey50') +
+  xlab("") + ylab("All Strandings") +
+  scale_y_continuous(labels = comma) +
+  #scale_x_continuous(breaks = c(1989:2015)) +
+  pubfigure_theme(
+    legend.position = 'top',
+    strip.text = element_text(size = 9),
+    strip.background = element_blank()) +
+  facet_wrap(~Cetacean.Common.Name)
+
+```
+
+```{r}
+#species stats
+harbors <- cetaceans %>%
+  filter(Cetacean.Common.Name == 'Harbor seal') %>%
+  summarize(cnt = n_distinct(National.Database.Number))
+
+CSL <- cetaceans %>%
+  filter(Cetacean.Common.Name == 'California sea lion') %>%
+  summarize(cnt = n_distinct(National.Database.Number))
+
+SSL <- cetaceans %>%
+  filter(Cetacean.Common.Name == 'Steller sea lion') %>%
+  summarize(cnt = n_distinct(National.Database.Number))
+```
+
+```{r maps with circle size}
+
+generic_lat_long <- cetaceans %>%
+  filter(County != 'NA') %>%
+  transform(Latitude = as.numeric(Latitude), Longitude = as.numeric(Longitude)) %>%
+  group_by(County) %>%
+  summarize(mean_lat = mean(Latitude, na.rm = T), mean_long = mean(Longitude, na.rm = T)) 
+
+circle_data_all <- cetaceans %>%
+  filter(County != 'NA') %>%
+  group_by(County) %>%
+  summarize(cnt = n_distinct(National.Database.Number)) %>%
+  merge(generic_lat_long, by = 'County') 
+
+circle_data_HI <- cetaceans %>%
+  filter(County != 'NA' & Findings.of.Human.Interaction == 'Y' & Interaction.Type != 'NA') %>%
+  group_by(County, Interaction.Type) %>%
+  summarize(cnt = n_distinct(National.Database.Number)) %>%
+  merge(generic_lat_long, by = 'County') 
+
+circle_map_all <- ggmap(get_map(location = WAbox, source = "google", maptype = "roadmap")) +
+  geom_point(data = circle_data_all, aes(x = mean_long, y = mean_lat, size = cnt)) + 
+  xlab("") + ylab("") +
+  #facet_wrap(~ Interaction.Type) +
+  theme(
+    axis.line = element_blank(),
+    axis.ticks = element_blank(),
+    axis.text = element_blank(),
+    strip.text = element_text(size = 10),
+    strip.background = element_blank(),
+    panel.border = element_rect(colour = "black", fill = NA, size = 5))
+
+circle_map_HI <- ggmap(get_map(location = WAbox, source = "google", maptype = "roadmap")) +
+  geom_point(data = circle_data_HI, aes(x = mean_long, y = mean_lat, size = cnt)) +
+  # geom_jitter(data = circle_data_HI, aes(x = mean_long, y = mean_lat, group = Interaction.Type, col = Interaction.Type, size = cnt), width = .1, height = .1) + 
+  xlab("") + ylab("") +
+  facet_wrap(~ Interaction.Type) +
+  theme(legend.title = element_blank(),
+    axis.line = element_blank(),
+    axis.ticks = element_blank(),
+    axis.text = element_blank(),
+    strip.text = element_text(size = 10),
+    strip.background = element_blank(),
+    panel.border = element_rect(colour = "black", fill = NA, size = 5))
+  
+```
+
+```{r}
+
+#Lesanna 2-19
+live_dead <- cetaceans %>%
+  filter(State == 'WA') %>%
+  transform(Status = ifelse(Observation.Status == 'ALIVE', 'Alive', 'Dead')) %>%
+  transform(Year = ifelse(Year.of.Observation > 1993 & Year.of.Observation < 2005, '1994-2004',
+                          ifelse(Year.of.Observation > 2004, '2005-2015', 'NA'))) %>%
+  filter(Year != 'NA') %>%
+  group_by(Status, Year) %>%
+  summarize(Total = n_distinct(National.Database.Number)) %>%
+  dcast(Year ~ Status)
+
+```
+
+```{r}
+#Percent of strandings per year from DFW
+
+dfw <- cetaceans %>%
+  #filter(Year.of.Observation > 2004) %>%
+  filter(Affiliation == 'Washington Department of Fish and Wildlife' |
+        Affiliation == 'WDFW/MMI' | Affiliation == 'WDFW Marine Mammal Investigations') %>%
+  #group_by(Year.of.Observation) %>%
+  summarize(cnt.dfw = n_distinct(National.Database.Number)) %>%
+  #merge(data_by_year, by = 'Year.of.Observation') %>%
+  transform(percdfw = cnt.dfw/14100)
+
+mean(dfw$percdfw)
+
+write.csv(dfw, file = "./dfw.csv", row.names = F)
+```
+
+```{r}
+#day of week matters? more people on beaches on weekends?
+
+all_day <- cetaceans %>%
+  group_by(Year.of.Observation, Month.of.Observation, Day.of.Observation) %>%
+  summarize(cnt = n_distinct(National.Database.Number))
+```
+
+```{r new stuff}
+
+# check out
+mammals2 <- mammals %>%
+   group_by(vore) %>%
+  mutate(n = n() / nrow(mammals))
+# #
+# # # Density plot, weighted
+ggplot(mammals2, aes(x = sleep_total, fill = vore)) +
+geom_density(aes(weight = n), col = NA, alpha = 0.35)
+
+#stat_density_2d(aes(col = ..level..), h = c(5, 0.5))
+
+# saveGIF({
+# 
+#   # Loop through all time points
+#   for (i in unique(japan$time)) {
+# 
+#     # Subset japan: data
+# data <- japan$time == i
+# 
+#     # Finish the ggplot command
+#     p <- ggplot(data, aes(x = AGE, y = POP, fill = SEX, width = 1)) +
+#       coord_flip() +
+#       geom_bar(data = data[data$SEX == "Female",], stat = "identity") +
+#       geom_bar(data = data[data$SEX == "Male",], stat = "identity") +
+#       ggtitle(i)
+# 
+#     print(p)
+# 
+#   }
+# 
+# }, movie.name = "pyramid.gif", interval = 0.1)
+
+# p <- ggplot(Vocab, aes(x = education, y = vocabulary,
+#                        color = year, group = year, frame = year, cumulative = TRUE)) +
+#   stat_smooth(method = "lm", se = FALSE, size = 3)
+# 
+# # Call gg_animate on p
+# gg_animate(p, interval = 1.0, filename = "vocab.gif")
+
+```
+
