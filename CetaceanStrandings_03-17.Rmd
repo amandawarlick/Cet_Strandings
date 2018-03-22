@@ -170,7 +170,8 @@ tbls <- captioner(prefix="Table")
 
 ```{r load pre-cleaned csv, echo = FALSE}
 
-cetaceans <- read.csv("cetacean_data_clean.csv", header = TRUE, na.strings = "", stringsAsFactors = FALSE) #%>% filter(Cetacean.Common.Name != 'Harbor porpoise')
+cetaceans <- read.csv("cetacean_data_clean.csv", header = TRUE, na.strings = "", stringsAsFactors = FALSE) %>% filter(Cetacean.Common.Name != 'Harbor porpoise') %>% 
+  filter(Water.Body == 'Inland_WA')
 
 cetaceans$Age.Class <- factor(cetaceans$Age.Class,
           levels = c("Calf", "Yearling", "Subadult", "Adult", "Unid", "NA"))
@@ -215,7 +216,7 @@ Sex_all_yr_figure_stack <- ggplot(Sex_all_yr,
   geom_bar(stat = 'identity', position = 'fill') +
   xlab("") + ylab("Proportion of Strandings") +
   plot_theme(legend.position = 'top')
-ggsave(Sex_all_yr_figure_stack, file = "./Figures_nohp/Sex_all_yr_figure_stack.pdf")
+ggsave(Sex_all_yr_figure_stack, file = "./Figures_inland_nohp_nohp/Sex_all_yr_figure_stack.pdf")
 
 Sex_all_yr_figure <- 
   ggplot(Sex_all_yr, aes(x = as.factor(Year.of.Observation), y = cnt, fill = Sex)) +
@@ -223,7 +224,7 @@ Sex_all_yr_figure <-
   scale_y_continuous(labels = comma) +
   xlab("") + ylab("Total Strandings") +
   plot_theme(legend.position = 'top')
-ggsave(Sex_all_yr_figure, file = "./Figures_nohp/Sex_all_yr_figure.pdf")
+ggsave(Sex_all_yr_figure, file = "./Figures_inland_nohp/Sex_all_yr_figure.pdf")
 
 #Larger IQR for males
 Sex_all_yr_boxplot <- 
@@ -233,7 +234,7 @@ Sex_all_yr_boxplot <-
   scale_y_continuous(labels = comma) +
   xlab("") + ylab("Mean Monthly Strandings") +
   plot_theme(legend.position = 'top')
-ggsave(Sex_all_yr_boxplot, file = "./Figures_nohp/Sex_all_yr_boxplot.pdf")
+ggsave(Sex_all_yr_boxplot, file = "./Figures_inland_nohp/Sex_all_yr_boxplot.pdf")
 
 #100% stacked bar chart - month - higher female percentage in august compared to december
 Sex_all_month_figure <- 
@@ -241,7 +242,7 @@ Sex_all_month_figure <-
   geom_bar(stat = 'identity', position = 'fill') +
   xlab("") + ylab("Proportion of Strandings") +
   plot_theme(legend.position = 'top')
-ggsave(Sex_all_month_figure, file = "./Figures_nohp/Sex_all_mo_figure.pdf")
+ggsave(Sex_all_month_figure, file = "./Figures_inland_nohp/Sex_all_mo_figure.pdf")
 
 #summary(aov(cnt ~ Month.of.Observation*Sex, Sex_all_yr_mo))
 
@@ -320,7 +321,7 @@ age_sex_all_figure <-
   xlab("") + ylab("Proportion of Strandings") +
   plot_theme(legend.position = 'top') +
   scale_fill_brewer(palette = 'Set1')
-ggsave(age_sex_all_figure, file = "./Figures_nohp/age_sex_all_figure.pdf")
+ggsave(age_sex_all_figure, file = "./Figures_inland_nohp/age_sex_all_figure.pdf")
 
 age_sex_table <- age_sex_all %>% 
   dcast(Age.Class ~ Sex, value.var = 'cnt') %>% 
@@ -337,7 +338,7 @@ average_sex <- c(as.character("Average"), "--", "--", round(mean(age_sex_table[,
 
 age_sex_table <- rbind(age_sex_table, average_sex, stringsAsFactors = F)
 
-age_sex_table <- write.csv(age_sex_table, file = "./Figures_nohp/age_sex_table.csv", row.names = F)
+age_sex_table <- write.csv(age_sex_table, file = "./Figures_inland_nohp/age_sex_table.csv", row.names = F)
 
 
 ```
@@ -363,7 +364,7 @@ all_yr_figure <-
   xlab("") + ylab("Annual Strandings") +
   plot_theme() +
   scale_color_brewer(palette = 'Set1') 
-ggsave(all_yr_figure, file = "./Figures_nohp/all_year_figure.pdf")
+ggsave(all_yr_figure, file = "./Figures_inland_nohp/all_year_figure.pdf")
 
 ```
 
@@ -393,7 +394,7 @@ HI_year_figure <-
   scale_x_continuous(breaks = c(2001:2017)) +
   plot_theme(legend.position = 'top') +
   scale_color_brewer(palette = 'Set1')
-ggsave(HI_year_figure, file = "./Figures_nohp/HI_year_figure.pdf")
+ggsave(HI_year_figure, file = "./Figures_inland_nohp/HI_year_figure.pdf")
 ```
 
 ```{r HI types over time}
@@ -421,7 +422,7 @@ ggsave(HI_year_figure, file = "./Figures_nohp/HI_year_figure.pdf")
 #   xlab("") + ylab("Human Interaction Cases") +
 #   plot_theme(legend.position = 'top') + 
 #   scale_color_brewer(palette = 'Set1')
-#ggsave(HI_type_year_figure, file = "./Figures_nohp/HI_type_year_figure.pdf")
+#ggsave(HI_type_year_figure, file = "./Figures_inland_nohp/HI_type_year_figure.pdf")
 
 ```
 
@@ -454,7 +455,7 @@ species_figure <- species_year %>%
   scale_y_continuous(labels = comma) +
   xlab("") + ylab("Annual Strandings") +
   plot_theme()
-ggsave(species_figure, file = "./Figures_nohp/species_figure.pdf")
+ggsave(species_figure, file = "./Figures_inland_nohp/species_figure.pdf")
 
 
 #Are HI and FI cases signficantly different between species as well?
@@ -471,7 +472,7 @@ species_year_HI_figure <-
   xlab("") + ylab("Annual Human Interaction Cases") +
   scale_y_continuous(labels = comma) +
   plot_theme()
-ggsave(species_year_HI_figure, file = "./Figures_nohp/species_year_HI_figure.pdf")
+ggsave(species_year_HI_figure, file = "./Figures_inland_nohp/species_year_HI_figure.pdf")
 
 #Anova shows that yes, the mean annual HI strandings are different across species.
 #Harbor seals are different from everything else, but no other sig difs
@@ -504,7 +505,7 @@ species_all_figure <-
   scale_y_continuous(labels = comma) +
   plot_theme(legend.position = 'top') #+ 
   #scale_color_brewer(palette = 'Set2')
-ggsave(species_all_figure, file = "./Figures_nohp/species_all_figure.pdf")
+ggsave(species_all_figure, file = "./Figures_inland_nohp/species_all_figure.pdf")
 
 #strandings by year, species stacked
 species_all_figure_stacked <- 
@@ -514,7 +515,7 @@ species_all_figure_stacked <-
   scale_y_continuous(labels = comma) +
   plot_theme(legend.position = 'top')  
   #scale_fill_brewer(palette = 'Set2')  
-ggsave(species_all_figure_stacked, file = "./Figures_nohp/species_all_figure_stacked.pdf")
+ggsave(species_all_figure_stacked, file = "./Figures_inland_nohp/species_all_figure_stacked.pdf")
 
 species_HI_figure <- 
   ggplot(species_year_HI, aes(x = factor(Year.of.Observation), y = cnt, 
@@ -524,7 +525,7 @@ species_HI_figure <-
   ylab("Human Interaction Cases") + xlab("") + 
   plot_theme(legend.position = 'top') #+ 
   #scale_color_brewer(palette = 'Set1')
-ggsave(species_HI_figure, file = "./Figures_nohp/species_HI_figure.pdf")
+ggsave(species_HI_figure, file = "./Figures_inland_nohp/species_HI_figure.pdf")
 
 
 ```
@@ -590,7 +591,7 @@ HI_prev_all_fig <- ggplot(HI_prev, aes(Year.of.Observation, Prop.HI)) +
   geom_smooth(method = 'lm', se = F, col = "black", linetype = 3) +
   xlab("") + ylab("Prevalence of Human Interactions") +
   pubfigure_theme(legend.position = 'top')
-ggsave(HI_prev_all_fig, file = "./Figures_nohp/HI_prev_all_fig.pdf")
+ggsave(HI_prev_all_fig, file = "./Figures_inland_nohp/HI_prev_all_fig.pdf")
 
 
 #Need stats for proportions over time - can I do regression on a proportion?
@@ -721,7 +722,7 @@ ggplot(aes(x = factor(Month.of.Observation), y = sum, fill = Water.Body)) +
   scale_y_continuous(labels = comma) +
   plot_theme(legend.position = 'top') + 
   scale_fill_brewer(palette = 'Set1')
-ggsave(monthly_reg_figure, file = "./Figures_nohp/monthly_reg_figure.pdf")
+ggsave(monthly_reg_figure, file = "./Figures_inland_nohp/monthly_reg_figure.pdf")
 
 #All monthly cases by sex
 monthly_sex_figure <- 
@@ -733,7 +734,7 @@ ggplot(aes(x = factor(Month.of.Observation), y = sum, fill = Sex)) +
   scale_y_continuous(labels = comma) +
   plot_theme(legend.position = 'top') + 
   scale_fill_brewer(palette = 'Set1')
-ggsave(monthly_sex_figure, file = "./Figures_nohp/monthly_sex_figure.pdf")
+ggsave(monthly_sex_figure, file = "./Figures_inland_nohp/monthly_sex_figure.pdf")
 
 #Monthly strandings by age class
 monthly_age_figure <- monthly_all %>% 
@@ -745,7 +746,7 @@ monthly_age_figure <- monthly_all %>%
   scale_y_continuous(labels = comma) +
   plot_theme(legend.position = 'top') + 
   scale_fill_brewer(palette = 'Set3')
-ggsave(monthly_age_figure, file = "./Figures_nohp/monthly_age_figure.pdf")
+ggsave(monthly_age_figure, file = "./Figures_inland_nohp/monthly_age_figure.pdf")
 
 monthly_age_stats <- monthly_all %>% 
   group_by(Month.of.Observation, Year.of.Observation, Age.Class) %>%
@@ -792,7 +793,7 @@ monthly_age_HI <- cetaceans %>%
 #   scale_y_continuous(labels = comma) +
 #   plot_theme() #+ 
 #   #scale_color_brewer()
-# #ggsave(monthly_years_figure, file = "./Figures_nohp/monthly_years_figure.pdf")
+# #ggsave(monthly_years_figure, file = "./Figures_inland_nohp/monthly_years_figure.pdf")
 
 #Are there seasonal patterns in HI cases?
 
@@ -824,7 +825,7 @@ reg_figure <- ggplot(regplotdata, aes(x = factor(Month.of.Observation), y = cnt,
   ylab("Human Interaction Cases") + xlab("") + 
   plot_theme(legend.position = 'top') + 
   scale_fill_brewer(palette = 'Set1') 
-ggsave(reg_figure, file = "./Figures_nohp/reg_figure.pdf")
+ggsave(reg_figure, file = "./Figures_inland_nohp/reg_figure.pdf")
 
 monthly_HI_YNCBD <- cetaceans %>% 
   #filter(Observation.Status == 'ALIVE' | Observation.Status == 'FRESH DEAD') %>%
@@ -844,7 +845,7 @@ HI_status <- ggplot(monthly_HI_YNCBD, aes(x = factor(Month.of.Observation), y = 
   ylab("Total Human Interaction Cases") + xlab("") + 
   plot_theme(legend.position = 'top') + 
   scale_fill_brewer(palette = 'Set1') 
-ggsave(HI_status, file = "./Figures_nohp/HI_status.pdf")
+ggsave(HI_status, file = "./Figures_inland_nohp/HI_status.pdf")
 
 #Bar chart showing only HI cases - sum of total ever cases in each month
 monthly_HI_figure <- monthly_HI %>%
@@ -856,7 +857,7 @@ monthly_HI_figure <- monthly_HI %>%
   scale_y_continuous(labels = comma) +
   plot_theme() + 
   scale_fill_brewer(palette = 'Set1')
-ggsave(monthly_HI_figure, file = "./Figures_nohp/monthly_HI_figure.pdf")
+ggsave(monthly_HI_figure, file = "./Figures_inland_nohp/monthly_HI_figure.pdf")
 
 # #Bar chart showing monthly strandings by interaction type
 # monthly_HI_figure_stacked <- monthly_HI %>% 
@@ -868,7 +869,7 @@ ggsave(monthly_HI_figure, file = "./Figures_nohp/monthly_HI_figure.pdf")
 #   ylab("Total Human Interaction Cases") + xlab("") + 
 #   plot_theme(legend.position = 'top') + 
 #   scale_fill_brewer(palette = 'Set1')
-# #ggsave(monthly_HI_figure_stacked, file = "./Figures_nohp/monthly_HI_figure_stacked.pdf")
+# #ggsave(monthly_HI_figure_stacked, file = "./Figures_inland_nohp/monthly_HI_figure_stacked.pdf")
 
 #Bar chart showing monthly strandings by sex
 monthly_HI_sex_figure <- monthly_HI %>% group_by(Month.of.Observation, Sex) %>%
@@ -878,7 +879,7 @@ ggplot(aes(x = factor(Month.of.Observation), y = sum, fill = Sex)) +
   ylab("Total Human Interaction Cases") + xlab("") + 
   plot_theme(legend.position = 'top') + 
   scale_fill_brewer(palette = 'Set1')
-ggsave(monthly_HI_sex_figure, file = "./Figures_nohp/monthly_HI_sex_figure.pdf")
+ggsave(monthly_HI_sex_figure, file = "./Figures_inland_nohp/monthly_HI_sex_figure.pdf")
 
 #Monthly HI strandings by age class
 monthly_HI_age_figure <- 
@@ -889,7 +890,7 @@ ggplot(aes(x = factor(Month.of.Observation), y = sum, fill = Age.Class)) +
   ylab("Total Human Interaction Cases") + xlab("") + 
   plot_theme(legend.position = 'top') + 
   scale_fill_brewer(palette = 'Set1')
-ggsave(monthly_HI_age_figure, file = "./Figures_nohp/monthly_HI_age_figure.pdf")
+ggsave(monthly_HI_age_figure, file = "./Figures_inland_nohp/monthly_HI_age_figure.pdf")
 
 # #Is there an effect of month on FI?
 # monthly_FI <- cetaceans %>%
@@ -912,7 +913,7 @@ ggsave(monthly_HI_age_figure, file = "./Figures_nohp/monthly_HI_age_figure.pdf")
 #   ylab("Monthly Fisheries Interactions") + xlab("") + 
 #   plot_theme() #+ 
 #  # scale_color_brewer(palette = 'Set3')
-# #ggsave(monthly_FI_year_figure, file = "./Figures_nohp/monthly_FI_year_figure.pdf")
+# #ggsave(monthly_FI_year_figure, file = "./Figures_inland_nohp/monthly_FI_year_figure.pdf")
 ```
 
 ```{r monthly by species}
@@ -945,7 +946,7 @@ monthly_species_figure <-
   ylab("Total Monthly Strandings") + xlab("") + 
   plot_theme(legend.position = 'top') #+ 
   #scale_color_brewer(palette = 'Set3')
-ggsave(monthly_species_figure, file = "./Figures_nohp/monthly_species_figure.pdf")
+ggsave(monthly_species_figure, file = "./Figures_inland_nohp/monthly_species_figure.pdf")
 
 #HI by month per each species
 #HELP COMPARE: should this be done per species per month per year, so it is monthly FI cases in a given year (here)? Or just per species per all time series months combined, so it is summed across years (as above in HI and all cases per species)?
@@ -975,7 +976,7 @@ monthly_species_HI_figure <-
   ylab("Total Monthly Human Interaction Cases") + xlab("") + 
   plot_theme(legend.position = 'top') + 
   scale_color_brewer(palette = 'Set3')
-#ggsave(monthly_species_HI_figure, file = "./Figures_nohp/monthly_species_HI_figure.pdf")
+#ggsave(monthly_species_HI_figure, file = "./Figures_inland_nohp/monthly_species_HI_figure.pdf")
 
 #Human interactions monthly each year
 
@@ -995,7 +996,7 @@ monthly_HI_year_figure <-
   ylab("Monthly Human Interaction Cases") + xlab("") + 
   plot_theme() #+ 
   #scale_color_brewer(palette = 'Set3')
-ggsave(monthly_HI_year_figure, file = "./Figures_nohp/monthly_HI_year_figure.pdf")
+ggsave(monthly_HI_year_figure, file = "./Figures_inland_nohp/monthly_HI_year_figure.pdf")
 
 #Monthly species FI
 
@@ -1024,7 +1025,7 @@ monthly_species_FI_shot <- cetaceans %>%
 #   ylab("Total Strandings") + xlab("") + 
 #   plot_theme(legend.position = 'top') + 
 #   scale_color_brewer(palette = 'Set3')
-# #ggsave(monthly_FI_shot_year_figure, file = "./Figures_nohp/monthly_FI_shot_year_figure.pdf")
+# #ggsave(monthly_FI_shot_year_figure, file = "./Figures_inland_nohp/monthly_FI_shot_year_figure.pdf")
 
 ```
 
@@ -1041,7 +1042,7 @@ year_state_boxplot <-
   xlab("") + ylab("Monthly Strandings") +
   plot_theme(legend.position = 'top') +
   scale_fill_brewer(palette = 'Set1')
-ggsave(year_state_boxplot, file = "./Figures_nohp/year_state_boxplot.pdf")
+ggsave(year_state_boxplot, file = "./Figures_inland_nohp/year_state_boxplot.pdf")
 
 year_state_prop <- cetaceans %>%
   group_by(State, Year.of.Observation) %>%
@@ -1067,7 +1068,7 @@ ggplot(aes(x = factor(Year.of.Observation), y = cnt, fill = State)) +
    ylab("Total Annual Strandings") + xlab("") + 
    plot_theme() + 
    scale_fill_brewer(palette = 'Set1') 
-ggsave(all_state_figure, file = "./Figures_nohp/all_state_figure.pdf")
+ggsave(all_state_figure, file = "./Figures_inland_nohp/all_state_figure.pdf")
 
 #HI by state
 # HI_year_state <- cetaceans %>%
@@ -1101,7 +1102,7 @@ ggplot(aes(x = factor(Year.of.Observation), y = cnt, fill = State)) +
    ylab("Annual Human Interaction Cases") + xlab("") + 
    plot_theme() + 
    scale_fill_brewer(palette = 'Set1') 
-ggsave(HI_state_year_figure, file = "./Figures_nohp/HI_state_year_figure.pdf")
+ggsave(HI_state_year_figure, file = "./Figures_inland_nohp/HI_state_year_figure.pdf")
 
 #Species by state
 
@@ -1118,7 +1119,7 @@ state_species_prop_figure <-
   scale_y_continuous(labels = comma) +
   plot_theme() + 
    scale_fill_brewer(palette = 'Set1')
-ggsave(state_species_prop_figure, file = "./Figures_nohp/state_species_prop_figure.pdf")
+ggsave(state_species_prop_figure, file = "./Figures_inland_nohp/state_species_prop_figure.pdf")
 
 #100% stacked
 state_species_prop_figure <- 
@@ -1127,7 +1128,7 @@ state_species_prop_figure <-
   xlab("") + ylab("Proportion of Strandings") +
   plot_theme() + 
    scale_fill_brewer(palette = 'Set1')
-ggsave(state_species_prop_figure, file = "./Figures_nohp/state_species_prop_figure.pdf")
+ggsave(state_species_prop_figure, file = "./Figures_inland_nohp/state_species_prop_figure.pdf")
 
 ```
 
@@ -1145,7 +1146,7 @@ allWA_bycounty_figure <- ggplot(allWA_bycounty, aes(x = County, y = cnt)) +
   scale_y_continuous(labels = comma) +
   plot_theme() + 
   scale_fill_brewer(palette = 'Set1')
-ggsave(allWA_bycounty_figure, file = "./Figures_nohp/allWA_bycounty_figure.pdf")
+ggsave(allWA_bycounty_figure, file = "./Figures_inland_nohp/allWA_bycounty_figure.pdf")
 
 #Some counties have higher/lower strandings compared to others
 summary(aov(cnt ~ County, allWA_bycounty))
@@ -1234,7 +1235,7 @@ WAHI_bycounty_figure <-
   scale_y_continuous(labels = comma) +
   plot_theme(legend.position = 'top') + 
   scale_fill_brewer(palette = 'Set1') 
-#ggsave(WAHI_bycounty_figure, file = "./Figures_nohp/WAHI_bycounty_figure.pdf")
+#ggsave(WAHI_bycounty_figure, file = "./Figures_inland_nohp/WAHI_bycounty_figure.pdf")
 
 
 ```
@@ -1274,7 +1275,7 @@ allOR_bycounty_figure <-
   scale_y_continuous(labels = comma) +
   plot_theme() + 
   scale_fill_brewer(palette = 'Set1')
-ggsave(allOR_bycounty_figure, file = "./Figures_nohp/allOR_bycounty_figure.pdf")
+ggsave(allOR_bycounty_figure, file = "./Figures_inland_nohp/allOR_bycounty_figure.pdf")
 
 
 #all HI by county - OR
@@ -1309,7 +1310,7 @@ ORHI_bycounty_figure <-
   ylab("Human Interaction Cases") + xlab("") + 
   plot_theme(legend.position = 'top') + 
   scale_fill_brewer(palette = 'Set1')
-ggsave(ORHI_bycounty_figure, file = "./Figures_nohp/ORHI_bycounty_figure.pdf")
+ggsave(ORHI_bycounty_figure, file = "./Figures_inland_nohp/ORHI_bycounty_figure.pdf")
 
 
 ```
@@ -1352,7 +1353,7 @@ bigtable_WA_HI_table <- bigtable_WA_HI_type %>%
   dplyr::select(County, cnt.y, all.prop, cnt.x, HI.prop, Prop.fish, Prop.shot, Prop.boat, Prop.other)
 colnames(bigtable_WA_HI_table) <- c("County", "All Strandings (n)", "All Strandings (%)", "HI Cases (n)", "HI Prevalence (%)", "Fisheries (%)", "Gunshot (%)", "Boat (%)", "Other (%)")
 
-WAcounties_table <- write.csv(bigtable_WA_HI_table, file = "./Figures_nohp/WAcounties_table.csv", row.names = F)
+WAcounties_table <- write.csv(bigtable_WA_HI_table, file = "./Figures_inland_nohp/WAcounties_table.csv", row.names = F)
 
 #OR
 bigtable_OR <- cetaceans %>% 
@@ -1390,7 +1391,7 @@ bigtable_OR_HI_table <- bigtable_OR_HI_type %>%
   dplyr::select(County, cnt.y, all.prop, cnt.x, HI.prop, Prop.fish, Prop.shot, Prop.boat, Prop.other)
 colnames(bigtable_OR_HI_table) <- c("County", "All Strandings (n)", "All Strandings (%)", "HI Cases (n)", "HI Prevalence (%)", "Fisheries (%)", "Gunshot (%)", "Boat (%)", "Other (%)")
 
-ORcounties_table <- write.csv(bigtable_OR_HI_table, file = "./Figures_nohp/ORcounties_table.csv", row.names = F)
+ORcounties_table <- write.csv(bigtable_OR_HI_table, file = "./Figures_inland_nohp/ORcounties_table.csv", row.names = F)
 ```
 
 ```{r weight length, eval = FALSE, echo = FALSE}
@@ -1432,7 +1433,7 @@ species_prop <- cetaceans %>%
 
 #colnames(species_prop) <- c("Species", "Number", "Percent")
 
-# species_prop_table <- write.csv(species_prop, file = "./Figures_nohp/species_prop_table.csv", row.names = FALSE)
+# species_prop_table <- write.csv(species_prop, file = "./Figures_inland_nohp/species_prop_table.csv", row.names = FALSE)
                   
 
 #Big proportion table for sex
@@ -1512,7 +1513,7 @@ colnames(Age_HI_type_table) <- c("Class", "All Strandings (n)", "All Strandings 
 comb_age_sex_comp <- bind_rows(Sex_HI_type_table, Age_HI_type_table)
 comb_age_sex_comp[3, 1] <- "Unid. Sex"
 comb_age_sex_comp[8, 1] <- "Unid. Age"
-age_sex_composition_table <- write.csv(comb_age_sex_comp, file = "./Figures_nohp/age_sex_composition_table.csv", row.names = FALSE)
+age_sex_composition_table <- write.csv(comb_age_sex_comp, file = "./Figures_inland_nohp/age_sex_composition_table.csv", row.names = FALSE)
 
 #Species and age/sex composition
 # species_age_props <- cetaceans %>%
@@ -1591,7 +1592,7 @@ average_species_props <- c("Average", "--", "--",
 species_age_sex_composition <- rbind(species_props, average_species_props, stringsAsFactors = F)
   
 species_age_sex_composition <- write.csv(species_age_sex_composition, file =
-                      "./Figures_nohp/species_age_sex_composition.csv", row.names = FALSE)
+                      "./Figures_inland_nohp/species_age_sex_composition.csv", row.names = FALSE)
 
 ########same but HI - looks very similar to all combined strandings
 formerge_HI <- cetaceans %>%
@@ -1702,7 +1703,7 @@ species_props_HI <- cetaceans %>%
 # 
 # species_prop_HI <- rbind(species_prop_HI, average_species_prop_HI, stringsAsFactors = F)
 # 
-# species_HI_prop_table <- write.csv(species_prop_HI, file = "./Figures_nohp/species_HI_prop_table.csv", row.names = F)
+# species_HI_prop_table <- write.csv(species_prop_HI, file = "./Figures_inland_nohp/species_HI_prop_table.csv", row.names = F)
 # 
 # ##Big Prevalence over time Table(s)
 # ##all species combined, interaction types as a proportion of all cases, not just HI cases
@@ -1871,7 +1872,7 @@ scale_alpha(range = c(0, 0.3), guide = FALSE) +
 #     axis.text = element_blank())
 
 
-#ggsave(allstrands, file = "./Figures_nohp/Maps/allstrands.pdf")
+#ggsave(allstrands, file = "./Figures_inland_nohp/Maps/allstrands.pdf")
 
 #Washington all strandings - black dots
 WAstrands <- 
@@ -1885,7 +1886,7 @@ WAstrands <-
     #axis.text = element_blank(),
     legend.position = 'top',
     panel.border = element_rect(colour = "black", fill = "NA", size = .5))
-#ggsave(WAstrands, file = "./Figures_nohp/Maps/WAstrands.pdf")
+#ggsave(WAstrands, file = "./Figures_inland_nohp/Maps/WAstrands.pdf")
 
 #Greater Puget Sound all strandings - black dots
 pugetstrands <- 
@@ -1899,7 +1900,7 @@ pugetstrands <-
     #axis.text = element_blank(),
     legend.position = 'top',
     panel.border = element_rect(colour = "black", fill = "NA", size = .5))
-#ggsave(pugetstrands, file = "./Figures_nohp/Maps/pugetstrands.pdf")
+#ggsave(pugetstrands, file = "./Figures_inland_nohp/Maps/pugetstrands.pdf")
 
 #All strandings heatmap
 allheatmap <- 
@@ -1913,7 +1914,7 @@ allheatmap <-
   theme(
     axis.ticks = element_blank(),
     axis.text = element_blank())
-#ggsave(allheatmap, file = "./Figures_nohp/Maps/allheatmap.pdf")
+#ggsave(allheatmap, file = "./Figures_inland_nohp/Maps/allheatmap.pdf")
 
 #WA heatmap - all strandings
 WAheatmap <- 
@@ -1928,7 +1929,7 @@ WAheatmap <-
     #axis.ticks = element_blank(),
     #axis.text = element_blank(),
     panel.border = element_rect(colour = "black", fill = "NA", size = .5))
-#ggsave(WAheatmap, file = "./Figures_nohp/Maps/WAheatmap.pdf")
+#ggsave(WAheatmap, file = "./Figures_inland_nohp/Maps/WAheatmap.pdf")
 
 #Puget sound heatmap - all strandings, watercolor
 pugetheatmap_water <-
@@ -1942,7 +1943,7 @@ pugetheatmap_water <-
     axis.ticks = element_blank(),
     axis.text = element_blank(),
     panel.border = element_rect(colour = "black", fill = "NA", size = .5))
-# ggsave(pugetheatmap_water, file = "./Figures_nohp/pugetheatmap_water.pdf")
+# ggsave(pugetheatmap_water, file = "./Figures_inland_nohp/pugetheatmap_water.pdf")
 
 #Oregon coast heatmap - all strandings
 ORheatmap <- 
@@ -1957,7 +1958,7 @@ ORheatmap <-
     axis.ticks = element_blank(),
     axis.text = element_blank(),
     panel.border = element_rect(colour = "black", fill = "NA", size = .5))
-ggsave(ORheatmap, file = "./Figures_nohp/Maps/ORheatmap.pdf")
+ggsave(ORheatmap, file = "./Figures_inland_nohp/Maps/ORheatmap.pdf")
 
 #######HI Series
 cetaceans_mapping_HI <- cetaceans_mapping %>% 
@@ -1982,7 +1983,7 @@ HI_type_map <-
     axis.text = element_blank(),
     legend.position = 'top',
     panel.border = element_rect(colour = "black", fill = "NA", size = .5))
-ggsave(HI_type_map, file = "./Figures_nohp/Maps/HI_type_map.pdf")
+ggsave(HI_type_map, file = "./Figures_inland_nohp/Maps/HI_type_map.pdf")
 
 #All HI - colors
 HI_heatmap_colors <- 
@@ -2003,7 +2004,7 @@ ggmap(get_map(location = allbox, source = "osm")) +
     strip.text = element_text(size = 10), 
     strip.background = element_blank(),
     panel.border = element_rect(colour = "black", fill = "NA", size = 1)) 
-ggsave(HI_heatmap_colors, file = "./Figures_nohp/HI_heatmap_colors.pdf")
+ggsave(HI_heatmap_colors, file = "./Figures_inland_nohp/HI_heatmap_colors.pdf")
 
 #All HI - facet
 HI_heatmap_facet <-  
@@ -2019,7 +2020,7 @@ HI_heatmap_facet <-
     strip.background = element_blank(),
     panel.border = element_rect(colour = "black", size = 1)) +
   facet_wrap(~ Interaction.Type)
-ggsave(HI_heatmap_facet, file = "./Figures_nohp/HI_heatmap_facet.pdf")
+ggsave(HI_heatmap_facet, file = "./Figures_inland_nohp/HI_heatmap_facet.pdf")
 
 
 ###HI - WA
@@ -2043,7 +2044,7 @@ ggmap(get_map(location = WAbox, source = "osm")) +
     strip.text = element_text(size = 10), 
     strip.background = element_blank(),
     panel.border = element_rect(colour = "black", fill = "NA", size = 1)) 
-ggsave(HI_heatmap_WA_colors, file = "./Figures_nohp/HI_heatmap_WA_colors.pdf")
+ggsave(HI_heatmap_WA_colors, file = "./Figures_inland_nohp/HI_heatmap_WA_colors.pdf")
 
 #WA HI - facet
 HI_heatmap_WA_facet <-  
@@ -2059,7 +2060,7 @@ HI_heatmap_WA_facet <-
     strip.background = element_blank()) +
     #panel.border = element_rect(colour = "black", size = 1)) +
   facet_wrap(~ Interaction.Type)
-ggsave(HI_heatmap_WA_facet, file = "./Figures_nohp/HI_heatmap_WA_facet.pdf")
+ggsave(HI_heatmap_WA_facet, file = "./Figures_inland_nohp/HI_heatmap_WA_facet.pdf")
 
 ###HI Series - OR
 
@@ -2081,7 +2082,7 @@ ggmap(get_map(location = ORbox, source = "osm")) +
     strip.text = element_text(size = 10), 
     strip.background = element_blank(),
     panel.border = element_rect(colour = "black", fill = "NA", size = 1)) 
-ggsave(HI_heatmap_OR_colors, file = "./Figures_nohp/HI_heatmap_OR_colors.pdf")
+ggsave(HI_heatmap_OR_colors, file = "./Figures_inland_nohp/HI_heatmap_OR_colors.pdf")
 
 #OR HI - facet
 HI_heatmap_OR_facet <-  
@@ -2097,7 +2098,7 @@ HI_heatmap_OR_facet <-
     strip.background = element_blank(),
     panel.border = element_rect(colour = "black", size = 1)) +
   facet_wrap(~ Interaction.Type)
-ggsave(HI_heatmap_OR_facet, file = "./Figures_nohp/HI_heatmap_OR_facet.pdf")
+ggsave(HI_heatmap_OR_facet, file = "./Figures_inland_nohp/HI_heatmap_OR_facet.pdf")
 
 
 #######Species Series
@@ -2139,7 +2140,7 @@ WAheatmap_species_facet <-
     strip.background = element_blank(),
     panel.border = element_rect(colour = "black", size = 1)) +
   facet_wrap(~ Cetacean.Common.Name)
-ggsave(WAheatmap_species_facet, file = "./Figures_nohp/WAheatmap_species_facet.pdf")
+ggsave(WAheatmap_species_facet, file = "./Figures_inland_nohp/WAheatmap_species_facet.pdf")
 
 #Colored by species - OR
 ORheatmap_species <-   
@@ -2178,7 +2179,7 @@ ORheatmap_species_facet <-
     strip.background = element_blank(),
     panel.border = element_rect(colour = "black", size = 1)) +
   facet_wrap(~ Cetacean.Common.Name)
-ggsave(ORheatmap_species_facet, file = "./Figures_nohp/ORheatmap_species_facet.pdf")
+ggsave(ORheatmap_species_facet, file = "./Figures_inland_nohp/ORheatmap_species_facet.pdf")
 
 
 #Seasonal map exploration
@@ -2223,7 +2224,7 @@ WAheatmap_hs <-
     axis.ticks = element_blank(),
     axis.text = element_blank(),
     panel.border = element_rect(colour = "black", fill = "NA", size = .5))
-ggsave(WAheatmap_hs, file = "./Figures_nohp/Maps/WAheatmap_hs.pdf")
+ggsave(WAheatmap_hs, file = "./Figures_inland_nohp/Maps/WAheatmap_hs.pdf")
 
 ##CSL
 cetaceans_mapping_csl <- cetaceans_mapping %>% filter(Cetacean.Common.Name == 'California sea lion') 
@@ -2238,7 +2239,7 @@ WAheatmap_csl <-
     axis.ticks = element_blank(),
     axis.text = element_blank(),
     panel.border = element_rect(colour = "black", fill = "NA", size = .5))
-ggsave(WAheatmap_csl, file = "./Figures_nohp/Maps/WAheatmap_csl.pdf")
+ggsave(WAheatmap_csl, file = "./Figures_inland_nohp/Maps/WAheatmap_csl.pdf")
 
 ##SSL
 cetaceans_mapping_ssl <- cetaceans_mapping %>% filter(Cetacean.Common.Name == 'Steller sea lion') 
@@ -2253,7 +2254,7 @@ WAheatmap_ssl <-
     axis.ticks = element_blank(),
     axis.text = element_blank(),
     panel.border = element_rect(colour = "black", fill = "NA", size = .5))
-ggsave(WAheatmap_ssl, file = "./Figures_nohp/Maps/WAheatmap_ssl.pdf")
+ggsave(WAheatmap_ssl, file = "./Figures_inland_nohp/Maps/WAheatmap_ssl.pdf")
 
 ##NEL
 cetaceans_mapping_nel <- cetaceans_mapping %>% filter(Cetacean.Common.Name == 'Northern elephant seal') 
@@ -2268,7 +2269,7 @@ WAheatmap_nel <-
     axis.ticks = element_blank(),
     axis.text = element_blank(),
     panel.border = element_rect(colour = "black", fill = "NA", size = .5))
-ggsave(WAheatmap_nel, file = "./Figures_nohp/Maps/WAheatmap_nel.pdf")
+ggsave(WAheatmap_nel, file = "./Figures_inland_nohp/Maps/WAheatmap_nel.pdf")
 
 ```
 
