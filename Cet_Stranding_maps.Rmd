@@ -89,9 +89,9 @@ color_seas <- c("#a3d39c", "#e45f56", "#f6b61c", "#6ea3ec")
 #setwd("~/Documents/R/Cet_Strandings/")
 
 cetaceans <- cetaceans %>%
-  transform(Season = ifelse(Month.of.Observation %in% c('DEC', 'JAN', 'FEB'), 'Winter',
-                        ifelse(Month.of.Observation %in% c('MAR', 'APR', 'MAY'), 'Spring',
-                            ifelse(Month.of.Observation %in% c('JUN', 'JUL', 'AUG'), 'Summer', 'Fall')))) %>%
+  # transform(Season = ifelse(Month.of.Observation %in% c('DEC', 'JAN', 'FEB'), 'Winter',
+  #                       ifelse(Month.of.Observation %in% c('MAR', 'APR', 'MAY'), 'Spring',
+  #                           ifelse(Month.of.Observation %in% c('JUN', 'JUL', 'AUG'), 'Summer', 'Fall')))) %>%
   transform(Season = factor(Season, levels = c("Spring", "Summer", "Fall", "Winter")))
 
 #setwd("..") 
@@ -118,22 +118,23 @@ cetaceans_mapping <- cetaceans %>%
             Latitude = as.numeric(Latitude),
             long_corr = as.numeric(long_corr),
             lat_corr = as.numeric(lat_corr)) 
+sum(is.na(cetaceans$long_corr))
 
 # weight_sp <- cetaceans %>%
 #   filter(Cetacean.Common.Name != 'Unidentified') %>%
 #    group_by(Cetacean.Common.Name) %>%
 #   dplyr::summarize(weight = n()/nrow(cetaceans))
 
-cetaceans_mapping_sp <- cetaceans_mapping %>% filter(Cetacean.Common.Name != 'Unidentified') 
+cetaceans_mapping_sp <- cetaceans_mapping %>% filter(sci_name != 'NA NA') 
 #%>%
   #merge(weight_sp, by = 'Cetacean.Common.Name')
 
-test <- cetaceans_mapping_sp %>% group_by(Cetacean.Common.Name) %>%
+test <- cetaceans_mapping_sp %>% group_by(sci_name) %>%
   summarize(cnt = n_distinct(National.Database.Number))
 
 cetaceans_mapping_sp_small <- cetaceans_mapping_sp %>%
-  merge(test, by = 'Cetacean.Common.Name') %>%
-  filter(cnt > 10 & Cetacean.Common.Name != 'Other')
+  merge(test, by = 'sci_name') %>%
+  filter(cnt > 10 & sci_name != 'NA NA')
 
 # cetaceans_mapping_HI <- cetaceans_mapping %>% 
 #   filter(Findings.of.Human.Interaction == 'Y')
@@ -153,10 +154,10 @@ pnw_state_outline <- map_data("state", region = c("oregon", "washington")) %>%
 strands_species <- ggplot(pnw_state_outline) +
 geom_polygon(aes(x = long, y = lat, group = group), fill = "grey93", color = "grey50", size = 0.2) + 
   coord_fixed(1, ylim = c(42.3, 49.15), xlim = c(-125, -121.8)) + 
-  geom_point(data = cetaceans_mapping_sp,
+  geom_point(data = cetaceans_mapping_sp_small,
              aes(x = long_corr, y = lat_corr), col = 'grey40', size = 0.05, alpha = 1)  +
   # geom_density2d(data = cetaceans_mapping_sp_small %>% filter(Findings.of.Human.Interaction == 'Y'), aes(x = long_corr, y = lat_corr, col = 'HI cases'), bins = 3, size = .5) +
-  geom_density2d(data = cetaceans_mapping_sp, 
+  geom_density2d(data = cetaceans_mapping_sp_small, 
                  aes(x = long_corr, y = lat_corr), col = 'black', bins = 3, size = .5) +  
   #scale_alpha(range = c(0, 0.1), guide = FALSE) +
   xlab("") + ylab("") +
@@ -176,13 +177,13 @@ ggsave(file = 'strands_species.png', strands_species, device = 'png', height = 8
 strands_species_seas1 <- ggplot(pnw_state_outline) +
 geom_polygon(aes(x = long, y = lat, group = group), fill = "grey93", color = "grey50", size = 0.2) + 
   coord_fixed(1, ylim = c(42.3, 49.15), xlim = c(-125, -121.8)) + 
-  geom_point(data = cetaceans_mapping_sp_small %>% filter(Cetacean.Common.Name %in% c('Gray whale')),
+  geom_point(data = cetaceans_mapping_sp_small %>% filter(Cetacean.Common.Name %in% c('Humpback whale')),
            aes(x = long_corr, y = lat_corr), col = 'grey40', size = 0.05, alpha = 1)  +
   # geom_density2d(data = cetaceans_mapping_sp_small %>% 
   #                  filter(Findings.of.Human.Interaction == 'Y') %>%
   #                 filter(Cetacean.Common.Name %in% c('Gray whale')), aes(x = long_corr, y = lat_corr), bins = 4, size = .5) +
   geom_density2d(data = cetaceans_mapping_sp_small %>%
-                   filter(Cetacean.Common.Name %in% c('Gray whale')),
+                   filter(Cetacean.Common.Name %in% c('Humpback whale')),
 aes(x = long_corr, y = lat_corr), col = 'black', bins = 4, size = .5) +  
   #scale_alpha(range = c(0, 0.1), guide = FALSE) +
   xlab("") + ylab("") +
@@ -233,90 +234,88 @@ ggsave(file = 'strands_species_seas1.png', strands_species_seas1, device = 'png'
 ```{r}
 #statis maps inland only 
 
-merge <- cetaceans_mapping_sp %>% group_by(Cetacean.Common.Name) %>%
-  summarize(cnt = n_distinct(National.Database.Number))
-
-cetaceans_mapping_sp_small_in <- cetaceans_mapping_sp %>%
-  merge(merge, by = 'Cetacean.Common.Name') %>%
-  filter(Cetacean.Common.Name != 'Rissos' & Cetacean.Common.Name != 'Hybrid') %>%
-  filter(cnt > 1 & Cetacean.Common.Name != 'Other' & !grepl('Blain', Cetacean.Common.Name))
-
-strands_species_in <- ggplot(pnw_state_outline) +
-geom_polygon(aes(x = long, y = lat, group = group), fill = "grey93", color = "grey50", size = 0.2) + 
-  coord_fixed(1, ylim = c(47, 49.15), xlim = c(-125, -121.8)) + 
-  geom_point(data = cetaceans_mapping_sp_small_in %>%
-               filter(Water.Body == 'Inland_WA'),
-             aes(x = long_corr, y = lat_corr), col = 'grey40', size = 0.05, alpha = 1)  +
-  # geom_density2d(data = cetaceans_mapping_sp %>% filter(Findings.of.Human.Interaction == 'Y'), aes(x = long_corr, y = lat_corr, col = 'HI cases'), bins = 3, size = .5) +
-  geom_density2d(data = cetaceans_mapping_sp_small_in  %>% filter(Water.Body == 'Inland_WA')
-                 %>% filter(Cetacean.Common.Name != 'Sperm whale'), 
-                 aes(x = long_corr, y = lat_corr), col = 'black', bins = 3, size = .5) +  
-  #scale_alpha(range = c(0, 0.1), guide = FALSE) +
-  xlab("") + ylab("") +
-  facet_wrap(~ Cetacean.Common.Name, strip.position = "right") +
-  theme_classic() +
-   theme(plot.margin = unit(c(0, 0, 0, 0), "mm"),
-    axis.line = element_blank(), axis.ticks = element_blank(), axis.text = element_blank(),
-    strip.text = element_text(size = 7.5),
-    strip.background = element_blank(),
-    legend.title = element_blank(),
-    legend.text = element_text(size = 16),
-    panel.border = element_rect(colour = "black", fill = NA, size = 1)) +
-  scale_color_manual(values = c("black", "red"))
-
-ggsave(file = 'strands_species_in.png', strands_species_in, device = 'png', height = 8.5, width = 11, units = 'in', dpi = 1000)
-
-strands_in <- ggplot(pnw_state_outline) +
-geom_polygon(aes(x = long, y = lat, group = group), fill = "grey93", color = "grey50", size = 0.2) + 
-  coord_fixed(1, ylim = c(47, 49.15), xlim = c(-125, -121.8)) + 
-  # geom_point(data = cetaceans_mapping_sp %>% filter(Water.Body == 'Inland_WA'),
-  #            aes(x = Longitude, y = Latitude), col = 'grey40', size = 0.05, alpha = 1)  +
-  geom_density2d(data = cetaceans_mapping_sp %>% filter(Findings.of.Human.Interaction == 'Y')
-                 %>% filter(Water.Body == 'Inland_WA'), aes(x = long_corr, y = lat_corr, col = 'HI cases'), bins = 3, size = .5) +
-  geom_density2d(data = cetaceans_mapping_sp  %>% filter(Water.Body == 'Inland_WA'), 
-                 aes(x = long_corr, y = lat_corr, col = "All cases"), bins = 3, size = .5) +  
-  #scale_alpha(range = c(0, 0.1), guide = FALSE) +
-  xlab("") + ylab("") +
-  #facet_wrap(~ Cetacean.Common.Name, strip.position = "right") +
-  theme_classic() +
-   theme(plot.margin = unit(c(0, 0, 0, 0), "mm"), legend.position = 'top',
-    axis.line = element_blank(), 
-    strip.text = element_text(size = 8),
-    strip.background = element_blank(),
-    legend.title = element_blank(),
-    legend.text = element_text(size = 12),
-    panel.border = element_rect(colour = "black", fill = NA, size = 1)) +
-  scale_color_manual(values = c("black", "red"))
-
-ggsave(file = 'strands_in.png', strands_in, device = 'png', height = 8.5, width = 11, units = 'in', dpi = 1000)
-
-# strands_species_seas_in <- ggplot(pnw_state_outline) +
+# merge <- cetaceans_mapping_sp %>% group_by(Cetacean.Common.Name) %>%
+#   summarize(cnt = n_distinct(National.Database.Number))
+# 
+# # cetaceans_mapping_sp_small_in <- cetaceans_mapping_sp %>%
+# #   merge(merge, by = 'Cetacean.Common.Name') %>%
+# #   filter(Cetacean.Common.Name != 'Rissos' & Cetacean.Common.Name != 'Hybrid') %>%
+# #   filter(cnt > 1 & Cetacean.Common.Name != 'Other' & !grepl('Blain', Cetacean.Common.Name))
+# 
+# strands_species_in <- ggplot(pnw_state_outline) +
 # geom_polygon(aes(x = long, y = lat, group = group), fill = "grey93", color = "grey50", size = 0.2) + 
-#   coord_fixed(1, ylim = c(42.3, 49.15), xlim = c(-125, -121.8)) + 
-#   geom_point(data = cetaceans_mapping_sp_small %>% filter(Cetacean.Common.Name %in% c('Gray whale')),
-#            aes(x = long_corr, y = lat_corr), col = 'grey40', size = 0.05, alpha = 1)  +
-#   # geom_density2d(data = cetaceans_mapping_sp_small %>% 
-#   #                  filter(Findings.of.Human.Interaction == 'Y') %>%
-#   #                 filter(Cetacean.Common.Name %in% c('Gray whale')), aes(x = long_corr, y = lat_corr), bins = 4, size = .5) +
-#   geom_density2d(data = cetaceans_mapping_sp_small %>%
-#                    filter(Cetacean.Common.Name %in% c('Gray whale')),
-# aes(x = long_corr, y = lat_corr), col = 'black', bins = 4, size = .5) +  
+#   coord_fixed(1, ylim = c(47, 49.15), xlim = c(-125, -121.8)) + 
+#   geom_point(data = cetaceans_mapping_sp_small,
+#              aes(x = long_corr, y = lat_corr), col = 'grey40', size = 0.05, alpha = 1)  +
+#   # geom_density2d(data = cetaceans_mapping_sp %>% filter(Findings.of.Human.Interaction == 'Y'), aes(x = long_corr, y = lat_corr, col = 'HI cases'), bins = 3, size = .5) +
+#   geom_density2d(data = cetaceans_mapping_sp_small, 
+#                  aes(x = long_corr, y = lat_corr), col = 'black', bins = 3, size = .5) +  
 #   #scale_alpha(range = c(0, 0.1), guide = FALSE) +
 #   xlab("") + ylab("") +
-#   facet_grid(Cetacean.Common.Name ~ Season) +
+#   facet_wrap(~ Cetacean.Common.Name, strip.position = "right") +
 #   theme_classic() +
-#    theme(plot.margin = unit(c(0, -5, 0, -5), "mm"),
-#     axis.line = element_blank(),
-#     strip.text = element_text(size = 10, face = 'bold'),
+#    theme(plot.margin = unit(c(0, 0, 0, 0), "mm"),
+#     axis.line = element_blank(), axis.ticks = element_blank(), axis.text = element_blank(),
+#     strip.text = element_text(size = 7.5),
 #     strip.background = element_blank(),
-#     axis.text = element_blank(),
-#     axis.ticks = element_blank(),
 #     legend.title = element_blank(),
-#     legend.text = element_text(size = 10),
+#     legend.text = element_text(size = 16),
 #     panel.border = element_rect(colour = "black", fill = NA, size = 1)) +
 #   scale_color_manual(values = c("black", "red"))
 # 
-# ggsave(file = 'strands_species_seas_in.png', strands_species_seas_in, device = 'png', height = 8.5, width = 11, units = 'in', dpi = 1000)
+# ggsave(file = 'strands_species_in.png', strands_species_in, device = 'png', height = 8.5, width = 11, units = 'in', dpi = 1000)
+# 
+# strands_in <- ggplot(pnw_state_outline) +
+# geom_polygon(aes(x = long, y = lat, group = group), fill = "grey93", color = "grey50", size = 0.2) + 
+#   coord_fixed(1, ylim = c(47, 49.15), xlim = c(-125, -121.8)) + 
+#   # geom_point(data = cetaceans_mapping_sp %>% filter(Water.Body == 'Inland_WA'),
+#   #            aes(x = Longitude, y = Latitude), col = 'grey40', size = 0.05, alpha = 1)  +
+#   geom_density2d(data = cetaceans_mapping_sp %>% filter(Findings.of.Human.Interaction == 'Y')
+#                  %>% filter(Water.Body == 'Inland_WA'), aes(x = long_corr, y = lat_corr, col = 'HI cases'), bins = 3, size = .5) +
+#   geom_density2d(data = cetaceans_mapping_sp  %>% filter(Water.Body == 'Inland_WA'), 
+#                  aes(x = long_corr, y = lat_corr, col = "All cases"), bins = 3, size = .5) +  
+#   #scale_alpha(range = c(0, 0.1), guide = FALSE) +
+#   xlab("") + ylab("") +
+#   #facet_wrap(~ Cetacean.Common.Name, strip.position = "right") +
+#   theme_classic() +
+#    theme(plot.margin = unit(c(0, 0, 0, 0), "mm"), legend.position = 'top',
+#     axis.line = element_blank(), 
+#     strip.text = element_text(size = 8),
+#     strip.background = element_blank(),
+#     legend.title = element_blank(),
+#     legend.text = element_text(size = 12),
+#     panel.border = element_rect(colour = "black", fill = NA, size = 1)) +
+#   scale_color_manual(values = c("black", "red"))
+# 
+# ggsave(file = 'strands_in.png', strands_in, device = 'png', height = 8.5, width = 11, units = 'in', dpi = 1000)
+# 
+# # strands_species_seas_in <- ggplot(pnw_state_outline) +
+# # geom_polygon(aes(x = long, y = lat, group = group), fill = "grey93", color = "grey50", size = 0.2) + 
+# #   coord_fixed(1, ylim = c(42.3, 49.15), xlim = c(-125, -121.8)) + 
+# #   geom_point(data = cetaceans_mapping_sp_small %>% filter(Cetacean.Common.Name %in% c('Gray whale')),
+# #            aes(x = long_corr, y = lat_corr), col = 'grey40', size = 0.05, alpha = 1)  +
+# #   # geom_density2d(data = cetaceans_mapping_sp_small %>% 
+# #   #                  filter(Findings.of.Human.Interaction == 'Y') %>%
+# #   #                 filter(Cetacean.Common.Name %in% c('Gray whale')), aes(x = long_corr, y = lat_corr), bins = 4, size = .5) +
+# #   geom_density2d(data = cetaceans_mapping_sp_small %>%
+# #                    filter(Cetacean.Common.Name %in% c('Gray whale')),
+# # aes(x = long_corr, y = lat_corr), col = 'black', bins = 4, size = .5) +  
+# #   #scale_alpha(range = c(0, 0.1), guide = FALSE) +
+# #   xlab("") + ylab("") +
+# #   facet_grid(Cetacean.Common.Name ~ Season) +
+# #   theme_classic() +
+# #    theme(plot.margin = unit(c(0, -5, 0, -5), "mm"),
+# #     axis.line = element_blank(),
+# #     strip.text = element_text(size = 10, face = 'bold'),
+# #     strip.background = element_blank(),
+# #     axis.text = element_blank(),
+# #     axis.ticks = element_blank(),
+# #     legend.title = element_blank(),
+# #     legend.text = element_text(size = 10),
+# #     panel.border = element_rect(colour = "black", fill = NA, size = 1)) +
+# #   scale_color_manual(values = c("black", "red"))
+# # 
+# # ggsave(file = 'strands_species_seas_in.png', strands_species_seas_in, device = 'png', height = 8.5, width = 11, units = 'in', dpi = 1000)
 
 ```
 
@@ -348,7 +347,7 @@ geom_polygon(aes(x = long, y = lat, group = group), fill = "grey93", color = "gr
     panel.border = element_rect(colour = "black", fill = NA, size = 1)) #+
   #scale_color_manual(values = c("black", "red"))
 
-gganimate(strands_species_seas, interval = 2.0, filename = "~/Documents/R/Cet_Strandings/Figures/strands_species_an_seas.gif") 
+gganimate(strands_species_seas, interval = 2.0, filename = "~/Documents/R/Cet_Strandings/manuscript_figs/strands_species_an_seas.gif") 
 ```
 
 ```{r seasonal HI}
