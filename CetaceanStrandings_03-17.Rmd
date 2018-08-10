@@ -65,8 +65,6 @@ library(strucchange) # chow test https://cran.r-project.org/web/packages/strucch
 library(pgirmess) #kruskalmc https://cran.r-project.org/web/packages/pgirmess/pgirmess.pdf 
 library(coin) #independence_test?? https://cran.r-project.org/web/packages/coin/coin.pdf
 
-setwd("~/Documents/R/Cet_Strandings")
-
 # Define PlotTheme ----
 plot_theme <- function(...) {
   theme(
@@ -170,6 +168,8 @@ tbls <- captioner(prefix="Table")
 
 ```{r load pre-cleaned csv, echo = FALSE}
 
+setwd("~/Documents/Research/Cet_Strandings")
+
 cetaceans <- read.csv("cetacean_data_clean_2003_2017.csv", header = TRUE, na.strings = "", stringsAsFactors = FALSE) %>% 
   #filter(Cetacean.Common.Name != 'Harbor porpoise') %>% 
   #filter(Water.Body == 'Inland_WA')
@@ -233,7 +233,7 @@ age_sex_table <- write.csv(age_sex_table, file = "./Figures_inland_nohp/age_sex_
 
 #Are the number of cases of all combined species increasing or decreasing over time?
 
-data_by_year <- cetaceans %>% 
+data_by_year <- cetaceans %>% filter(Cetacean.Common.Name == 'Minke whale') %>%
   group_by(Year.of.Observation) %>%
   dplyr::summarize(cnt = n_distinct(National.Database.Number)) 
 
