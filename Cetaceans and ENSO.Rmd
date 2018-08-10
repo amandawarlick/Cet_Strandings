@@ -96,16 +96,14 @@ cetaceans$Age.Class <- factor(cetaceans$Age.Class,
 
 setwd("~/Documents/Research/Strandings/ENSO_Mapping/Env data")
 
-ocean <- read.csv("ocean_full.csv", header = TRUE, na.strings = "NA", stringsAsFactors = FALSE) %>%
-  transform(Date = as.Date(Date, format = "%Y-%m-%d")) #,
+ocean <- read.csv("ocean_full.csv", header = TRUE, na.strings = "NA", stringsAsFactors = FALSE) #%>%
+  #transform(Date = as.Date(Date, format = "%Y-%m-%d")) #,
             # Date_lag1 = as.Date(Date, format = "%Y-%m-%d"),
             # Date_lag2 = as.Date(Date, format = "%Y-%m-%d"),
             # Date_lag3 = as.Date(Date, format = "%Y-%m-%d")) 
 
-setwd("~/Documents/Research/Cet_Strandings")
-
 fish <- read.csv("fish_full.csv", header = TRUE, na.strings = "NA", stringsAsFactors = FALSE) %>%
-  transform(Date = as.Date(Date, format = "%Y-%m-%d")) #%>%
+  transform(Date = as.Date(Date, format = "%m/%d/%y")) #%>%
   #dplyr::select(-c(CBA_North, CBA_South))
 
 #Full data set
@@ -122,21 +120,26 @@ cetaceans_ocean <- cetaceans %>%
   
 cetaceans_ocean$Month.of.Observation <- factor(cetaceans_ocean$Month.of.Observation, levels = c('JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'))
 
+setwd("~/Documents/Research/Cet_Strandings")
+
 write.csv(cetaceans_ocean, "cetaceans_ocean.csv", row.names = F)
+#write.csv(fish, "fish.csv", row.names = F)
 
 #setwd("~/Documents/R/Strandings/ENSO_Mapping")
 
 ```
 
 ```{r, annual sep sp}
-##Annual anomalies separate species; outer coast only, ALL observation statuses
+##Annual anomalies separate species
 
 #Annual mean ocean anomalies
-annual_mean_ocean <- ocean %>%
+annual_mean_ocean <- ocean_full %>%
+  transform(Date = as.Date(Date)) %>%
   dplyr::select(-matches("_cat")) %>%
-  dplyr::select(-matches("_lag")) %>%
-  dplyr::select(-c(Date, Month.of.Observation)) %>%
-  melt(id.vars = 'Year.of.Observation') %>%
+  #dplyr::select(-matches("_lag")) %>%
+  merge(fish, by = c('Month.of.Observation', 'Year.of.Observation', 'Date')) %>%
+  dplyr::select(-c(Date)) %>%
+  melt(id.vars = c('Month.of.Observation', 'Year.of.Observation')) %>%
   group_by(Year.of.Observation, variable) %>%
   dplyr::summarize(mean = mean(value, na.rm = T)) %>%
   dcast(Year.of.Observation ~ variable, value.var = 'mean')
@@ -345,7 +348,7 @@ monthly_anom <- cetaceans_ocean %>%
   transform(strand_anom_all = cnt_all - mean_all) %>%
   #merge(monthly_anom_HI, by = c('Cetacean.Common.Name', 'Month.of.Observation', 'Year.of.Observation'), all = T) %>%
   #merge(monthly_anom_FI, by = c('Cetacean.Common.Name', 'Month.of.Observation', 'Year.of.Observation'), all = T) %>%
-  merge(ocean, by = c('Year.of.Observation', 'Month.of.Observation')) #%>%
+  merge(ocean, by = c('Year.of.Observation', 'Month.of.Observation')) %>%
   merge(fish, by = c('Year.of.Observation', 'Month.of.Observation'))
 
 #Monthly separate species from above, melted, simplifying variables for plotting

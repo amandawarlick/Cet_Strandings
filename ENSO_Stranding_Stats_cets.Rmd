@@ -41,10 +41,13 @@ cetaceans_ocean <- read.csv("cetaceans_ocean.csv", header = TRUE, na.strings = "
 
 #Load dataframes from PinnipedsandENSO.Rmd and CetaceansandENSO.Rmd
 
-setwd("~/Documents/Research/Strandings/ENSO_Mapping")
+setwd("~/Documents/Research/Strandings/ENSO_Mapping/Env Data")
+
+#fish <- read.csv("fish_full.csv", header = TRUE, na.strings = "NA", stringsAsFactors = FALSE)
 
 #Ocean only variables for correlation exploration
-ocean_corr <- read.csv("ocean_full.csv", header = T, na.strings = "NA", stringsAsFactors = F) %>%
+ocean_corr <- ocean_full %>%
+  merge(fish, by = c('Year.of.Observation', 'Month.of.Observation'), all = T) %>%
   dplyr::select(-matches("Date")) %>%
   dplyr::select(-matches("ENSO_cat")) %>%
   dplyr::select(-c(Month.of.Observation, Year.of.Observation))
@@ -202,24 +205,28 @@ sctest(strand_anom_HI ~ Year.of.Observation, type = "Chow", point = 15, data = a
 #keep this - all vars w/o 44 and lags: PDO + MEI + NPGO + SST_39 + SST_39_anom + Upwelling_39 + Wind_39 + CBA_South +
           #CBA_North + Period
 fit_step_all <- glm.nb(cnt_all ~ 
-          MEI + PDO + NPGO + SST_39 + SST_39_anom + SST_44 + SST_44_anom + Wind_39 + Wind_44 + Upwelling_39 + Upwelling_45 + CBA_North + CBA_South +
-          MEI_lag1 + PDO_lag1 + NPGO_lag1 + SST_39_lag1 + SST_44_lag1 + Wind_39_lag1 + Wind_44_lag1 + Upwelling_39_lag1 + Upwelling_45_lag1 + CBA_North_lag1 + CBA_South_lag1 + SST_39_anom_lag1 + SST_44_anom_lag1 +
-          MEI_lag2 + PDO_lag2 + NPGO_lag2 + SST_39_lag2 + SST_44_lag2 + Wind_39_lag2 + Wind_44_lag2 + Upwelling_39_lag2 + Upwelling_45_lag2 + CBA_North_lag2 + CBA_South_lag2 + SST_39_anom_lag2 + SST_44_anom_lag2 +
-          MEI_lag3 + PDO_lag3 + NPGO_lag3 + SST_39_lag3 + SST_44_lag3 + Wind_39_lag3 + Wind_44_lag3 + Upwelling_39_lag3 + Upwelling_45_lag3 + CBA_North_lag3 + CBA_South_lag3 + SST_39_anom_lag3 + SST_44_anom_lag3, 
+          MEI + PDO + NPGO + NOI + SST_39 + SST_39_anom + SST_44 + SST_44_anom + Wind_39 + Wind_44 + Upwelling_39 + Upwelling_45 + CBA_North + CBA_South + ENSO_cat + Sard + Anch + Herring + Msquid_N,
+          # MEI_lag1 + PDO_lag1 + NPGO_lag1 + SST_39_lag1 + SST_44_lag1 + Wind_39_lag1 + Wind_44_lag1 + Upwelling_39_lag1 + Upwelling_45_lag1 + CBA_North_lag1 + CBA_South_lag1 + SST_39_anom_lag1 + SST_44_anom_lag1 +
+          # MEI_lag2 + PDO_lag2 + NPGO_lag2 + SST_39_lag2 + SST_44_lag2 + Wind_39_lag2 + Wind_44_lag2 + Upwelling_39_lag2 + Upwelling_45_lag2 + CBA_North_lag2 + CBA_South_lag2 + SST_39_anom_lag2 + SST_44_anom_lag2 +
+          # MEI_lag3 + PDO_lag3 + NPGO_lag3 + SST_39_lag3 + SST_44_lag3 + Wind_39_lag3 + Wind_44_lag3 + Upwelling_39_lag3 + Upwelling_45_lag3 + CBA_North_lag3 + CBA_South_lag3 + SST_39_anom_lag3 + SST_44_anom_lag3, 
+      data = na.omit(monthly_anom_comb))
+fit_step_all <- glm.nb(cnt_all ~ 
+          MEI + NPGO + PDO + NOI + SST_39 + SST_39_anom + SST_44 + SST_44_anom + Wind_39 + Wind_44 + Upwelling_39 + Upwelling_45 + CBA_North + CBA_South + ENSO_cat + Sard + Anch + Herring + Msquid_N, 
       data = na.omit(monthly_anom_comb))
 step <- stepAIC(fit_step_all, direction = "backward")
 step$anova
+# result = cnt_all ~ NOI + SST_39_anom + Upwelling_39 + Herring
 
 #regsubsets() - chooses the nbest models for up to 8 predictors
 mod_select <- regsubsets(cnt_all ~ 
-      MEI + SST_39_anom + Upwelling_39 + CBA_North + SST_39_lag1, 
-      data = monthly_anom_comb, nbest = 5)
+       MEI + NOI + SST_39_anom + Upwelling_39 + CBA_North + Sard + Herring, 
+      data = monthly_anom_comb, nbest = 3)
 summary(mod_select)
 
 #best model without lag data was: wind and upwelling tightly correlated; 
 # SST_39_anom and SST_39_lags are both players, but only using one
 nb <- summary(glm.nb(cnt_all ~ 
-          MEI + Upwelling_39 + CBA_North + SST_39_anom + Period, 
+          NOI + SST_39_anom + Upwelling_39 + Herring, 
           data = monthly_anom_comb))
 qp <- summary(glm(cnt_all ~ MEI + Upwelling_39 + CBA_North + SST_39_anom + Period, 
                   data = monthly_anom_comb, family = 'quasipoisson'))
