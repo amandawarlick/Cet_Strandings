@@ -89,9 +89,9 @@ color_seas <- c("#a3d39c", "#e45f56", "#f6b61c", "#6ea3ec")
 setwd("~/Documents/Research/Cet_Strandings/")
 
 cetaceans <- cetaceans %>%
-  # transform(Season = ifelse(Month.of.Observation %in% c('DEC', 'JAN', 'FEB'), 'Winter',
-  #                       ifelse(Month.of.Observation %in% c('MAR', 'APR', 'MAY'), 'Spring',
-  #                           ifelse(Month.of.Observation %in% c('JUN', 'JUL', 'AUG'), 'Summer', 'Fall')))) %>%
+  transform(Season = ifelse(Month.of.Observation %in% c('DEC', 'JAN', 'FEB'), 'Winter',
+                        ifelse(Month.of.Observation %in% c('MAR', 'APR', 'MAY'), 'Spring',
+                            ifelse(Month.of.Observation %in% c('JUN', 'JUL', 'AUG'), 'Summer', 'Fall')))) %>%
   transform(Season = factor(Season, levels = c("Spring", "Summer", "Fall", "Winter")))
 
 #setwd("..") 
@@ -136,6 +136,9 @@ cetaceans_mapping_sp_small <- cetaceans_mapping_sp %>%
   merge(test, by = 'sci_name') %>%
   filter(cnt > 10 & sci_name != 'NA NA')
 
+cetaceans_mapping_sp_smaller <- cetaceans_mapping_sp_small %>%
+  filter(Cetacean.Common.Name %in% c('Harbor porpoise', 'Gray whale', 'Humpback whale', 'Striped dolphin', 'Dalls porpoise'))
+
 # cetaceans_mapping_HI <- cetaceans_mapping %>% 
 #   filter(Findings.of.Human.Interaction == 'Y')
 
@@ -174,43 +177,37 @@ geom_polygon(aes(x = long, y = lat, group = group), fill = "grey93", color = "gr
 
 ggsave(file = 'strands_species.png', strands_species, device = 'png', height = 8.5, width = 11, units = 'in', dpi = 1000)
 
-strands_species_seas_grays <- ggplot(pnw_state_outline) +
-geom_polygon(aes(x = long, y = lat, group = group), fill = "grey93", color = "grey50", size = 0.2) + 
-  coord_fixed(1, ylim = c(42.3, 49.15), xlim = c(-125, -121.8)) + 
-  geom_point(data = cetaceans_mapping_sp_small %>% filter(Cetacean.Common.Name %in% c('Gray whale')),
-           aes(x = long_corr, y = lat_corr), col = 'grey40', size = 1, alpha = 1)  +
-  # geom_density2d(data = cetaceans_mapping_sp_small %>% 
-  #                  filter(Findings.of.Human.Interaction == 'Y') %>%
-  #                 filter(Cetacean.Common.Name %in% c('Gray whale')), aes(x = long_corr, y = lat_corr), bins = 4, size = .5) +
-  geom_density2d(data = cetaceans_mapping_sp_small %>%
-                   filter(Cetacean.Common.Name %in% c('Gray whale')),
-aes(x = long_corr, y = lat_corr), col = 'black', bins = 3, size = .5) +  
-  #scale_alpha(range = c(0, 0.1), guide = FALSE) +
-  xlab("") + ylab("") +
-  facet_grid(Cetacean.Common.Name ~ Season) +
-  theme_classic() +
-   theme(plot.margin = unit(c(0, -5, 0, -5), "mm"),
-    axis.line = element_blank(),
-    strip.text = element_text(size = 10, face = 'bold'),
-    strip.background = element_blank(),
-    axis.text = element_blank(),
-    axis.ticks = element_blank(),
-    legend.title = element_blank(),
-    legend.text = element_text(size = 10),
-    panel.border = element_rect(colour = "black", fill = NA, size = 1)) +
-  scale_color_manual(values = c("black", "red"))
-
-ggsave(file = 'strands_species_seas1.png', strands_species_seas1, device = 'png', height = 8.5, width = 11, units = 'in', dpi = 1000)
+# strands_species_seas_grays <- ggplot(pnw_state_outline) +
+# geom_polygon(aes(x = long, y = lat, group = group), fill = "grey93", color = "grey50", size = 0.2) + 
+#   coord_fixed(1, ylim = c(42.3, 49.15), xlim = c(-125, -121.8)) + 
+#   geom_point(data = cetaceans_mapping_sp_small %>% filter(Cetacean.Common.Name %in% c('Gray whale')),
+#            aes(x = long_corr, y = lat_corr), col = 'grey40', size = 1, alpha = 1)  +
+#   geom_density2d(data = cetaceans_mapping_sp_small %>%
+#                    filter(Cetacean.Common.Name %in% c('Gray whale')),
+# aes(x = long_corr, y = lat_corr), col = 'black', bins = 3, size = .5) +  
+#   #scale_alpha(range = c(0, 0.1), guide = FALSE) +
+#   xlab("") + ylab("") +
+#   facet_grid(Cetacean.Common.Name ~ Season) +
+#   theme_classic() +
+#    theme(plot.margin = unit(c(0, -5, 0, -5), "mm"),
+#     axis.line = element_blank(),
+#     strip.text = element_text(size = 10, face = 'bold'),
+#     strip.background = element_blank(),
+#     axis.text = element_blank(),
+#     axis.ticks = element_blank(),
+#     legend.title = element_blank(),
+#     legend.text = element_text(size = 10),
+#     panel.border = element_rect(colour = "black", fill = NA, size = 1)) +
+#   scale_color_manual(values = c("black", "red"))
+# 
+# ggsave(file = 'strands_species_seas1.png', strands_species_seas1, device = 'png', height = 8.5, width = 11, units = 'in', dpi = 1000)
 
 strands_species_seas_all <- ggplot(pnw_state_outline) +
 geom_polygon(aes(x = long, y = lat, group = group), fill = "grey93", color = "grey50", size = 0.2) + 
   coord_fixed(1, ylim = c(42.3, 49.15), xlim = c(-125, -121.8)) + 
-  geom_point(data = cetaceans_mapping_sp_small,
+  geom_point(data = cetaceans_mapping_sp_smaller,
            aes(x = long_corr, y = lat_corr), col = 'grey40', size = 1, alpha = 1)  +
-  # geom_density2d(data = cetaceans_mapping_sp_small %>% 
-  #                  filter(Findings.of.Human.Interaction == 'Y') %>%
-  #                 filter(Cetacean.Common.Name %in% c('Gray whale')), aes(x = long_corr, y = lat_corr), bins = 4, size = .5) +
-  geom_density2d(data = cetaceans_mapping_sp_small,
+  geom_density2d(data = cetaceans_mapping_sp_smaller,
 aes(x = long_corr, y = lat_corr), col = 'black', bins = 3, size = .5) +  
   #scale_alpha(range = c(0, 0.1), guide = FALSE) +
   xlab("") + ylab("") +

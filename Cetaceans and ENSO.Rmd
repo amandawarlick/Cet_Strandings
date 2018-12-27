@@ -22,6 +22,7 @@ library(tidyr)
 library(ggmap)
 library(data.table)
 library(dplyr)
+library(sciplot)
 library(ggplot2)
 library(cowplot)
 library(stats)
@@ -75,6 +76,8 @@ color4_HI <- c("#3b98ee", "#a3d39c", "#e45f56", "#f6b61c")
 color4_age <- c("#ff8000", "#363e7e", "#3b98ee", "#a3d39c")
 color2 <- c("#e45f56", "#363e7e")
 color1 <- c("#e45f56", "#363e7e")
+red_blue <- c('#d73027','#f46d43','#fdae61','#fee090','#e0f3f8','#abd9e9','#74add1','#4575b4')
+
 
 # Read Me Notes
 # ***Indicates important dataframe
@@ -94,13 +97,7 @@ cetaceans <- read.csv("cetacean_data_clean_2003_2017.csv", header = TRUE, na.str
 cetaceans$Age.Class <- factor(cetaceans$Age.Class,
           levels = c("Calf", "Yearling", "Subadult", "Adult", "Unid", "NA"))
 
-setwd("~/Documents/Research/Strandings/ENSO_Mapping/Env data")
-
-ocean <- read.csv("ocean_full.csv", header = TRUE, na.strings = "NA", stringsAsFactors = FALSE) #%>%
-  #transform(Date = as.Date(Date, format = "%Y-%m-%d")) #,
-            # Date_lag1 = as.Date(Date, format = "%Y-%m-%d"),
-            # Date_lag2 = as.Date(Date, format = "%Y-%m-%d"),
-            # Date_lag3 = as.Date(Date, format = "%Y-%m-%d")) 
+ocean <- read.csv("ocean_full_cet.csv", header = TRUE, na.strings = "NA", stringsAsFactors = FALSE) 
 
 fish <- read.csv("fish_full.csv", header = TRUE, na.strings = "NA", stringsAsFactors = FALSE) %>%
   transform(Date = as.Date(Date, format = "%m/%d/%y")) #%>%
@@ -110,13 +107,17 @@ fish <- read.csv("fish_full.csv", header = TRUE, na.strings = "NA", stringsAsFac
 cetaceans_ocean <- cetaceans %>%
   #filter(National.Database.Number != 'NA' | !is.na(National.Database.Number)) %>%
   dplyr::select(-c(Affiliation, Locality.Detail, Confidence.Code, Report.Status, Observation.Date.Act.Est, Additional.Identifiers, Year.of.Necropsy, Month.of.Necropsy, Day.of.Necropsy, Date.of.Necropsy, Necropy.Carcass.Fresh.Frozen, Necropsy.Limited.Flag, Latitude.Units, Longitude.Units, Field.Number, Day.of.Observation, City, Common.Name, Genus, Species, Restrand, How.Observed)) %>%
-  merge(fish, by = c('Year.of.Observation', 'Month.of.Observation'), all = T) %>%
-  merge(ocean, by = c('Year.of.Observation', 'Month.of.Observation'), all = T) %>%
-  filter(Year.of.Observation > 2002) %>%
+  merge(fish, by = c('Year.of.Observation', 'Month.of.Observation'), all.x = T) %>%
+  merge(ocean, by = c('Year.of.Observation', 'Month.of.Observation'), all.x = T) %>%
+  #filter(Year.of.Observation > 2002) %>%
   transform(Season = 
         ifelse(Month.of.Observation == 'DEC' | Month.of.Observation == 'JAN' | Month.of.Observation == 'FEB', 'Winter', 
         ifelse(Month.of.Observation == 'MAR' | Month.of.Observation == 'APR' | Month.of.Observation == 'MAY', 'Spring', 
-        ifelse(Month.of.Observation == 'JUN' | Month.of.Observation == 'JUL' | Month.of.Observation == 'AUG', 'Summer', 'Fall'))))
+        ifelse(Month.of.Observation == 'JUN' | Month.of.Observation == 'JUL' | Month.of.Observation == 'AUG', 'Summer', 'Fall')))) %>%
+  transform(type = ifelse(Cetacean.Common.Name %in% c('Striped dolphin', 'Long-beaked common dolphin',
+                                                      'Killer whale', 'Rissos', 'Pacific white-sided dolphin',
+                                                      'Bottlenose dolphin', 'Short-beaked common dolphin', 
+                                                      'Northern right whale dolphin'), 'Dolphinidae', 'Other'))
   
 cetaceans_ocean$Month.of.Observation <- factor(cetaceans_ocean$Month.of.Observation, levels = c('JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'))
 
@@ -129,16 +130,20 @@ write.csv(cetaceans_ocean, "cetaceans_ocean.csv", row.names = F)
 
 ```
 
+```{r assumptions}
+#assumptions and normality
+```
+
+
 ```{r, annual sep sp}
 ##Annual anomalies separate species
 
 #Annual mean ocean anomalies
-annual_mean_ocean <- ocean_full %>%
-  transform(Date = as.Date(Date)) %>%
+annual_mean_ocean <- ocean %>%
   dplyr::select(-matches("_cat")) %>%
   #dplyr::select(-matches("_lag")) %>%
-  merge(fish, by = c('Month.of.Observation', 'Year.of.Observation', 'Date')) %>%
-  dplyr::select(-c(Date)) %>%
+  merge(fish, by = c('Month.of.Observation', 'Year.of.Observation')) %>%
+  #dplyr::select(-c(Date)) %>%
   melt(id.vars = c('Month.of.Observation', 'Year.of.Observation')) %>%
   group_by(Year.of.Observation, variable) %>%
   dplyr::summarize(mean = mean(value, na.rm = T)) %>%
@@ -228,7 +233,7 @@ annual_anom_comb <- annual_anom_melt %>%
 
 ```
 
-```{r, monthly comb sp}
+```{r, monthly HI comb sp}
 
 ##Monthly anomalies - all species combined 
 
@@ -304,7 +309,7 @@ anom_comb_plot <- ggplot(anom_comb_plot_data, aes(Date, value, group = variable,
 
 ```
 
-```{r, monthly sep sp}
+```{r, monthly HI sep sp}
 
 ##Monthly anomalies - separate species
 
@@ -474,6 +479,314 @@ write.csv(monthly_anom, "monthly_anom.csv", row.names = F)
 
 ```
 
+```{r inline}
+#inline stats
+
+spec_num <- cetaceans %>% 
+  filter(Cetacean.Common.Name != 'Unidentified') %>%
+  dplyr::summarize(n_distinct(sci_name))
+
+num_HI <- cetaceans_ocean %>% 
+  #filter(Cetacean.Common.Name != 'Unidentified') %>%
+  filter(Findings.of.Human.Interaction == 'Y') %>%
+  group_by(Cetacean.Common.Name) %>%
+  dplyr::summarize(n_distinct(National.Database.Number))
+
+#Annual mean strandings
+annual_mean <- cetaceans_ocean %>%
+  #filter(Observation.Status == 'ALIVE' | Observation.Status == 'FRESH DEAD') %>%
+  #filter(Water.Body != 'Inland_WA') %>%
+  group_by(Year.of.Observation, Cetacean.Common.Name) %>%
+  dplyr::summarize(cnt = n_distinct(National.Database.Number)) %>%
+  group_by(Cetacean.Common.Name) %>%
+  dplyr::summarize(mean_strand = mean(cnt))
+
+annual_HI <- cetaceans_ocean %>%
+  filter(Findings.of.Human.Interaction == 'Y') %>%
+  group_by(Year.of.Observation) %>%
+  dplyr::summarize(cnt = n_distinct(National.Database.Number)) 
+
+tot_sp <- cetaceans_ocean %>%
+  #filter(Observation.Status == 'ALIVE' | Observation.Status == 'FRESH DEAD') %>%
+  #filter(Water.Body != 'Inland_WA') %>%
+  group_by(Cetacean.Common.Name) %>%
+  dplyr::summarize(cnt = n_distinct(National.Database.Number)) 
+
+state_cnt <- cetaceans_ocean %>%
+  group_by(Water.Body) %>%
+  summarize(cnt = n_distinct(National.Database.Number))
+
+
+```
+
+
+
+```{r}
+
+all_cnt <- cetaceans_ocean %>%
+  group_by(Year.of.Observation) %>%
+  dplyr::summarize(cnt = n_distinct(National.Database.Number))
+
+reg_HI <- cetaceans_ocean %>%
+  filter(Findings.of.Human.Interaction == 'Y') %>%
+  group_by(Year.of.Observation, Water.Body) %>%
+  dplyr::summarize(cnt = n_distinct(National.Database.Number)) 
+
+sp_HI <- cetaceans_ocean %>%
+  filter(Findings.of.Human.Interaction == 'Y') %>%
+  filter(Cetacean.Common.Name %in% 
+           c('Harbor porpoise', 'Gray whale', 'Humpback whale', 'Striped dolphin', 
+             'Dalls porpoise', 'Pacific white-sided dolphin')) %>%
+  group_by(Year.of.Observation, Cetacean.Common.Name) %>%
+  dplyr::summarize(cnt = n_distinct(National.Database.Number)) %>%
+  transform(Cetacean.Common.Name = factor(Cetacean.Common.Name, 
+            levels = c('Harbor porpoise', 'Striped dolphin', 'Dalls porpoise', 
+                       'Pacific white-sided dolphin', 'Gray whale', 'Humpback whale'),
+            labels = c('Harbor porpoise', 'Striped dolphin', 'Dall\'s porpoise', 
+                       'Pacific white-sided dolphin', 'Gray whale', 'Humpback whale')))
+
+spec_cnt <- cetaceans_ocean %>%
+  filter(Cetacean.Common.Name %in% 
+           c('Harbor porpoise', 'Gray whale', 'Humpback whale', 'Striped dolphin', 
+             'Dalls porpoise', 'Pacific white-sided dolphin')) %>%
+  group_by(Year.of.Observation, Cetacean.Common.Name) %>%
+  dplyr::summarize(cnt = n_distinct(National.Database.Number)) %>%
+  transform(grp = ifelse(Cetacean.Common.Name == 'Harbor porpoise', 1, 2)) %>%
+  transform(Cetacean.Common.Name = factor(Cetacean.Common.Name, 
+            levels = c('Harbor porpoise', 'Striped dolphin', 'Dalls porpoise', 
+                       'Pacific white-sided dolphin', 'Gray whale', 'Humpback whale'),
+            labels = c('Harbor porpoise', 'Striped dolphin', 'Dall\'s porpoise', 
+                       'Pacific white-sided dolphin', 'Gray whale', 'Humpback whale')))
+
+ggplot(data = spec_cnt, aes(Year.of.Observation, cnt, group = Cetacean.Common.Name, col = Cetacean.Common.Name)) +
+  geom_line(aes(), linetype = 'dashed', size = .65) +
+  geom_point(size = 1) +
+  geom_smooth(aes(group = Cetacean.Common.Name, col = Cetacean.Common.Name), size = 1, show.legend = F, se = F) +
+  xlab("") + ylab("Annual Strandings") +
+  facet_wrap(~Cetacean.Common.Name, scales = 'free') +
+  theme(legend.position = 'none',
+    axis.title = element_text(size = 11),
+    axis.text.y = element_text(size = 10),
+    axis.text.x = element_text(size = 10, angle = 90, vjust = .5),
+    legend.title = element_blank(),
+    strip.background = element_blank(),
+    strip.text = element_text(size = 10)) +
+  scale_x_continuous(breaks = c(2004, 2006, 2008, 2010, 2012, 2014, 2016)) +
+  scale_color_manual(values = color6, guide = guide_legend(nrow = 1))
+#combined cases
+# ggplot(annual_HI, aes(Year.of.Observation, cnt)) +
+#   geom_line(aes(), linetype = 'dashed', size = .65) +
+#   geom_point(size = 1) +
+#   geom_smooth(aes(), col = 'black', size = 1, show.legend = F, se = F) +
+#   xlab('') + ylab('Annual Human Interaction Cases') +
+#   theme(legend.position = 'none',
+#     axis.title = element_text(size = 11),
+#     axis.text = element_text(size = 10),
+#     legend.title = element_blank(),
+#     strip.background = element_blank(),
+#     strip.text = element_text(size = 10)) 
+
+#meh not great
+ggplot(sp_HI, aes(Year.of.Observation, cnt, group = Cetacean.Common.Name, col = Cetacean.Common.Name)) +
+  geom_line(aes(), linetype = 'dashed', size = .65) +
+  geom_point(size = 1) +
+  geom_smooth(aes(), size = 1, show.legend = F, se = F) +
+  xlab('') + ylab('Annual Human Interaction Cases') +
+  facet_wrap(~Cetacean.Common.Name, scales = 'free_x') +
+  theme(legend.position = 'none',
+    axis.title = element_text(size = 11),
+    axis.text.y = element_text(size = 10),
+    axis.text.x = element_text(size = 10, angle = 90, vjust = .5),
+    legend.title = element_blank(),
+    strip.background = element_blank(),
+    strip.text = element_text(size = 10)) +
+  scale_x_continuous(breaks = c(2004, 2006, 2008, 2010, 2012, 2014, 2016)) +
+  scale_color_manual(values = color6, guide = guide_legend(nrow = 1))
+
+
+```
+
+
+```{r tukey season difs}
+
+#season
+season_all <- cetaceans_ocean %>%
+  #filter(Observation.Status == 'ALIVE' | Observation.Status == 'FRESH DEAD') %>%
+  group_by(Season, Year.of.Observation) %>%
+  summarize(cnt = n_distinct(National.Database.Number))
+
+season_sp <- cetaceans_ocean %>%
+  #filter(Observation.Status == 'ALIVE' | Observation.Status == 'FRESH DEAD') %>%
+  filter(Cetacean.Common.Name == 'Harbor porpoise') %>%
+  #transform(Season = ifelse(Season == 'Summer' | Season == 'Spring', 'SPSU', 'FW')) %>%
+  group_by(Season, Year.of.Observation) %>%
+  summarize(cnt = n_distinct(National.Database.Number)) %>%
+  transform(Season = factor(Season, levels = c('Spring', 'Summer', 'Fall', 'Winter')))
+
+mean_seas <- season_sp %>%
+  group_by(Season) %>%
+  summarize(mean = mean(cnt))
+
+kruskal.test(season_sp)
+#kruskalmc(season_sp$cnt ~ season_sp$Season)
+posthoc.kruskal.nemenyi.test(cnt ~ Season, data = season_sp, dist = "Chisquare")
+
+#seasonal plots
+seasplot_data <- cetaceans_ocean %>%
+  filter(Cetacean.Common.Name %in% c('Harbor porpoise', 'Gray whale', 'Humpback whale', 'Striped dolphin', 'Dalls porpoise', 'Pacific white-sided dolphin')) %>%
+  #filter(Findings.of.Human.Interaction == 'Y') %>%
+  group_by(Cetacean.Common.Name, Season, Year.of.Observation) %>%
+  dplyr::summarize(cnt = n_distinct(National.Database.Number)) %>%
+  group_by(Cetacean.Common.Name, Season) %>%
+  dplyr::summarize(mean = mean(cnt, na.rm = T), se = se(cnt)) %>%
+  transform(Season = factor(Season, levels = c('Spring', 'Summer', 'Fall', 'Winter'))) %>%
+  transform(Cetacean.Common.Name = factor(Cetacean.Common.Name, 
+            levels = c('Harbor porpoise', 'Striped dolphin', 'Dalls porpoise', 
+                       'Pacific white-sided dolphin', 'Gray whale', 'Humpback whale'),
+            labels = c('Harbor porpoise', 'Striped dolphin', 'Dall\'s porpoise',
+                       'Pacific white-sided dolphin', 'Gray whale', 'Humpback whale')))
+
+# plotmeans(cnt ~ Season, data = season_sp, xlab = '',
+#   ylab = "Number of Annual Strandings", main="", barcol = 'black',
+#   n.label = F,
+#   #ylim = c(0,6), 
+#   pch = 19, cex = 0.7, cex.lab = 0.9, cex.axis = 0.8, cex.sub = 0.8)
+ggplot(seasplot_data, aes(y = mean, x = Season, group = Cetacean.Common.Name, col = Cetacean.Common.Name)) +
+  geom_point() +
+  geom_line(linetype = 'dotted') +
+  geom_errorbar(aes(ymin = mean-se, ymax = mean+se), width = 0.2) + 
+  ylab('Mean Strandings per Season') + xlab('') +
+  facet_wrap(~Cetacean.Common.Name, scales = 'free') +
+  plot_theme(legend.position = 'none',
+             strip.background = element_blank(),
+             strip.text = element_text(size = 10)) +
+  scale_color_manual(values = color6)
+
+```
+
+```{r sex tukey difs}
+#sex
+sex_all <- cetaceans_ocean %>%
+  #filter(Cetacean.Common.Name %in% c('Harbor porpoise', 'Gray whale', 'Humpback whale', 'Striped dolphin', 'Dalls porpoise', 'Pacific white-sided dolphin')) %>%
+  #filter(Observation.Status == 'ALIVE' | Observation.Status == 'FRESH DEAD') %>%
+  filter(Sex != 'Unid') %>%
+  group_by(Sex, Year.of.Observation) %>%
+  summarize(cnt = n_distinct(National.Database.Number))
+
+sex_cnt <- cetaceans_ocean %>%
+  #filter(Cetacean.Common.Name %in% c('Harbor porpoise', 'Gray whale', 'Humpback whale', 'Striped dolphin', 'Dalls porpoise', 'Pacific white-sided dolphin')) %>%
+  group_by(Sex) %>%
+  summarize(cnt = n_distinct(National.Database.Number))
+
+sex_sp <- cetaceans_ocean %>%
+  filter(Cetacean.Common.Name == 'Harbor porpoise') %>%
+  filter(Sex != 'Unid') %>%
+  group_by(Sex, Season) %>%
+  summarize(cnt = n_distinct(National.Database.Number)) 
+
+# nosex <- cetaceans_ocean %>%
+#   filter(Sex == 'Unid') %>%
+#   group_by(Cetacean.Common.Name) %>%
+#   summarize(cnt = n_distinct(National.Database.Number))
+
+mean_sex <- sex_all %>%
+  group_by(Sex) %>%
+  summarize(mean = mean(cnt))
+
+kruskal.test(sex_sp)
+kruskalmc(sex_sp$cnt ~ sex_sp$Sex)
+
+plotmeans(cnt ~ Sex, data = sex_sp, xlab = '',
+  ylab = "Number of Annual Strandings", main="", barcol = 'black',
+  n.label = F,
+  #ylim = c(0,6),
+  pch = 19, cex = 0.7, cex.lab = 0.9, cex.axis = 0.8, cex.sub = 0.8)
+
+```
+
+
+```{r state tukey difs}
+#state differences
+
+water_all <- cetaceans_ocean %>%
+  #filter(Cetacean.Common.Name %in% c('Harbor porpoise', 'Gray whale', 'Humpback whale', 'Striped dolphin', 'Dalls porpoise', 'Pacific white-sided dolphin')) %>%
+  filter(Water.Body != 'NA') %>%
+  group_by(Water.Body, Year.of.Observation) %>%
+  summarize(cnt = n_distinct(National.Database.Number)) %>%
+  dplyr::select(-c(Year.of.Observation))
+
+water_sp <- cetaceans_ocean %>%
+  #filter(Cetacean.Common.Name %in% c('Harbor porpoise', 'Gray whale', 'Humpback whale', 'Striped dolphin', 'Dalls porpoise', 'Pacific white-sided dolphin')) %>%
+  filter(Water.Body != 'NA') %>%
+  filter(Cetacean.Common.Name == 'Harbor porpoise') %>%
+  group_by(Water.Body, Year.of.Observation) %>%
+  summarize(cnt = n_distinct(National.Database.Number)) 
+
+state_all <- cetaceans_ocean %>%
+  #filter(Cetacean.Common.Name %in% c('Harbor porpoise', 'Gray whale', 'Humpback whale', 'Striped dolphin', 'Dalls porpoise', 'Pacific white-sided dolphin')) %>%
+  #filter(State != 'Unid') %>%
+  group_by(State, Year.of.Observation) %>%
+  summarize(cnt = n_distinct(National.Database.Number))
+# state_sp <- cetaceans_ocean %>%
+#   group_by(State, Year.of.Observation) %>%
+#   summarize(cnt = n_distinct(National.Database.Number))
+
+# state_cnt <- cetaceans_ocean %>%
+#   #filter(Cetacean.Common.Name %in% c('Harbor porpoise', 'Gray whale', 'Humpback whale', 'Striped dolphin', 'Dalls porpoise', 'Pacific white-sided dolphin')) %>%
+#   group_by(State, Water.Body) %>%
+#   summarize(cnt = n_distinct(National.Database.Number))
+
+kruskal.test(water_all)
+posthoc.kruskal.nemenyi.test(cnt ~ Water.Body, data = water_all, dist = "Chisq")
+
+waterplot_data <- cetaceans_ocean %>%
+  filter(Cetacean.Common.Name %in% c('Harbor porpoise', 'Gray whale', 'Humpback whale', 'Striped dolphin', 'Dalls porpoise', 'Pacific white-sided dolphin')) %>%
+  filter(Water.Body != 'NA') %>%
+  group_by(Cetacean.Common.Name, Water.Body, Year.of.Observation) %>%
+  dplyr::summarize(cnt = n_distinct(National.Database.Number)) %>%
+  group_by(Cetacean.Common.Name, Water.Body) %>%
+  dplyr::summarize(mean = mean(cnt, na.rm = T), se = se(cnt)) %>%
+  transform(Cetacean.Common.Name = factor(Cetacean.Common.Name, 
+            levels = c('Harbor porpoise', 'Striped dolphin', 'Dalls porpoise', 
+                       'Pacific white-sided dolphin', 'Gray whale', 'Humpback whale'),
+            labels = c('Harbor porpoise', 'Striped dolphin', 'Dall\'s porpoise', 
+                       'Pacific white-sided dolphin', 'Gray whale', 'Humpback whale'))) %>%
+  transform(Water.Body = factor(Water.Body, levels = c('OR_Coast', 'WA_Coast', 'Inland_WA'), 
+                                labels = c('OR Coast', 'WA Coast', 'WA Inland')))
+# waterplot_data <- cetaceans_ocean %>%
+#   filter(Cetacean.Common.Name %in% c('Harbor porpoise', 'Gray whale', 'Humpback whale', 'Striped dolphin', 'Dalls porpoise', 'Pacific white-sided dolphin')) %>%
+#   filter(Water.Body != 'NA') %>%
+#   group_by(Water.Body, Year.of.Observation) %>%
+#   summarize(cnt = n_distinct(National.Database.Number)) %>%
+#   group_by(Water.Body) %>%
+#   summarize(mean = mean(cnt, na.rm = T), se = se(cnt)) %>%
+#   transform(Water.Body = factor(Water.Body, levels = c('OR_Coast', 'WA_Coast', 'Inland_WA'), 
+#                                 labels = c('OR Coast', 'WA Coast', 'WA Inland')))
+
+ggplot(waterplot_data, aes(y = mean, x = Water.Body, group = Cetacean.Common.Name, col = Cetacean.Common.Name)) +
+  geom_point() +
+  geom_line(linetype = 'dotted') +
+  geom_errorbar(aes(ymin = mean-se, ymax = mean+se), width = 0.2) + 
+  ylab('Mean Seasonal Strandings by Area') + xlab('') +
+  facet_wrap(~Cetacean.Common.Name, scales = 'free') +
+  plot_theme(legend.position = 'none',
+             strip.background = element_blank(),
+             strip.text = element_text(size = 10)) +
+  scale_color_manual(values = color6)
+
+ggplot(waterplot_data_all, aes(y = mean, x = Water.Body)) +
+  geom_point() +
+  geom_line(linetype = 'dotted') +
+  geom_errorbar(aes(ymin = mean-se, ymax = mean+se), width = 0.2) + 
+  ylab('Mean Seasonal Strandings by Area') + xlab('') +
+  plot_theme(legend.position = 'none',
+             strip.background = element_blank(),
+             strip.text = element_text(size = 10)) +
+  scale_color_manual(values = color6)
+
+```
+
+
 ```{r, categorical ENSO}
 
 #Do more cetaceans strand (or HI/FI cases) during EN compared to LN conditions?
@@ -548,6 +861,4 @@ summary(aov(cnt ~ ENSO_cat, data = ENSO_FI %>% filter(Cetacean.Common.Name == 'H
 
 ```
 
-```{r maps}
 
-```
