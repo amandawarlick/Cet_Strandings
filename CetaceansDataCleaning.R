@@ -1,3 +1,9 @@
+#ReadMe
+
+#Run this script to get the csv cleaned and prepped, though this does not pull in the raw. Too messy.
+
+#updates
+#April 2019: got 2000-2002 + 2018 from Stephanie and Lauren, adding that in.
 
 library(knitr)
 library(ggplot2)
@@ -6,14 +12,15 @@ library(lubridate)
 library(reshape2)
 library(xtable)
 library(dplyr)
+library(readr)
 
 ##Load stranding data, remove unnecessary columns, make pinniped/cetacean designation, fix common name to remove comma
-setwd("~/Documents/R/Cet_Strandings/")
+setwd("~/Documents/Research/Cet_Strandings/")
 
 case <- function(x)
   paste0(toupper(substr(x, 1, 1)), tolower(substring(x, 2)))
 
-data <- read.csv("Cet_Stranding_Data_corrected.csv", header = TRUE, na.strings = "", stringsAsFactors = FALSE)
+data <- read.csv("Cet_Stranding_Data_CleaningInput.csv", header = TRUE, na.strings = "", stringsAsFactors = FALSE)
 
 cetacean_data <- data %>%
   rename(City = City...from.strandings.table) %>%
@@ -87,8 +94,10 @@ cetacean_data$Longitude <- gsub("\\_", "", cetacean_data$Longitude)
 #cetacean_data$Latitude <- gsub("/", "", cetacean_data$Latitude)
 #cetacean_data$Latitude <- gsub(" ", ".", cetacean_data$Latitude)
 
+cetacean_data$Longitude <- parse_number(cetacean_data$Longitude)
 cetacean_data$Longitude <- as.numeric(cetacean_data$Longitude)
 cetacean_data$Longitude <- cetacean_data$Longitude * (-1)
+
 cetacean_data$Latitude <- as.numeric(cetacean_data$Latitude)
 
 mean_lat_long <- cetacean_data %>%
@@ -115,6 +124,6 @@ cetacean_data <- cetacean_data %>%
 
 #California data
 
-write.csv(cetacean_data, file = "~/Documents/R/Cet_Strandings/cetacean_data_clean.csv", row.names = F)
+write.csv(cetacean_data, file = "~/Documents/Research/Cet_Strandings/cetacean_data_CleaningOuput00_18.csv", row.names = F)
 
 ```

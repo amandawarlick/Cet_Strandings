@@ -239,7 +239,6 @@ sctest_data <- data_by_year %>%
 
 sctest(Year.of.Observation ~ cnt, type = "Chow", point = 12, data = sctest_data)
 
-
 # GLM with Poisson
 summary(glm(cnt ~ Year.of.Observation, family = poisson(link = log), data = data_by_year))
 #slope of line =  exp(0.0383*x) = y = 1.039^x = 3.9%/year
@@ -247,7 +246,6 @@ summary(glm(cnt ~ Year.of.Observation, family = poisson(link = log), data = data
 #Negative binomial GLM
 summary(glm.nb(cnt ~ Year.of.Observation, data = data_by_year))
 #slope of line =  exp(0.039900*x) = y = 1.040^x = 4.0%/year
-
 
 ## (b) All strandings, separate species
 all_sp <- cetaceans_ocean %>%

@@ -170,7 +170,7 @@ tbls <- captioner(prefix="Table")
 
 setwd("~/Documents/Research/Cet_Strandings")
 
-cetaceans <- read.csv("cetacean_data_clean_2003_2017.csv", header = TRUE, na.strings = "", stringsAsFactors = FALSE) %>% 
+cetaceans <- read.csv("cetacean_data_CleaningOuput00_18.csv", header = TRUE, na.strings = "", stringsAsFactors = FALSE) %>% 
   #filter(Cetacean.Common.Name != 'Harbor porpoise') %>% 
   #filter(Water.Body == 'Inland_WA')
   transform(Season = ifelse(Month.of.Observation == 'DEC' | Month.of.Observation == 'JAN' | Month.of.Observation == 'FEB', 'Winter', ifelse(Month.of.Observation == 'MAR' | Month.of.Observation == 'APR' | Month.of.Observation == 'MAY', 'Spring', ifelse(Month.of.Observation == 'JUN' | Month.of.Observation == 'JUL' | Month.of.Observation == 'AUG', 'Summer', ifelse(Month.of.Observation == 'SEP' | Month.of.Observation == 'OCT' | Month.of.Observation == 'NOV', 'Fall', 'NA'))))) %>%
@@ -277,7 +277,7 @@ HI_year_figure <-
   geom_point(position = "identity") +
   geom_smooth(method = "lm", se = FALSE, col = 'black', linetype = 3) +
   xlab("") + ylab("Annual Human Interaction Cases") +
-  scale_x_continuous(breaks = c(2001:2017)) +
+  scale_x_continuous(breaks = c(2000:2018)) +
   plot_theme(legend.position = 'top') +
   scale_color_brewer(palette = 'Set1')
 ggsave(HI_year_figure, file = "./Figures_inland_nohp/HI_year_figure.pdf")

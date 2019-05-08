@@ -90,7 +90,7 @@ red_blue <- c('#d73027','#f46d43','#fdae61','#fee090','#e0f3f8','#abd9e9','#74ad
 
 setwd("~/Documents/Research/Cet_Strandings")
 
-cetaceans <- read.csv("cetacean_data_clean_2003_2017.csv", header = TRUE, na.strings = "", stringsAsFactors = FALSE) %>% 
+cetaceans <- read.csv("cetacean_data_CleaningOuput00_18.csv", header = TRUE, na.strings = "", stringsAsFactors = FALSE) %>% 
   #filter(Cetacean.Common.Name != 'Harbor porpoise') %>%
   transform(sci_name = paste(Genus, Species, sep = " "))
 
@@ -106,7 +106,7 @@ fish <- read.csv("fish_full.csv", header = TRUE, na.strings = "NA", stringsAsFac
 #Full data set
 cetaceans_ocean <- cetaceans %>%
   #filter(National.Database.Number != 'NA' | !is.na(National.Database.Number)) %>%
-  dplyr::select(-c(Affiliation, Locality.Detail, Confidence.Code, Report.Status, Observation.Date.Act.Est, Additional.Identifiers, Year.of.Necropsy, Month.of.Necropsy, Day.of.Necropsy, Date.of.Necropsy, Necropy.Carcass.Fresh.Frozen, Necropsy.Limited.Flag, Latitude.Units, Longitude.Units, Field.Number, Day.of.Observation, City, Common.Name, Genus, Species, Restrand, How.Observed)) %>%
+  dplyr::select(-c(Affiliation, Locality.Detail, Report.Status, Observation.Date.Act.Est, Additional.Identifiers, Year.of.Necropsy, Month.of.Necropsy, Day.of.Necropsy, Date.of.Necropsy, Necropy.Carcass.Fresh.Frozen, Necropsy.Limited.Flag, Latitude.Units, Field.Number, Day.of.Observation, City, Common.Name, Genus, Species, Restrand, How.Observed)) %>%
   merge(fish, by = c('Year.of.Observation', 'Month.of.Observation'), all.x = T) %>%
   merge(ocean, by = c('Year.of.Observation', 'Month.of.Observation'), all.x = T) %>%
   #filter(Year.of.Observation > 2002) %>%
