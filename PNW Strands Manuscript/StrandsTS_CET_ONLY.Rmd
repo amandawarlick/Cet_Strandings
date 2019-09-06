@@ -1,0 +1,1341 @@
+---
+title: Cetacean Strandings in the Pacific Northwest
+author: Amanda J. Warlick$^1$
+date: ''
+---
+
+```{r setup, include=FALSE, echo=FALSE}
+knitr::opts_chunk$set(tidy=FALSE, tidy.opts=list(width.cutoff=70), 
+                      warning = FALSE, message = FALSE, echo = F, results = 'show', cache = T)
+```
+
+$^1$School of Aquatic and Fishery Science, University of Washington, Seattle, WA
+
+```{r, echo = F}
+library(ggplot2)
+library(boot)
+library(tidyr)
+#library(ggmap)
+library(data.table)
+#library(cowplot)
+library(knitr)
+library(reshape2)
+library(stringr)
+library(magrittr)
+library(scales)
+library(stats) 
+library(corrplot)
+library(Hmisc) # rcorr()
+library(MARSS)
+library(forecast)
+library(datasets)
+library(gridExtra)
+library(reshape2)
+library(tseries)
+library(urca)
+library(broom)
+library(dplyr)
+library(mice)
+library(rstudioapi)
+
+color6 <- c("#e45f56", "#363e7e", "#4aaaa5", "#a3d39c", "#f6b61c", "#3b98ee", "#999aa7")
+color3 <- c("#e45f56", "#363e7e", "#a3d39c")
+color4 <- c("#3b98ee", "#a3d39c", "#e45f56", "#f6b61c")
+color2 <- c("#e45f56", "#363e7e")
+
+path <- getActiveDocumentContext()$path
+setwd(dirname(path))
+
+```
+
+```{r data, echo = F, results = 'hide'}
+
+#impute missing covariate data following this example 
+#https://www.analyticsvidhya.com/blog/2016/03/tutorial-powerful-packages-imputing-missing-values/
+
+covs_cet <- read.csv('CetCovs00_18.csv', header = T, stringsAsFactors = F) %>%
+  transform(sst = scale(sst), upwell = scale(upwell), upwell_avg = scale(upwell_avg))
+covs_miss <- data.frame(sst = as.numeric(covs_cet$sst), upwell = as.numeric(covs_cet$upwell))
+
+imp_sst <- mice(covs_miss[,1:2], m=2, maxit = 50, method = 'pmm', seed = 500)
+
+#2000-2018
+covs_loc <- read.csv('copernicus_dat.csv') 
+#covs_loc[is.na(covs_loc)] <- 0  
+
+#2002-2018
+chla <- read.csv('chl_data.csv') %>%
+  transform(month = month(date), year = year(date)) %>%
+  dplyr::select(-date) %>% transform(chl = scale(chl)) %>%
+  filter(year < 2019)
+
+#2002-2018
+sst2 <- read.csv('sst2_data.csv') %>%
+  transform(month = month(date), year = year(date)) %>%
+  transform(sst_salish = scale(sst)) %>%
+  dplyr::select(-c(date, sst)) %>% 
+  filter(year < 2019)
+
+covs_cet <- complete(imp_sst,2) %>%
+  dplyr::select(-upwell) %>%
+  bind_cols(covs_cet) %>% #
+  dplyr::select(year, month, PDO, MEI, sst, upwell, NPGO, upwell_avg) %>%
+  merge(covs_loc, by = c('year', 'month')) %>%
+  merge(chla, by = c('year', 'month'), all = T) %>%
+  merge(sst2, by = c('year', 'month'), all = T)
+
+covs_miss <- data.frame(chl_comp = as.numeric(covs_cet$chl), sst_compare = as.numeric(covs_cet$sst))
+imp_chl <- mice(covs_miss[,1:2], m=2, maxit = 50, method = 'pmm', seed = 500)
+comp_chl <- complete(imp_chl, 2)
+covs_miss <- data.frame(sst2_comp = as.numeric(covs_cet$sst_salish), sst_compare = as.numeric(covs_cet$sst))
+imp_sst2 <- mice(covs_miss[,1:2], m=2, maxit = 50, method = 'pmm', seed = 500)
+comp_sst_sal <- complete(imp_sst2)
+
+covs_cet <- covs_cet %>% dplyr::select(-c(chl, sst_salish)) %>%
+  bind_cols(comp_chl %>% dplyr::select(-sst_compare) %>% rename(chl = chl_comp)) %>%
+  bind_cols(comp_sst_sal %>% dplyr::select(-sst_compare) %>% rename(sst_sali = sst2_comp)) 
+covs_cet[is.na(covs_cet)] <- 0
+
+covs_an_cet <- covs_cet %>%
+  group_by(year) %>%
+  dplyr::summarize(MEI = mean(MEI, na.rm = T), PDO = mean(PDO, na.rm = T),
+                   sst = mean(sst, na.rm = T), upwell = mean(upwell, na.rm = T),
+                   NPGO = mean(NPGO, na.rm = T), chla = mean(chl, na.rm = T),
+                   sst_sali = mean(sst_sali, na.rm = T), mld = mean(mld, na.rm = T),
+                   uwnd = mean(uwnd, na.rm = T), vwnd = mean(vwnd, na.rm = T),
+                   sst2 = mean(temp))
+
+#note - the naming of these sst variables is a little confusing in this script, but:
+#sst2 (from coperniculs ctd 'temp'), sst from ecosys assessment buoy, and 
+# sst_sali (erroneously named sst2 in imputation for convenience) from sat data of salish sea
+# corr(cbind(data.frame(covs_an_cet$sst), data.frame(covs_an_cet$sst2)))
+# plot(covs_an_cet$sst)
+# lines(covs_an_cet$sst)
+# plot(covs_an_cet$sst2)
+# lines(covs_an_cet$sst2)
+# plot(covs_an_cet$sst_sali)
+# lines(covs_an_cet$sst_sali)
+
+#Monthly anomalies separate species
+cet_mo <- read.csv("monthly_anom_cet.csv", header = TRUE, na.strings = "NA", stringsAsFactors = FALSE) %>%
+  dplyr::rename(Sp = Cetacean.Common.Name, Year = Year.of.Observation) %>%
+  filter(Sp %in% c('Gray whale', 
+                    #'Pacific white-sided dolphin', 'Humpback whale', 
+                    'Harbor porpoise', 'Striped dolphin', 'Dalls porpoise'))  %>%
+  transform(Month = factor(Month.of.Observation,
+                                      levels = c('JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN',
+                                                 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'))) %>%
+  transform(Month = as.numeric(Month)) %>%
+  dplyr::select(Year, Month, Sp, cnt_all) 
+
+#Annual strandings separate species
+cet_an <- cet_mo %>%
+  group_by(Year, Sp) %>%
+  dplyr::summarize(cnt_all = sum(cnt_all))
+
+#PDO and MEI most correlated, SST/Upwell = -0.3
+# corr(data.frame(PDO = covs_pin[,5,drop = F], 
+#                 MEI = covs_pin[,6,drop = F]))
+
+```
+
+```{r ts annual vis, echo = F}
+
+an_dat_cet <- cet_an %>%
+  dplyr::select(Year, Sp, cnt_all) %>%
+  transform(Sp = gsub(' ', '.', Sp)) %>%
+  dcast(Year ~ Sp, value.var = 'cnt_all') 
+an_dat_cet[is.na(an_dat_cet)] <- 0
+
+#cet_plot1 <- plot.ts(an_dat_cet[,-1], main = '', yax.flip = T)
+
+#decompositions per species
+fltr <- c(1,1,1)/3
+fltr2 <- rep(1,6)/6
+
+ylab <- c('Dalls porpoise', 'Gray whale', 'Harbor porpoise', 'Striped dolphin')
+sp_cet <- c('Dalls.porpoise', 'Gray.whale', 'Harbor.porpoise', 'Striped.dolphin')
+years_cet <- an_dat_cet[,'Year']
+
+#figure: annual strandings
+par(mfrow = c(2,2), mar=c(3,4,2,2))
+for (i in 1:length(sp_cet)) {
+plot <- plot(ts(an_dat_cet[,i+1], start = 2000, end = 2018, freq = 1), 
+     ylab = ylab[i], xlab = '')
+lines(ts(stats::filter(an_dat_cet[,i+1], filter=fltr, method="convo", sides=2), start = 2003, end = 2016, freq = 1), col = "lightblue", lwd = 2)
+lines(ts(stats::filter(an_dat_cet[,i+1], filter=fltr2, method="convo", sides=2), start = 2003, end = 2015, freq = 1), col = "blue", lwd = 2)
+}
+
+```
+
+```{r ts monthly vis, echo = F}
+
+plot.ts(
+  ts(covs_cet[,3:7], freq=12, start=c(2000,1), end=c(2018,12)),
+     plot.type = 'multiple', main = '', xlab = '', yax.flip = F)
+
+# #cetaceans
+mo_dat_cnt_cet <- cet_mo %>%
+  dplyr::select(Year, Month, Sp, cnt_all) %>%
+  #transform(Month = as.numeric(Month)) %>%
+  dcast(Year + Month ~ Sp, value.var = 'cnt_all', drop = F)
+mo_dat_cnt_cet[is.na(mo_dat_cnt_cet)] <- 0
+# 
+#plot of monthly strandings over time
+plot.ts(
+  ts(mo_dat_cnt_cet[,3:6], freq=12, start=c(2000,1), end=c(2018,12)),
+     plot.type = 'multiple', main = 'Monthly Strandings', xlab = '', yax.flip = T)
+
+```
+
+
+```{r decompplot, eval=TRUE, echo=FALSE, fig=TRUE, fig.cap=''}
+
+#dalls
+#single species, monthly filtered
+decomp_dat_cet <- cet_mo %>% 
+  dplyr::select(Year, Month, cnt_all, Sp) %>%
+  transform(log_cnt = log(cnt_all)) %>%
+  dcast(Year + Sp ~ Month, value.var = 'cnt_all', drop = F) %>% #cast to get zeros for NA months
+  #dcast(Year + Sp ~ Month, value.var = 'log_cnt') %>%
+  filter(Sp == 'Dalls porpoise') %>% 
+  dplyr::select(-Sp) %>%
+  melt(id.vars = c('Year')) %>% arrange(Year, variable) 
+
+decomp_ts_cet <- ts(decomp_dat_cet[,3], start = c(2000, 1), end = c(2018, 12), freq = 12)
+decomp_ts_cet[is.na(decomp_ts_cet)] <- 0
+ 
+##fully using decompose()
+par(mfrow = c(2,2), oma=c(0,0,0,0), mar=c(1,1,1,1))
+
+decomp_sp_cet <- decompose(decomp_ts_cet)
+plot <- plot(decomp_sp_cet, yax.flip = TRUE, xlab = 'Dalls porpoise')
+
+#hp
+decomp_dat_cet <- cet_mo %>% 
+  dplyr::select(Year, Month, cnt_all, Sp) %>%
+  transform(log_cnt = log(cnt_all)) %>%
+  dcast(Year + Sp ~ Month, value.var = 'cnt_all', drop = F) %>% #cast to get zeros for NA months
+  filter(Sp == 'Harbor porpoise') %>% 
+  dplyr::select(-Sp) %>%
+  melt(id.vars = c('Year')) %>% arrange(Year, variable) 
+
+decomp_ts_cet <- ts(decomp_dat_cet[,3], start = c(2000, 1), end = c(2018, 12), freq = 12)
+decomp_ts_cet[is.na(decomp_ts_cet)] <- 0
+par(mfrow = c(2,2), oma=c(0,0,0,0), mar=c(1,1,1,1))
+
+decomp_sp_cet <- decompose(decomp_ts_cet)
+plot <- plot(decomp_sp_cet, yax.flip = TRUE, xlab = 'Harbor porpoise')
+
+#gw
+decomp_dat_cet <- cet_mo %>% 
+  dplyr::select(Year, Month, cnt_all, Sp) %>%
+  transform(log_cnt = log(cnt_all)) %>%
+  dcast(Year + Sp ~ Month, value.var = 'cnt_all', drop = F) %>% #cast to get zeros for NA months
+  filter(Sp == 'Gray whale') %>% 
+  dplyr::select(-Sp) %>%
+  melt(id.vars = c('Year')) %>% arrange(Year, variable) 
+
+decomp_ts_cet <- ts(decomp_dat_cet[,3], start = c(2000, 1), end = c(2018, 12), freq = 12)
+decomp_ts_cet[is.na(decomp_ts_cet)] <- 0
+par(mfrow = c(2,2), oma=c(0,0,0,0), mar=c(1,1,1,1))
+
+decomp_sp_cet <- decompose(decomp_ts_cet)
+plot <- plot(decomp_sp_cet, yax.flip = TRUE, xlab = 'Gray whale')
+
+#striped d
+decomp_dat_cet <- cet_mo %>% 
+  dplyr::select(Year, Month, cnt_all, Sp) %>%
+  transform(log_cnt = log(cnt_all)) %>%
+  dcast(Year + Sp ~ Month, value.var = 'cnt_all', drop = F) %>% #cast to get zeros for NA months
+  filter(Sp == 'Striped dolphin') %>% 
+  dplyr::select(-Sp) %>%
+  melt(id.vars = c('Year')) %>% arrange(Year, variable) 
+
+decomp_ts_cet <- ts(decomp_dat_cet[,3], start = c(2000, 1), end = c(2018, 12), freq = 12)
+decomp_ts_cet[is.na(decomp_ts_cet)] <- 0
+par(mfrow = c(2,2), oma=c(0,0,0,0), mar=c(1,1,1,1))
+
+decomp_sp_cet <- decompose(decomp_ts_cet)
+plot <- plot(decomp_sp_cet, yax.flip = TRUE, xlab = 'Striped dolphin')
+
+```
+
+
+Annual level marss model
+```{r marss annual cets, echo = F}
+
+######cetaceans
+ 
+cet_dat <- cet_an %>% 
+  dcast(Year ~ Sp, value.var = 'cnt_all')
+
+#dat <- t(an_dat[,-1]) #check help why zeros
+cet_dat <- t(log(cet_dat[,-1])) 
+cet_dat[is.na(cet_dat)] <- 0 #check help here
+colnames(cet_dat) <- years_cet
+n = nrow(cet_dat)-1
+ 
+#no mu
+mod.list <- list(
+B = "identity",
+U = "zero",
+Q = "diagonal and equal",
+Z = "identity",
+A = "scaling",
+R = "diagonal and unequal",
+x0 = "unequal",
+tinitx=0)
+
+fit.cet.0 <- MARSS::MARSS(cet_dat, model=mod.list)
+
+#one mu
+mod.list <- list(
+B = "identity",
+U = "equal",
+Q = "diagonal and equal",
+Z = "identity",
+A = "scaling",
+R = "diagonal and unequal",
+x0 = "unequal",
+tinitx=0)
+
+fit.cet.1 <- MARSS::MARSS(cet_dat, model=mod.list)
+
+#indep obs unique var; best fit w/o covariates
+fit.cet.3a <- MARSS::MARSS(cet_dat, model=list(
+  B = "identity",
+  U = "unequal",
+  Q = "diagonal and equal",
+  Z = "identity",
+  A = "scaling",
+  R = "diagonal and equal",
+  x0 = "unequal",
+  tinitx=0), control = list(maxit = 1000))
+
+#indep obs same var, not converging
+fit.cet.3b <- MARSS::MARSS(cet_dat, model=list(
+  B = "identity",
+  U = "unequal",
+  Q = "diagonal and unequal",
+  Z = "identity",
+  A = "scaling",
+  R = "diagonal and equal",
+  x0 = "unequal",
+  tinitx=0), control = list(maxit = 5500))
+
+#cor obs error with same variance and cor, not converging
+fit.cet.3c <- MARSS::MARSS(cet_dat, model=list(
+  B = "identity",
+  U = "unequal",
+  Q = "diagonal and unequal",
+  Z = "identity",
+  A = "scaling",
+  R = "diagonal and unequal",
+  x0 = "unequal",
+  tinitx=0), control = list(maxit = 5500))
+
+#equal varcov
+fit.cet.3d <- MARSS::MARSS(cet_dat, model=list(
+  B = "identity",
+  U = "unequal",
+  Q = 'equalvarcov',
+  Z = "identity",
+  A = "scaling",
+  R = "diagonal and unequal",
+  x0 = "unequal",
+  tinitx=0), control = list(maxit = 1000))
+
+mods <- c('No trend', 'One trend', rep('Unique trends', 4))
+
+# par(mfrow = c(2,2))
+# plot(residuals(fit.cet.0)$state.residuals[1,],
+#      ylab="State Residuals", xlab="")
+# abline(h=0)
+# title(mods[1])
+# plot(residuals(fit.cet.3a)$state.residuals[1,],
+#      ylab="State Residuals", xlab="")
+# abline(h=0)
+# title(mods[2])
+# plot(residuals(fit.cet.3c)$state.residuals[1,],
+#      ylab="State Residuals", xlab="")
+# abline(h=0)
+# title('Unique trends: Uneq/Uneq')
+# plot(residuals(fit.cet.3d)$state.residuals[1,],
+#      ylab="State Residuals", xlab="")
+# abline(h=0)
+# title('Unique trends: Equal/Covar')
+
+aic_tab <- data.frame(U = mods, 
+                      R = c(rep('Equal', 4), rep('Unequal', 2)),
+                      Q = c(rep('Equal', 3), rep('Unequal', 2), 'Correlated'),
+                      AICc = c(fit.cet.0$AICc, fit.cet.1$AICc, fit.cet.3a$AICc, fit.cet.3b$AICc,
+                               fit.cet.3c$AICc, fit.cet.3d$AICc))
+aic_tab$delAIC <- aic_tab$AICc-min(aic_tab$AICc)
+
+aic_tab
+
+MARSSparamCIs(fit.cet.3a)
+
+# this doesn't look very correct or compelling
+par(mfrow=c(2,2))
+for(i in 1:4){
+plot(ts(exp(fit.cet.3a$states[i,]), start = c(2003), end = c(2017), freq = 1),
+        ylab="Strandings", xlab="", type="l")
+lines(ts(exp(fit.cet.3a$states[i,])-1.96*exp(fit.cet.3a$states.se[i,]), start = c(2003),
+         end = c(2017), freq = 1),
+         type="l",lwd=1,lty=2,col="red")
+lines(ts(exp(fit.cet.3a$states[i,])+1.96*exp(fit.cet.3a$states.se[i,]), start = c(2003),
+         end = c(2017), freq = 1),
+      type="l",lwd=1,lty=2,col="red")
+points(ts(exp(fit.cet.3a$ytT[i,]), start = c(2003), end = c(2017), freq = 1),
+       lwd=0.1, pch = 19, col="grey")
+title(rownames(cet_dat)[i])
+}
+
+### adding covariates
+cet_covs <- t(covs_an_cet[,-1])
+colnames(cet_covs) <- years_cet[1:19]
+
+D <- d <- A <- "zero"; Z <- "identity"
+U <- 'unequal'
+#B <- "diagonal and equal"
+B <- 'identity'
+Q <- 'diagonal and equal'
+C <- "unconstrained"
+R <- 'diagonal and equal'
+x0 <- "unequal"
+tinitx <- 1
+model.list <- list(B=B,U=U,Q=Q,Z=Z,A=A,R=R,D=D,d=d,C=C,x0=x0,tinitx=tinitx)
+model.list$c <- cet_covs[1, , drop = F] #MEI
+fit.1 <- MARSS::MARSS(cet_dat[,1:19], model=model.list, control = list(maxit = 1000))
+
+model.list <- list(B=B,U=U,Q=Q,Z=Z,A=A,R=R,D=D,d=d,C=C,x0=x0,tinitx=tinitx)
+model.list$c <- cet_covs[2, , drop = F] #PDO
+fit.2 <- MARSS::MARSS(cet_dat[,1:19], model=model.list, control = list(maxit = 1000))
+
+model.list <- list(B=B,U=U,Q=Q,Z=Z,A=A,R=R,D=D,d=d,C=C,x0=x0,tinitx=tinitx)
+model.list$c <- cet_covs[3, , drop = F] #sst
+fit.3 <- MARSS::MARSS(cet_dat[,1:19], model=model.list, control = list(maxit = 1000))
+
+model.list <- list(B=B,U=U,Q=Q,Z=Z,A=A,R=R,D=D,d=d,C=C,x0=x0,tinitx=tinitx)
+model.list$c <- cet_covs[4, , drop = F] #upwell
+fit.4 <- MARSS::MARSS(cet_dat[,1:19], model=model.list, control = list(maxit = 1000))
+
+model.list <- list(B=B,U=U,Q=Q,Z=Z,A=A,R=R,D=D,d=d,C=C,x0=x0,tinitx=tinitx)
+model.list$c <- cet_covs[5, , drop = F] #npgo
+fit.5 <- MARSS::MARSS(cet_dat[,1:19], model=model.list, control = list(maxit = 1000))
+
+model.list <- list(B=B,U=U,Q=Q,Z=Z,A=A,R=R,D=D,d=d,C=C,x0=x0,tinitx=tinitx)
+model.list$c <- cet_covs[6, , drop = F] #chla
+fit.6 <- MARSS::MARSS(cet_dat[,1:19], model=model.list, control = list(maxit = 1000))
+
+model.list <- list(B=B,U=U,Q=Q,Z=Z,A=A,R=R,D=D,d=d,C=C,x0=x0,tinitx=tinitx)
+model.list$c <- cet_covs[7, , drop = F] #salish sst
+fit.7 <- MARSS::MARSS(cet_dat[,1:19], model=model.list, control = list(maxit = 1000))
+
+model.list <- list(B=B,U=U,Q=Q,Z=Z,A=A,R=R,D=D,d=d,C=C,x0=x0,tinitx=tinitx)
+model.list$c <- cet_covs[8, , drop = F] #mld
+fit.8 <- MARSS::MARSS(cet_dat[,1:19], model=model.list, control = list(maxit = 1000))
+
+model.list <- list(B=B,U=U,Q=Q,Z=Z,A=A,R=R,D=D,d=d,C=C,x0=x0,tinitx=tinitx)
+model.list$c <- cet_covs[9, , drop = F] #uwnd
+fit.9 <- MARSS::MARSS(cet_dat[,1:19], model=model.list, control = list(maxit = 1000))
+
+model.list <- list(B=B,U=U,Q=Q,Z=Z,A=A,R=R,D=D,d=d,C=C,x0=x0,tinitx=tinitx)
+model.list$c <- cet_covs[10, , drop = F] #vwnd
+fit.10 <- MARSS::MARSS(cet_dat[,1:19], model=model.list, control = list(maxit = 1000))
+
+model.list <- list(B=B,U=U,Q=Q,Z=Z,A=A,R=R,D=D,d=d,C=C,x0=x0,tinitx=tinitx)
+model.list$c <- cet_covs[11, , drop = F] #ctd temp sst2
+fit.11 <- MARSS::MARSS(cet_dat[,1:19], model=model.list, control = list(maxit = 1000))
+
+model.list <- list(B=B,U=U,Q=Q,Z=Z,A=A,R=R,D=D,d=d,C=C,x0=x0,tinitx=tinitx)
+model.list$c <- cet_covs[c(1,2,3,4,5,6,8,10), , drop = F] #full
+fit.full <- MARSS::MARSS(cet_dat[,1:19], model=model.list, control = list(maxit = 1000))
+
+######### lagged variables
+
+model.list <- list(B=B,U=U,Q=Q,Z=Z,A=A,R=R,D=D,d=d,C=C,x0=x0,tinitx=tinitx)
+model.list$c <- cet_covs[1, 1:18, drop = F] #lagged MEI
+fit.lagMEI <- MARSS::MARSS(cet_dat[,2:19], model=model.list, control = list(maxit = 1000))
+
+model.list <- list(B=B,U=U,Q=Q,Z=Z,A=A,R=R,D=D,d=d,C=C,x0=x0,tinitx=tinitx)
+model.list$c <- cet_covs[2, 1:18, drop = F] #lagged PDO
+fit.lagPDO <- MARSS::MARSS(cet_dat[,2:19], model=model.list, control = list(maxit = 1000))
+
+model.list <- list(B=B,U=U,Q=Q,Z=Z,A=A,R=R,D=D,d=d,C=C,x0=x0,tinitx=tinitx)
+model.list$c <- cet_covs[3, 1:18, drop = F] #lagged sst
+fit.lagsst <- MARSS::MARSS(cet_dat[,2:19], model=model.list, control = list(maxit = 1000))
+
+model.list <- list(B=B,U=U,Q=Q,Z=Z,A=A,R=R,D=D,d=d,C=C,x0=x0,tinitx=tinitx)
+model.list$c <- cet_covs[4, 1:18, drop = F] #lagged upwelling
+fit.lagUP <- MARSS::MARSS(cet_dat[,2:19], model=model.list, control = list(maxit = 1000))
+
+model.list <- list(B=B,U=U,Q=Q,Z=Z,A=A,R=R,D=D,d=d,C=C,x0=x0,tinitx=tinitx)
+model.list$c <- cet_covs[5, 1:18, drop = F] #lagged NPGO
+fit.lagNPGO <- MARSS::MARSS(cet_dat[,2:19], model=model.list, control = list(maxit = 1000))
+
+model.list <- list(B=B,U=U,Q=Q,Z=Z,A=A,R=R,D=D,d=d,C=C,x0=x0,tinitx=tinitx)
+model.list$c <- cet_covs[6, 1:18, drop = F] #lagged chla
+fit.lagchl <- MARSS::MARSS(cet_dat[,2:19], model=model.list, control = list(maxit = 1000))
+
+model.list <- list(B=B,U=U,Q=Q,Z=Z,A=A,R=R,D=D,d=d,C=C,x0=x0,tinitx=tinitx)
+model.list$c <- cet_covs[7, 1:18, drop = F] #lagged salish
+fit.lagsalish <- MARSS::MARSS(cet_dat[,2:19], model=model.list, control = list(maxit = 1000))
+
+model.list <- list(B=B,U=U,Q=Q,Z=Z,A=A,R=R,D=D,d=d,C=C,x0=x0,tinitx=tinitx)
+model.list$c <- cet_covs[8, 1:18, drop = F] #lagged mld
+fit.lagmld <- MARSS::MARSS(cet_dat[,2:19], model=model.list, control = list(maxit = 1000))
+
+model.list <- list(B=B,U=U,Q=Q,Z=Z,A=A,R=R,D=D,d=d,C=C,x0=x0,tinitx=tinitx)
+model.list$c <- cet_covs[9, 1:18, drop = F] #lagged uwnd
+fit.laguwnd <- MARSS::MARSS(cet_dat[,2:19], model=model.list, control = list(maxit = 1000))
+
+model.list <- list(B=B,U=U,Q=Q,Z=Z,A=A,R=R,D=D,d=d,C=C,x0=x0,tinitx=tinitx)
+model.list$c <- cet_covs[10, 1:18, drop = F] #lagged vwnd
+fit.lagvwnd <- MARSS::MARSS(cet_dat[,2:19], model=model.list, control = list(maxit = 1000))
+
+model.list <- list(B=B,U=U,Q=Q,Z=Z,A=A,R=R,D=D,d=d,C=C,x0=x0,tinitx=tinitx)
+model.list$c <- cet_covs[11, 1:18, drop = F] #ctd temp sst2
+fit.lagsst2 <- MARSS::MARSS(cet_dat[,2:19], model=model.list, control = list(maxit = 1000))
+
+model.list <- list(B=B,U=U,Q=Q,Z=Z,A=A,R=R,D=D,d=d,C=C,x0=x0,tinitx=tinitx)
+model.list$c <- cet_covs[c(6,8), 1:18, drop = F] #full
+fit.lagfull <- MARSS::MARSS(cet_dat[,2:19], model=model.list, control = list(maxit = 1000))
+
+# aic_tab <- data.frame(Covariates = c('None', 'MEI', 'PDO', 'SST', 'Upwelling', 'MEI Lag', 'Upwell Lag'), 
+#                       AICc = c(fit.cet.0$AICc, fit.cet.cov1$AICc, fit.cet.cov2$AICc, 
+#                                fit.cet.cov3$AICc, fit.cet.cov4$AICc,
+#                                fit.lagMEI$AICc, fit.lagUP$AICc))
+# aic_tab$delAIC <- aic_tab$AICc - min(aic_tab$AICc)
+
+aic_tab_covs_cet <- data.frame(Covs = c('None', 'MEI', 'PDO', 'SST', 'Upwell', 'NPGO', 
+                                        'chl', 'salish', 'mld', 'uwnd', 'vwnd', 'ctd_temp', 'full',
+                                        'mei_lag', 'pdo_lag', 'sst_lag', 'upwell_lag', 'npgo_lag',
+                                        'chl_lag', 'salish_lag', 'mld_lag', 'uwnd_lag', 'vwnd_lag', 
+                                        'ctdtemp_lag', 'full lag'),
+            AICc = c(fit.cet.3a$AICc, fit.1$AICc, fit.2$AICc, fit.3$AICc, 
+                     fit.4$AICc, fit.5$AICc, fit.6$AICc, fit.7$AICc,
+                     fit.8$AICc, fit.9$AICc, fit.10$AICc, fit.11$AICc, fit.full$AICc,
+                     fit.lagMEI$AICc, fit.lagPDO$AICc, fit.lagsst$AICc,
+                     fit.lagUP$AICc, fit.lagNPGO$AICc, fit.lagchl$AICc,
+                     fit.lagsalish$AICc, fit.lagmld$AICc, fit.laguwnd$AICc,
+                     fit.lagvwnd$AICc, fit.lagsst2$AICc, fit.lagfull$AICc))
+aic_tab_covs_cet$delAIC <- aic_tab_covs_cet$AICc - min(aic_tab_covs_cet$AICc)
+
+aic_tab_covs_cet
+
+mod_best <- fit.lagmld
+
+MARSSparamCIs(fit.lagmld) #most relevant for gray whales and harbor porpoises
+#MARSSparamCIs(fit.lagsst) #none
+MARSSparamCIs(fit.lagUP) #gray whales/harbor (-), striped dolphins (+)
+MARSSparamCIs(fit.lagchl) #gray whale, dalls -- negative, very small, all overlap 0
+MARSSparamCIs(fit.lagsalish) #neg on harbor porps
+#MARSSparamCIs(fit.lagvwnd) #none
+#MARSSparamCIs(fit.lagsst2)
+
+#lagged upwelling; looks much more reasonable than figure w/o covariates
+par(mfrow=c(2,2))
+for(i in 1:4){
+plot(ts(exp(mod_best$states[i,]), start = c(2000), end = c(2017), freq = 1),
+        ylab="Strandings", xlab="", type="l")
+lines(ts(exp(mod_best$states[i,])-1.96*exp(mod_best$states.se[i,]), start = c(2000), 
+         end = c(2017), freq = 1), type="l",lwd=1,lty=2,col="red")
+lines(ts(exp(mod_best$states[i,])+1.96*exp(mod_best$states.se[i,]), start = c(2000), 
+         end = c(2017), freq = 1), type="l",lwd=1,lty=2,col="red")
+points(ts(exp(mod_best$ytT[i,]), start = c(2000), end = c(2017), freq = 1),
+       lwd=0.1, pch = 19, col="grey")
+title(rownames(cet_dat)[i])
+}
+
+plot(residuals(mod_best)$state.residuals[1,],
+     ylab="State Residuals", xlab="")
+abline(h=0)
+title('Unique trends, equal variance, lagged upwelling')
+
+```
+
+
+```{r seasonal marss cets, echo = F}
+
+seas_dat_cet <- mo_dat_cnt_cet %>%
+  melt(id.vars = c('Year', 'Month')) %>%
+  transform(value = ifelse(value == 0, 0.01, value)) %>%
+  dcast(Year + Month ~ variable, value.var = 'value', drop = F)
+#seas_dat_cet[is.na(seas_dat_cet)] <- 0.001
+
+#seas_dat <- ts(t(log(seas_dat[,3:5])), freq=12, start=c(1989,1), end=c(2016,12))
+seas_dat_cet <- t(log(seas_dat_cet[,3:6]))
+
+TT <- dim(seas_dat_cet)[2]
+# number of "seasons" (e.g., 12 months per year)
+period <- 12
+# first "season" (e.g., Jan = 1, July = 7)
+per.1st <- 1
+# create factors for seasons
+c.in <- diag(period)
+for(i in 2:(ceiling(TT/period)))
+  {c.in <- cbind(c.in,diag(period))}
+# trim c.in to correct start & length
+c.in <- c.in[,(1:TT)+(per.1st-1)]
+# better row names
+rownames(c.in) <- month.abb
+
+#fixed seasonal effect
+C <- matrix(month.abb,5,12,byrow=TRUE)
+C <- "unconstrained"
+# Each species is unique
+B <- "diagonal and unequal"
+# Assume independent process errors
+Q <- "diagonal and unequal"
+U <- "zero"
+# Each obs time series is associated with only one process
+Z <- "identity" 
+# The data are demeaned & fluctuate around a mean
+A <- "zero" 
+# We assume observation errors are independent, but they
+# have similar variance due to similar collection methods
+R <- "diagonal and equal"
+# We are not including covariate effects in the obs equation
+D <- "zero"
+d <- "zero"
+
+# model.list <- list(B=B,U=U,Q=Q,Z=Z,A=A,R=R,C=C,c=c.in,D=D,d=d)
+# seas.mod.1 <- MARSS(seas_dat_cet,model=model.list,control=list(maxit=1000))
+# seas.1 <- coef(seas.mod.1,type="matrix")$C
+# rownames(seas.1) <- rownames(seas_dat_cet)
+# colnames(seas.1) <- month.abb
+
+# plot.ts(t(seas.1), plot.type = 'multiple', main = 'Seasonal effect', xlab = 'Month', yax.flip = T)
+
+#Fourier
+cos.t <- cos(2 * pi * seq(TT) / period)
+sin.t <- sin(2 * pi * seq(TT) / period)
+c.Four <- rbind(cos.t,sin.t)
+
+model.list <- list(B=B,U=U,Q=Q,Z=Z,A=A,R=R,C=C,c=c.Four,D=D,d=d)
+seas.mod.2 <- MARSS(seas_dat_cet, model=model.list, control=list(maxit=1000))
+
+seas.2 <- coef(seas.mod.2,type="matrix")$C
+seas.2 <- seas.2 %*% c.Four[,1:period]
+rownames(seas.2) <- rownames(seas_dat_cet)
+colnames(seas.2) <- month.abb
+
+par(mfrow=c(1,1), mar=c(3,4,2,2)) 
+# matplot(t(seas.1), type="l", bty="n", xaxt="n", ylab="Fixed effect", col=color4)
+# axis(1, labels=month.abb, at=1:12, las=2, cex.axis=0.75)
+# legend("topright", lty=1:5, legend=sp_cet, cex=0.6, col=color4)
+matplot(t(seas.2),type="l",bty="n",xaxt="n",ylab="Fourier", col=color4)
+axis(1,labels=month.abb, at=1:12,las=2,cex.axis=0.75)
+legend("topright", lty=1:5, legend=sp_cet, cex=0.6, col=color4)
+
+
+```
+
+
+```{r marss mo cet, echo = F}
+
+# cet_dat <- seas_dat_cet
+# 
+# #no mu
+# mod.list <- list(
+# B = "identity",
+# U = "zero",
+# Q = "diagonal and equal",
+# Z = "identity",
+# A = "scaling",
+# R = "diagonal and equal",
+# x0 = "unequal",
+# tinitx=0)
+# 
+# fit.cet.0 <- MARSS::MARSS(cet_dat, model=mod.list)
+# 
+# #one mu
+# mod.list <- list(
+# B = "identity",
+# U = "equal",
+# Q = "diagonal and equal",
+# Z = "identity",
+# A = "scaling",
+# R = "diagonal and equal",
+# x0 = "unequal",
+# tinitx=0)
+# 
+# fit.cet.1a <- MARSS::MARSS(cet_dat, model=mod.list)
+# 
+# # mod.list$Z <- matrix(1, ncol = 1) #one global stranding process governing all species
+# # fit.pin.1b <- MARSS::MARSS(pin_dat, model=mod.list)
+# 
+# #separate trends per species
+# mod.list <- list(
+#   B = "identity",
+#   U = "unequal",
+#   #Q = "diagonal and equal",
+#   Z = "identity",
+#   A = "scaling",
+#   #R = "diagonal and unequal",
+#   x0 = "unequal",
+#   tinitx=0)
+# 
+# mod.list$R = "diagonal and equal"
+# mod.list$Q = "diagonal and equal"
+# fit.cet.3aa <- MARSS::MARSS(cet_dat, model=mod.list, control=list(maxit=3500)) 
+# 
+# mod.list$R = "diagonal and equal"
+# mod.list$Q = "diagonal and unequal"
+# fit.cet.3ab <- MARSS::MARSS(cet_dat, model=mod.list, control=list(maxit=2000))
+# 
+# mod.list$R = "diagonal and equal"
+# mod.list$Q = "equalvarcov"
+# fit.cet.3ac <- MARSS::MARSS(cet_dat, model=mod.list, control=list(maxit=4000)) #not converging
+# 
+# mod.list$R = "diagonal and unequal"
+# mod.list$Q = "diagonal and equal"
+# fit.cet.3ba <- MARSS::MARSS(cet_dat, model=mod.list, control=list(maxit=3500)) #best fit, but residuals??
+# 
+# mod.list$R = "diagonal and unequal"
+# mod.list$Q = "diagonal and unequal"
+# fit.cet.3bb <- MARSS::MARSS(cet_dat, model=mod.list, control=list(maxit=4000)) #not converging
+# 
+# mod.list$R = "diagonal and unequal"
+# mod.list$Q = "equalvarcov"
+# fit.cet.3bc <- MARSS::MARSS(cet_dat, model=mod.list, control=list(maxit=3000))
+# 
+# mods <- c('No trend', 'One trend', rep('Unique', 6))
+# 
+# par(mfrow = c(3,2))
+# plot(residuals(fit.cet.0)$state.residuals[1,],
+#      ylab="State Residuals", xlab="")
+# abline(h=0)
+# title(mods[1])
+# plot(residuals(fit.cet.1a)$state.residuals[1,],
+#      ylab="State Residuals", xlab="")
+# abline(h=0)
+# title(mods[2])
+# plot(residuals(fit.cet.3ba)$state.residuals[1,],
+#      ylab="State Residuals", xlab="")
+# abline(h=0)
+# title(mods[3])
+# plot(residuals(fit.cet.3bb)$state.residuals[1,],
+#      ylab="State Residuals", xlab="")
+# abline(h=0)
+# title(mods[4])
+# plot(residuals(fit.cet.3bc)$state.residuals[1,],
+#      ylab="State Residuals", xlab="")
+# abline(h=0)
+# title(mods[5])
+# 
+# aic_tab <- data.frame(U = mods, 
+#                       Q = c(rep('Equal', 3), 'Unequal', 'Correlated', 'Equal', 'Unequal', 'Correlated'),
+#                       R = c(rep('Equal', 5), rep('Unequal', 3)),
+#                       AICc = c(fit.cet.0$AICc, fit.cet.1a$AICc, fit.cet.3aa$AICc, fit.cet.3ab$AICc, fit.cet.3ac$AICc, fit.cet.3ba$AICc, fit.cet.3bb$AICc, fit.cet.3bc$AICc))
+# aic_tab$delAIC <- aic_tab$AICc-min(aic_tab$AICc)
+# 
+# # best fit
+# par(mfrow=c(4,1))
+# for(i in 1:4){
+# plot.ts(ts(exp(fit.cet.3ba$states[i,]), start = c(2000,1), end = c(2018,12), freq = 12) ,ylab="Monthly Strandings", xlab="Time", type="l")
+# lines(ts(exp(fit.cet.3ba$states[i,])-1.96*exp(fit.cet.3ba$states.se[i,]),
+#          start = c(2000,1), end = c(2018,12), freq = 12), type="l",lwd=1,lty=2,col="red")
+# lines(ts(exp(fit.cet.3ba$states[i,])+1.96*exp(fit.cet.3ba$states.se[i,]),
+#          start = c(2000,1), end = c(2018,12), freq = 12), type="l",lwd=1,lty=2,col="red")
+# points(ts(exp(fit.cet.3ba$ytT[i,]), start = c(2000,1), end = c(2018,12), freq = 12), lwd=0.1, pch = 19, col="grey")
+# title(rownames(seas_dat_cet)[i])
+# }
+# 
+# # #confidence intervals for mu overlap zero
+# # MARSSparamCIs(fit.pin.3bb)
+# # #MARSSparamCIs(fit.pin.1a)
+# # 
+# ### adding covariates
+# 
+# cet_covs_mo <- rbind(t(covs_cet[1:228,3:7]), c.Four)
+# 
+# ####process model
+# B <- "identity" #one process per sp
+# U <- "unequal" #separate trends
+# Q <- "diagonal and unequal" #indep and unique proc error
+# C <- "unconstrained" #state process covariates
+# ####obs model
+# Z <- "identity" #one obs per sp
+# A <- 'zero' #no differences in bias between sp
+# R <- 'diagonal and unequal' #indep and unique obs error
+# D <- d <- 'zero' #no observation process covariates
+# x0 <- "unequal" #separate intercepts
+# tinitx <- 1
+# 
+# model.list <- list(B=B,U=U,Q=Q,Z=Z,A=A,R=R,D=D,d=d,C=C,x0=x0,tinitx=tinitx)
+# model.list$c <- cet_covs_mo[c(6:7),] #seasonal effect only
+# cet.fit.cov0 <- MARSS::MARSS(cet_dat, model=model.list, control=list(maxit=3000)) #gray whale and striped dolphin not converged
+# 
+# #######try 4mo lag PDO + season lag0
+# #MEI maybe, SST and upwelling yes, PDO/NPGO no
+# #lag 1, 2, 3, 4
+# # 2:334, 3:334, 4:334, 5:334 #data
+# # 1:333, 1:332, 1:331, 1:330 #covariate
+# 
+# #sst
+# cet_cov_lag <- data.frame(
+#   sst_lag = cet_covs_mo[3,1:224],
+#   sine = cet_covs_mo[c(6),5:228],
+#   cos = cet_covs_mo[c(7),5:228]) 
+# model.list$c <- t(cet_cov_lag)
+# cet.fit.cov0_sstlag <- MARSS::MARSS(cet_dat[,5:228], model=model.list)
+# 
+# #upwelling
+# cet_cov_lag <- data.frame(
+#   up_lag = cet_covs_mo[4,1:224],
+#   sine = cet_covs_mo[c(6),5:228],
+#   cos = cet_covs_mo[c(7),5:228]) #
+# model.list$c <- t(cet_cov_lag)
+# cet.fit.cov0_uplag <- MARSS::MARSS(cet_dat[,5:228], model=model.list)
+# #############
+# 
+# #not fixed yet
+# 
+# model.list$c <- cet_covs_mo[c(3:4, 6:7),] #include sst, upwell, and seasonal effect
+# cet.fit.cov1 <- MARSS::MARSS(cet_dat, model=model.list)
+# 
+# model.list$c <- cet_covs_mo[c(2, 6:7),] #MEI and seasonal effect
+# cet.fit.cov2 <- MARSS::MARSS(cet_dat, model=model.list)
+# 
+# model.list$c <- cet_covs_mo[c(3, 6:7),] #SST and seasonal effect
+# cet.fit.cov3 <- MARSS::MARSS(cet_dat, model=model.list)
+# 
+# model.list$c <- cet_covs_mo[c(4, 6:7),] #upwelling and seasonal effect
+# cet.fit.cov4 <- MARSS::MARSS(cet_dat, model=model.list)
+# 
+# model.list$c <- cet_covs_mo[c(3:4),] #upwelling and SST
+# cet.fit.cov5 <- MARSS::MARSS(cet_dat, model=model.list)
+# 
+# model.list$c <- cet_covs_mo[c(4),, drop = F] #upwelling
+# cet.fit.cov6 <- MARSS::MARSS(cet_dat, model=model.list)
+# 
+# aic_tab #from above
+# 
+# aic_tab_covs <- data.frame(Covs = c('Seasonal only', 'SST/Upwelling+Seasonal', 'MEI+Seasonal', 'SST+Seasonal',
+#                                     'Upwellling+Seasonal',
+#                                     'Upwelling+Seasonal', 'Upwelling', 'Season+SST_lag', 'Season+Up_lag'),
+#             AICc = c(cet.fit.cov0$AICc, cet.fit.cov1$AICc, cet.fit.cov2$AICc,
+#                      cet.fit.cov3$AICc, cet.fit.cov4$AICc, cet.fit.cov5$AICc, cet.fit.cov6$AICc,
+#                      cet.fit.cov0_sstlag$AICc, cet.fit.cov0_uplag$AICc))
+# aic_tab_covs$delAIC <- aic_tab_covs$AICc-min(aic_tab_covs$AICc)
+# aic_tab_covs
+ 
+ 
+# ##### best lagged model - look at dif var str
+# D <- d <- A <- 'zero'
+# U <- "unequal"
+# Z <- "identity"
+# B <- "identity"
+# #Q <- "equalvarcov"
+# Q <- "diagonal and unequal" 
+# C <- "unconstrained"
+# R <- 'diagonal and unequal'
+# x0 <- "unequal"
+# tinitx <- 1
+# 
+# model.list <- list(B=B,U=U,Q=Q,Z=Z,A=A,R=R,D=D,d=d,C=C,x0=x0,tinitx=tinitx)
+# 
+# pin_cov_lag <- data.frame(
+#   up_lag = pin_covs_mo[4,1:330], 
+#   sine = pin_covs_mo[c(5),5:334],
+#   cos = pin_covs_mo[c(6),5:334])
+# 
+# model.list$c <- t(pin_cov_lag) 
+# 
+# model.list$Q <- "diagonal and equal"
+# model.list$R <- "diagonal and equal"
+# pin.fit.cov_str1 <- MARSS::MARSS(pin_dat[,5:334], model=model.list)
+# 
+# model.list$Q <- "diagonal and equal"
+# model.list$R <- "diagonal and unequal"
+# pin.fit.cov_str2 <- MARSS::MARSS(pin_dat[,5:334], model=model.list)
+# 
+# model.list$Q <- "diagonal and unequal"
+# model.list$R <- "diagonal and unequal"
+# pin.fit.cov_str3 <- MARSS::MARSS(pin_dat[,5:334], model=model.list)
+# 
+# model.list$Q <- "equalvarcov"
+# model.list$R <- "diagonal and unequal"
+# pin.fit.cov_str4 <- MARSS::MARSS(pin_dat[,5:334], model=model.list)
+# 
+# aic_tab_covs_str <- data.frame(
+#   Covs = c('Seasonal only', 'Best: eq/eq', 'Best: eq/un', 'Best: un/un', 'Best: evc/un'),
+#             AICc = c(pin.fit.cov0$AICc, pin.fit.cov_str1$AICc,
+#                      pin.fit.cov_str2$AICc, pin.fit.cov_str3$AICc, pin.fit.cov_str4$AICc))
+# aic_tab_covs_str$delAIC <- aic_tab_covs_str$AICc-min(aic_tab_covs_str$AICc)
+# aic_tab_covs_str
+# 
+# MARSSparamCIs(pin.fit.cov_str4)
+# MARSSparamCIs(pin.fit.cov_str3)
+# 
+# 
+# #best lagged upwelling + seasonal: structures
+# par(mfrow=c(3,1))
+# for(i in 1:3){
+# plot(ts(exp(pin.fit.cov_str4$states[i,]), start = c(1989,1), end = c(2016,6), freq = 12),
+#      ylab="Monthly Strandings", xlab="", type="l")
+# lines(ts(exp(pin.fit.cov_str4$states[i,]-1.96*pin.fit.cov_str4$states.se[i,]), start = c(1989,1),
+#          end = c(2016,6), freq = 12), type="l",lwd=1,lty=2,col="red")
+# lines(ts(exp(pin.fit.cov_str4$states[i,]+1.96*pin.fit.cov_str4$states.se[i,]), start = c(1989,1),
+#       end = c(2016,6), freq = 12), type="l",lwd=1,lty=2,col="red")
+# title(rownames(pin_dat)[i])
+# points(ts(exp(pin.fit.cov_str4$ytT[i,]), start = c(1989,1), end = c(2016,6), freq = 12), lwd=0.1, pch = 19, col="grey")
+# }
+# 
+# coefs_best <- MARSSparamCIs(pin.fit.cov_str4)
+# 
+# coefs_best
+# 
+# #get covariate effects
+# # cov.coef <- coef(pin.fit.cov_str4,type="matrix")$C
+# # coef(pin.fit.cov_str4)$C
+# 
+
+```
+
+
+```{r marss resid covs cet, echo = F}
+
+# #indexing
+# # 2:334, 3:334, 4:334, 5:334
+# # 1:333, 1:332, 1:331, 1:330
+
+# cor0 <- corr(data.frame(res = residuals(cet.fit.cov0)$state.residuals[1,1:227],
+#                   cov = cet_covs_mo[5,1:227]))
+# cor1 <- corr(data.frame(res = residuals(cet.fit.cov0)$state.residuals[1,2:227],
+#                   cov = cet_covs_mo[5,1:226]))
+# cor2 <- corr(data.frame(res = residuals(cet.fit.cov0)$state.residuals[1,3:227],
+#                   cov = cet_covs_mo[5,1:225]))
+# cor3 <- corr(data.frame(res = residuals(cet.fit.cov0)$state.residuals[1,4:227],
+#                   cov = cet_covs_mo[5,1:224]))
+# cor4 <- corr(data.frame(res = residuals(cet.fit.cov0)$state.residuals[1,5:227],
+#                   cov = cet_covs_mo[5,1:223]))
+# cor5 <- corr(data.frame(res = residuals(cet.fit.cov0)$state.residuals[1,6:227],
+#                   cov = cet_covs_mo[5,1:222]))
+# 
+# #PDO and 3-4 month lags, mainly 4
+# #pdo_hp <- c(cor0, cor1, cor2, cor3, cor4, cor5) #none
+# #mei_hs <- c(cor0, cor1, cor2, cor3, cor4, cor5) #a little, neg, 3+
+# #sst_hp <- c(cor0, cor1, cor2, cor3, cor4, cor5) #lots, neg, same
+# up_hs <- c(cor0, cor1, cor2, cor3, cor4, cor5) #lots, neg 4+
+# npgo_hp <- c(cor0, cor1, cor2, cor3, cor4, cor5) #none
+#
+# #pdo_grey <- c(cor0, cor1, cor2, cor3, cor4, cor5) #none
+# #mei_grey <- c(cor0, cor1, cor2, cor3, cor4, cor5) #some, pos, 3+
+# #sst_grey <- c(cor0, cor1, cor2, cor3, cor4, cor5) #lots, pos, 3+
+# #up_grey <- c(cor0, cor1, cor2, cor3, cor4, cor5) #little, 2+
+# #npgo_grey <- c(cor0, cor1, cor2, cor3, cor4, cor5) #none
+# 
+# #pdo_sd <- c(cor0, cor1, cor2, cor3, cor4, cor5) #none
+# #mei_sd <- c(cor0, cor1, cor2, cor3, cor4, cor5) #some, positive, 0-1
+# #sst_sd <- c(cor0, cor1, cor2, cor3, cor4, cor5) #lots, positive, 0-3
+# #up_sd <- c(cor0, cor1, cor2, cor3, cor4, cor5) #lots, pos, same
+# #npgo_sd <- c(cor0, cor1, cor2, cor3, cor4, cor5) #none
+
+# #pdo_d <- c(cor0, cor1, cor2, cor3, cor4, cor5) #none
+# #mei_d <- c(cor0, cor1, cor2, cor3, cor4, cor5) #some
+# #sst_d <- c(cor0, cor1, cor2, cor3, cor4, cor5) #some, 0 is highest
+# #up_d <- c(cor0, cor1, cor2, cor3, cor4, cor5) #some, 0-1
+# #npgo_d <- c(cor0, cor1, cor2, cor3, cor4, cor5) #none
+
+#based on this, would choose 0 and 3/4
+
+```
+
+
+### Abstract 
+
+Marine mammal strandings can be used to monitor changes in the health and population status of cetacean populations. Animals strand onshore for a wide variety of reasons, including abandonment, natural environmental variability, illness, or human-caused injury. In the Pacific Northwest, a total of Y cetaceans stranded from 2000-2018, respectively. In this study, I examine temporal trends in strandings using multivariate autoregressive state-space models to estimate interannual variability, seasonal patterns, and the effect of four oceanographic variables on strandings across four cetacean species. This modeling framework facilitates the estimation of both observation and state process errors. Model selection based on AIC revealed that the best models were those that assumed species-specific seasonal and annual trends with independent variance. Striped dolphins and Dall's porpoise have increased slightly over time, though many species exhibit discrete peaks rather than gradual increases. Examining state process residuals against environmental covariates revealed correlations at four-month lag times. Stranding data likely reflect spatio-temporal trends in animal presence in the region, lending insight into the timing and variability of life history behaviors. Harbor seal strandings exhibit the strongest seasonality due to the fact that pups are born locally throughout the spring and summer. In contrast, California sea lions in the Pacific Northwest are largely adult males that are less likely to strand in large numbers. This information is invaluable for stranding response practitioners and researchers looking to monitor changes in health or distribution of these sentinel species throughout the region, particularly in light of ongoing and anticipated ecosystem-level climate-related variability in the future. 
+
+
+### Introduction
+
+Over the past several decades, stranding records have been used as an indicator of ocean and marine mammal health (Bogomolni et al., 2010; Bossart, 2011; Gulland & Hall, 2007). Examining where, when, and how often marine mammals strand can provide insight into ecological behaviors, reproductive success (Norman et al., 2004; Pikesley et al., 2011), the impacts of human activities (Warlick et al., 2018), and species distributions (Evans et al., 2005; MacLeod et al., 2005). Pinnipeds and cetaceans are strongly influenced by changes in the marine environment via diverse and dynamic mechanisms, including changes in sea surface temperature, winds, or large-scale oceanographic oscillations that can shift the balance of nutrients and prey species abundance and distribution. These small changes are often amplified up through the food web or exacerbated by increased pollutants or algal blooms, ultimately having noticeable effects on top predators. Analyzing changes in strandings over time provides important information for monitoring abundance trends and examining emerging diseases, particularly in light of recent documented changes in oceanographic conditions on both local and regional scales (Pierce, Santos, Smeenk, Saveliev, & Zuur, 2007; Sprogis, Christiansen, Wandres, & Bejder, 2017; Truchon et al. 2013). In this study, we examined temporal trends in stranding records for cetaceans in the Pacific Northwest to investigate whether strandings have changed over time, exhibit a seasonal pattern, or correlate to prevailing oceanographic conditions. 
+
+As top predators of their respective food webs, marine mammals may be especially sensitive to oceanographic changes (Evans, Pierce, & Panigada, 2010; Moore 2008). Recent studies have found correlations between long-term stranding trends and several indices of climatic variability, demonstrating how strandings may be used as bio-indicators of prevailing environmental conditions. Evans et al. (2005) found that cetacean strandings in southeast Australia exhibited a periodicity coincident with regional wind patterns. Factors such as sea ice and the North Atlantic Oscillation have been found to correlate with strandings and mortality of certain pinniped and cetacean species in the Gulf of St. Lawrence, Canada (Johnston, Bowers, Friedlaender, & Lavigne, 2012; Soulen, Cammen, Schultz, & Johnston, 2013; Truchon et al. 2013). Keledjian and Mesnick (2013) found that El Niño conditions corresponded with increased California sea lion (*Zalophus californianus*) strandings and fisheries interactions along the California coast. Berini, Kracker, & McFee (2015) found that pygmy whale strandings in the southeast U.S. were correlated with sea surface temperatures, wind, and other oceanographic indicators. Gray whale (*Eschrichtius robustus*) mother-calf pair counts in their summer feeding grounds have been linked to sea ice conditions during the previous feeding season, while distribution of mother-calf pairs in some calving areas in Mexico are influenced by ENSO-related variability (Salvadeo, Nájera-Caballero, Urbán-Ramirez, & Lluch-Belda, 2015). Because responses to environmental change are complex, variable, species-dependent, and often poorly understood, oceanographic features should be studied over varying scales (local and continental), ecotypes, and species (Evans & Bjørge, 2013; Laidre, Stirling, Lowry, Wiig, Heide-Jørgensen, & Ferguson, 2008; Truchon et al. 2013).
+
+Environmental changes are acknowledged to be occurring on a global scale (IPCC, 2014), though the local realization of these changes is patchy and difficult to predict due to varying degrees of ecosystem complexity and spatial heterogeneity (Evans and Bjørge, 2013; Jacox et al., 2016; Moore, 2008). In recent years, the California Current ecosystem experienced an “extreme marine heat wave” that became known as The Blob, where above average water temperatures persisted from 2014-2016, causing a wide range of changes, including shifts in primary production, fish spawning, larval abundance, and marine wildlife health (Auth, Daly, Brodeur, & Fisher, 2017; Bond, Cronin, Freeland, & Mantua, 2015; DiLorenzo & Mantua, 2016). These conditions along the U.S. West Coast in addition to increasing ocean acidification and harmful algal blooms in the Pacific Northwest (Mauger et al., 2015; Mote & Salathé, 2010) can negatively impact marine mammal population dynamics through changes in the abundance and distribution of their prey, among other effects. 
+Increases in harbor porpoise (*Phocoena phocoena*) strandings over the last 12 years in the Pacific Northwest have been posited to be partially due to changes in their prey’s abundance and distribution (Greene, Kuehne, Rise, Fresh, & Penttila, 2015; Jefferson, Smultea, Courbis, & Campbell, 2016). The Pacific Northwest encompasses coastal, inland, and estuarine waters extending from northern California through British Columbia, including the Salish Sea and the mouth of the Columbia River. It is an ecosystem that contains important feeding and breeding habitat for numerous marine mammal species in the eastern north Pacific and beyond, including gray (*Eschrichtius robustus*) and humpback (*Megaptera novaeangliae*) whales, endangered southern resident killer whales (*Orcinus orca*), and numerous smaller delphinid and phocoenid species.  
+
+We aimed to investigate the possible connection between oceanographic variability and the health and mortality of marine mammals throughout a large ecosystem by evaluating stranding records collected consistently and systematically from 2003-2017. Specifically, the goals of this study were to: compare recent pinniped and cetacean stranding patterns to those previously reported in the region (Norman et al., 2004) and to investigate possible relationships between spatiotemporal variation in strandings and oceanographic conditions. It was expected that strandings of humpback whales and harbor porpoises, for example, might be higher than previously reported for the region (Norman et al., 2004) due to recent anomalous ocean conditions and/or changes in prey availability. I hypothesized that oceanographic variables such as sea surface temperature anomalies, upwelling, and large-scale oceanographic processes (e.g., Multivariate ENSO Index, Pacific Decadal Oscillation [PDO]) would be associated with alterations in strandings of specific species depending on how they use the Pacific Northwest marine ecosystem (year-round residents versus migratory and breeding versus feeding habitat) (e.g., Truchon et al. 2013). This information is useful for both researchers and stranding responders studying the baseline and future health and status of these populations in a multi-use ecosystem subject to human impacts that is exhibiting signs of degradation and environmental change. 
+
+#### Methods
+
+##### *Stranding data*
+
+Stranding records for pinnipeds (1990-2016) and cetaceans (2003-2017) were compiled using the database maintained by the National Oceanic and Atmospheric Administration’s (NOAA’s) National Marine Fisheries Service (NMFS) and its stranding response network members in Oregon and Washington. Completed stranding reports are typically submitted to NMFS’ national stranding database by network members each year and include data such as field identification number, observation date, stranding location, and when determinable, age class, sex, status (dead or alive), species, evidence of injury or human interaction, and postmortem condition. Some reports, including photos, are received from the public through various media outlets (phone calls, texts, or emails). Reports containing ambiguous species identification, regardless of source, were included in one of several ‘Unknown’ categories based on the level of information known. Entangled live animals or strandings attributed directly to human activity such as ship strikes were excluded. Records were aggregated by year, season, sex, and stranding location. Similar to Warlick et al. (2018), three stranding location regions were analyzed because stranding response, logistics, and species’ presence differ among these areas: Oregon, outer Washington coast, and inland Washington waters (inland of the mouth of the Strait of Juan de Fuca). Strandings for all species were qualitatively explored, though only four species were explored using statistical analyses. Based on the robustness of available data, pinniped species were examined on a monthly basis while cetacean strandings were aggregated at the annual-level. All analyses were conducted on log-transformed counts. 
+
+##### *Local oceanographic conditions* 
+
+Sea surface temperature (SST) values were obtained from northern California (buoy 46014, 39ºN,124ºW) and central Oregon (buoy 46050, 45ºN,125ºW) from the California Current Integrated Ecosystem Assessment (IEA) project data portal. Data for SST were z-score standardized by subtracting a given month SST value from a long-term (since 1981) mean SST in that month. Monthly upwelling values (45ºN,125ºW) were included because seasonal upwelling in the California Current greatly drives primary production and fish prey density along the West Coast. Meridional winds at 39ºN and 45ºN were initially investigated but ultimately omitted due to strong correlation with upwelling. 
+
+##### *Large-scale oceanographic oscillations*  
+
+Variables used to assess the effect of large-scale, climatic factors on strandings included MEI and PDO values obtained from the California Current IEA at the monthly level. The MEI describes ENSO conditions since it combines six meteorological measures over portions of the Pacific Ocean (Wolter & Timlin, 1993). Large positive MEI values indicate the occurrence of El Niño conditions, while large negative MEI values indicate La Niña conditions. The PDO represents a recurring pattern of climate variability (Mantua & Hare, 2002) with historical records strongly suggesting an association with salmon production (Beamish et al., 1999; Hare, Mantua, & Francis, 1999) and zooplankton production in the eastern North Pacific (Francis, Hare, Hollowed, & Wooster, 2003). All four local and large-scale oceanographic indices (Figure 1) were examined in real-time and with 1-5 month lags. Because many of the oceanographic variables are inter-related, I tested for collinearity between variables. The larger number of potential covariates were considered due to the wide range of cetacean and pinniped species with different life histories and behaviors that could be influenced by environmental conditions at varying spatial and temporal scales. 
+
+##### *Statistical analysis*  
+
+To examine temporal patterns in cetacean and pinniped strandings and whether those trends correlate with variability in oceanographic conditions, I used a multivariate autoregressive state-space (MARSS) modeling framework (Hinrichsen 2009, Hinrichsen & Holmes 2009) to account for both the state and observation process models that give rise to stranding data. This approach fits a random walk model through the data to identify variance in the ecological state process. The state process *x* for each variable at time *t* is modeled as:
+
+
+$$
+\begin{equation}
+\begin{gathered}
+\mathbf{x}_t = \mathbf{B} \mathbf{x}_{t-1}+\mathbf{u}+\mathbf{C_t}\mathbf{c_t} +\mathbf{w}_t \text{ where } \mathbf{w}_t \sim \,\text{MVN}(0,\mathbf{Q}) \\
+\mathbf{y}_t = \mathbf{Z}\mathbf{x}_t+\mathbf{a}+\mathbf{v}_t \text{ where } \mathbf{v}_t \sim \,\text{MVN}(0,\mathbf{R}) \\
+\mathbf{x}_0 = \boldsymbol{\mu}
+\end{gathered} 
+\end{equation}
+$$
+
+based on the state at time *t-1*, mean trend $\mu$, and vector of process errors *wt* being drawn from a multivariate normal distribution with mean of zero and variance matrix $\mathbf{Q}$. The $\mathbf{B}$ and $\mathbf{Z}$ parameters are the autoregression coefficients in the state and observation process vectors, respectively. Covariate data are incorporated in the the $\mathbf{C}$ matrix. In this way, models can be fit and compared assuming varying numbers of state and observation processes. For both cetaceans and pinniped stranding data, potential models were explored where strandings were assumed to follow a single underlying state process (*e.g.*, if all species exhibited similar stranding patterns) and then with each species having unique underlying processes (*e.g.*, if strandings of each species were unrelated).  Models were specified with $\mathbf{B}$ and $\mathbf{Z}$ as identity matrices. For the base model, variance in the state and observation processes was initially assumed to be independent and equal, as stranding events are generally uncorrelated and the process of detecting stranding events for each species is the same. 
+
+To examine seasonal effects, I included a discrete Fourier series as a covariate in the MARSS model specification. The Fourier series is a combination of sine and cosine waves that results in a smoothed estimated effect with far fewer parameters being estimated compared to a fixed seasonal effect. In order to ascertain which lag times should be considered for oceanographic indices, I examined the correlation between the state residuals for the seasonal effects model and PDO, MEI, SST, and upwelling data with 0-5 month lag times. Lagged covariates with the highest correlation were tested and compared. 
+
+Once the best model was identified using Akaike's Information Criterion-based model selection, other variance structures for the state process error were explored. Process errors in the $\mathbf{Q}$ matrix could either be (a) independent with equal variances across species, (b) independent with unique variance for each species, or (c) correlated with equal variance. Models were fit using `marss()` in the MARSS R package (Holmes et al. 2012), which maximizes likelihoods based on an expectation-maximization algorithm and Kalman filter. Models were compared to assess and quantify support for various models of the underlying stranding process across marine mammal species.
+
+<!-- To determine whether the frequency of pinnped and cetacean strandings was significantly different across categorical variables such as sex, species, season, or regional location,Iconducted pairwise Kruskal-Wallis Nemenyi tests in R (R Development Core Team, 2009) with sex and species as independent variables and the number of stranding cases as the dependent variable. The six species with the highest number of strandings over the study period were analyzed separately. -->
+
+Though using a MARSS model approach to examine whether stranding patterns exhibit spatial patterns is currently outside the scope of this study, stranding hotspots were visualized (`geom_density2d` function in the ggplot2 R package) using kernel density estimation (Gatrell, Bailey, Diggle, & Rowlingson, 1996). 
+
+#### Results  
+
+##### Summary of stranding events
+
+##### *Cetaceans*  
+Over the study period for cetaceans (2003-2017), 1,463 strandings were recorded in Oregon (*n* = 516) and Washington (*n* = 946) across 26 species and a hybrid combination (*Phocoena phocoena*/*Phocoenoides dalli*), comprising 195 mysticetes and 1,245 odontocetes. Nearly all cases (96%) were identified to species level. Mean annual strandings for harbor porpoises (*n* = 958) and gray whales (*n* = 131) amounted to 64 and 9 cases per year, respectively, and represented nearly 75% of total strandings. Striped dolphins were the most commonly stranded species in the family Delphinidae (annual mean = 4.7; 3% of all strandings), with 80% of reports originating in Oregon. Approximately one-third of strandings were not identified for sex and there was no significant difference between the number of males and females over the study period for any of the six most commonly stranded species: harbor porpoise, gray whale, Dall’s porpoise, and striped dolphin, the species that were quantitatively explored further. Of the total stranding cases, 18% (*n* = 271) were documented as human interaction cases, the majority of which were harbor porpoises. 
+
+Overall, the number of strandings reported in inland Washington waters was higher than that reported along the coasts, though this was largely driven by spatial patterns in harbor porpoise strandings. Other frequently stranding species exhibited different spatial trends, with a higher number of striped dolphins stranding in Oregon, Dall’s porpoises in inland Washington waters, and gray whales along the Oregon coast and inland Washington waters. At the seasonal level, gray whale strandings were concentrated further south during fall compared with other months when more strandings occurred in Washington. For harbor porpoises, cases were concentrated further north in fall and winter. 
+
+##### Temporal patterns
+
+Over the study period, harbor porpoise and striped dolphin strandings increased while that of Dall's porpoise decreased. Gray whale strandings varied with no apparent upward or downard trend (Figure 5). Though cetacean strandings were ultimately modeled using annual-level data, a seasonal effect was estimated, showing varied trends for each of the four species. Gray whale stranding exhibited the strongest seasonal effect, with strandings peaking in March and April, followed by a peak in the two porpoise species. In contrast, striped dolphin strandings were lowest in the summer and highest in the winter (Figure 4b). 
+
+Using annual-level data, the best fit model for cetacean strandings included unique trends for each of the four species and average unlagged annual sea surface temperature with independent unique observation and process error variance (AICc = 123.36; Table 3). The model with unique trends and similar variance structure including MEI as a covariate performed nearly equally well with a $\delta$AICc value of 0.47, but including both covariates did not improve model fit. Back-transformed fitted values for the state process for the model with sea surface temperature showed a relatively good fit to the data for Dall's porpoise and striped dolphin and a narrow confidence interval for harbor porpoise that did not encompass many of the observed counts (Figure 5). The model estimates suggest that Dall's porpoise strandings decrased by approximately 3.9% and that harbor porpoise and striped dolphin strandings increased by 6.5% and 19%, respectively (Table 4). The parameter estimate for the effect of annual sea surface temperature was positive with a confidence not overlapping zero for striped dolphins and Dall's porpoise, suggesting that more strandings occur in warmer temperature years (Table 4). 
+
+
+#### Discussion
+
+This study examined interannual and seasonal trends and the effects of oceanographic conditions on cetacean and pinniped strandings in the Pacific Northwest using multivariate autoregressive state-space models, where observed stranding cases are the product of an observation process and latent state process that is governed by the state at the previous occasion and variance. Model results indicate that there are interannual trends evident during the study period and that all species exhibit some degree of seasonality, though patterns differ across taxa. The best fit model of monthly pinniped strandings estimated unique state process trends and included a seasonal effect and a four-month lagged index of upwelling. The best fit model of annual cetacean strandings estimated unique state process trends for each species and included an effect of sea surface temperature. 
+
+##### Interannual trends  
+Strandings can be seen as an indicator of both the health and status of local pinniped and cetacean populations, however, care must be taken when interpreting observed trends in stranding data due to the confounding effects of changing stranding response effort and population abundance. Model results estimated a 1.5% and 2% increase in strandings of California and Steller sea lions, respectively, while harbor seal strandings have remained relatively constant over the study period. These increased instances in the former two species likely relfects an increasing presence of animals in the area and an increasing ability of stranding network members to respond to reports of these cases (largely due to the implementation of the Prescott Grant in the early 2000s) rather than evidence of declining health. It is also important to note that stranding time series are often characterized by pulses in cases, represented here in the decomposed time series trend for California sea lions, where there may have been some event or environmental condition causing the sudden discrete increase in strandings. Harbor seal strandings remaining relatively constant during the study period is in keeping with the assumption that populations have likely reached their carrying capacity in the Pacific Northwest (Jeffries et al., 2003). These overall results are consistent with those noted by Warlick et al. 2018, though the estimated rates of change in this study are lower due to the explicit treatment of strandings in an autoregressive state-space model framework that facilitates the distinction between observation and state process error over the time series.
+
+For cetaceans, estimated model results over the shorter study period suggest an increase in harbor porpoise and striped dolphin strandings and a decrease in Dall's porpoise strandings, while those of gray whales have fluctuated. Recent research has indicated that harbor porpoises have been repopulating the waters of the Pacific Northwest, particularly since having become virtually absent throughout the 1980s, with local population counts rebounding since the early 2000s (Jefferson et al. 2016,  Huggins et al. 2015; Evenson et al. 2016). Striped dolphin presence in the region has also been cited as potentially attributable to climate-related changes, as the species is more abundant in warmer, temperate waters. Similar reasons could potentially explain any decline in Dall's porpoise presence in the Pacific Northwest, as it is a species that generally prefers colder, northern waters. These results can be compared to those of Norman et al. (2004) for greater historical context. Ultimately, however, it would be more informative to examine these less frequnetly stranding cetacean species separately in more depth, potentially in relation to stranding cause, sex, age, and region, to glean further information about what might be driving these observed trends that are difficult to generalize for smaller sample sizes. 
+
+##### Seasonality  
+An examination of the seasonal trends in marine mammal strandings is foundational to our underlying perception of how and when these species use the local marine environment, which is fundamentally different across taxa. Harbor seals have haul-outs primarily along the coast and inland shores of Washington, while California sea lions in the area are largely migratory adult and subadult males. Harbor porpoises likely utilize inland Washington waters year-round while larger species like gray whales might just be migrating through the area. Harbor seals and Steller sea lion strandings exhibited a relatively strong seasonal pattern, with strandings for harbor seals peaking in late spring, likely coinciding with when pups are born throughout different regions, similar to patterns described previously (Warlick et al. 2018). In contrast, the seasonal pattern for California sea lions is of a lower magnitude, with strandings generally being highest in the early fall. This observed pattern could coincide with adult and subadult males moving through the area during their winter foraging migratory route that extends as far north as Alaska (Lowry & Forney, 2005). 
+
+Cetaceans also exhibited varying seasonal trends, with gray whale strandings peaking earliest in the spring followed by summer peaks in porpoise strandings. Heightened gray whale strandings during the spring could occur during their northward foraging migration, when reproductively active individuals might be depleted and young animals more vulnerable to nutritional stress and/or anthropogenic stressors. Striped dolphin strandings, however, are lowest in the summer and higher in the fall and winter. This might be due to the fact that this species prefers warmer temperate waters, and therefore might fare better during warmer spring and summer months. 
+
+##### Effects of oceanographic conditions  
+Both cetacean and pinniped stranding models were improved by the inclusion of covariates for prevailing or lagged oceanographic conditions. For pinnipeds, the best fit model estimated a negative effect of a four-month lagged measure of upwelling, suggesting that there were fewer strandings when preceding months were characterized by increased upwelling. This could be attributable to better foraging conditions that would result in months or seasons or even years when upwelling-induced productivity is greater. Increased upwelling often acts as a bottom-up forcing process that drives ecosystem productivity throughout the California Current along the West Coast, resulting in higher abundance, biomass, and availability of many forage fish species. This effect size was strongest for California sea lions, which could be due to their central California breeding range having a greater overlap with these dynamic ecosystem-level processes and the location where the upwelling data were collected. 
+
+For cetaceans, the best model included prevailing sea surface temperatures, indicative of a strong connection to both shorter and longer time-scale processes. Estimated parameters did not overlap zero for both Dall's porpoise and striped dolphin strandings. Higher sea surface temperatures had a strong, positive effect on Dall's porpoise strandings, which is likely attributable to their preference for colder water temperatures, as noted above. Strandings of striped dolphins, another potentially more temperature-sensitive species, also showed a positive relationship with increased sea surface temperature, though this could be occuring due to an increased local presence rather than any detrimental effects of warmer temperatures. These results are consistent with many studies that have identified an environmental link between both pinniped and cetacean strandings (Johnston et al. 2012; Soulen et al 2013; Truchon et al. 2013), though few if any studies have examined these connections in the Pacific Northwest. 
+
+##### Future directions  
+
+Analyzing these data in a time series framework using state-space autoregressive models provides a wealth of opportunity for further research. First, a more robust approach could be adopted to refine our understanding of the precise lag times that are important for a given oceanographic variable. For example, it might be that ocean conditions in a given season or life stage are more pertinent or impactful than a specific lag time, or it might be that a certain threshold length of persistent conditions matters more than the timing of occurrence, and that the effects of that period are additive (*e.g.*, a three-month stretch with a one-month lag versus a one-month time horizon at a six-month lag or during the breeding season). These specific time windows where conditions are most impactful on marine mammal health, stranding, and local presence would vary depending on the specific life history characteristics of the species. 
+
+Second, strandings are so often used as a proxy for monitoring and studying marine mammal health because that is one of the easiest ways to observe these species. However, this observation process itself is not only imperfect (we don't see every stranding), but also inherently inconsistent over time and space depending on numerous factors, including stranding network funding. One way to gain further insight into the variability in not only the state process but also the variance of both the state and observation process error would be to apply a perturbation analysis approach by adding an additional matrix to the observation process model to represent the level of funding received by stranding network memebrs in a given year. This would in a way control for the overall change in capacity that occurred with the institution of the Prescott Grant in the mid-2000s and would be an adaptable framework that would accomodate whether this supplementation in funding was available on any given year. 
+
+Third, these data could also be examined within a spatial context, allowing for the estimation of trends in both the state and observation process in a given region, which would be useful in this context when strandings for certain species are so spatially- and seasonally-specific (Warlick et al. 2018). Including this spatial component would also facilitate the inclusion of anthropogenic impacts in looking at certain human-caused strandings such as fisheries entanglements, gunshot wounds, or boat collision injuries. This, however, would be challenging for cetaceans due to the relatively smaller sample size. 
+
+This modeling framework provides an example of a robust approach to examining both interannual and seasonal patterns in strandings across a spectrum of marine mammal species that utilize the local marine environment in different ways. Each of these species has unique life history characteristics, demographic rates, and population trends that make generalizations about the impacts of seasonal effects and oceanographic conditions challenging. And though it would require a deep dive into the finer-scale spatio-temporal patterns of strandings to ascertain potential mechanisms of these apparent effects, what we *can* see based on these results is that oceanographic conditions matter. They likely matter at smaller spatial and time horizons in terms of energetics and foraging, but also at larger spatial and time horizons that include gradual and ongoing climate-related warming. Despite inconsistencies in strandings data and the inherent uncertainty due to the wide variety of reasons that marine mammals strand onshore, these results are useful for both monitoring the health and status of local cetacean and pinniped populations, and can inform ongoing conservation, management, and stranding response efforts throughout the region. 
+
+#### Acknowledgements  
+
+This research was made possible through the hard work and dedication of all stranding response network work members in the Pacific Northwest, including Cascadia Research Collective, Central Puget Sound Marine Mammal Stranding Network, Dungeness National Wildlife Refuge & Protection Island, Feiro Marine Life Center, Makah Tribe, Marine Animal Rescue Center, MaST Center Stranding Team, Olympic Coast National Marine Sanctuary, Oregon State University Marine Mammal Institute, Port Townsend Marine Science Center, Portland State University, San Juan County Marine Mammal Stranding Network, Seal Sitters, Seaside Aquarium, Sno-King Marine Mammal Response, The Whale Museum, Vashon Hydrophone Project, Washington Dept of Fish and Wildlife Marine Mammal Investigations, and Whatcom Marine Mammal Stranding Network. In addition to the numerous volunteer hours invested in collecting the data presented, many stranding networks were the recipients of numerous U.S. Federal grants through the John H. Prescott Marine Mammal Rescue Assistance Grant Program, which supplied essential funding for this work.
+
+#### Figures & Tables  
+
+
+
+#old
+### Methods
+
+#### Stranding data
+
+Stranding records for pinnipeds(1990-2016) and cetaceans (2003-2017) were compiled using the database maintained by the National Oceanic and Atmospheric Administration’s (NOAA’s) National Marine Fisheries Service (NMFS) and its stranding response network members in Oregon and Washington. Completed stranding reports are typically submitted to NMFS’ national stranding database by network members each year and include data such as field identification number, observation date, stranding location, and when determinable, age class, sex, status (dead or alive), species, evidence of injury or human interaction, and postmortem condition. Some reports, including photos, are received from the public through various media outlets (phone calls, texts, or emails). Reports containing ambiguous species identification, regardless of source, were included in one of several ‘Unknown’ categories based on the level of information known. Entangled live animals or strandings attributed directly to human activity such as ship strikes were excluded. Records were aggregated by year, season, sex, and stranding location. Similar to Warlick et al. (2018), three stranding location regions were analyzed because stranding response, logistics, and species’ presence differ among these areas: Oregon, outer Washington coast, and inland Washington waters (inland of the mouth of the Strait of Juan de Fuca). Strandings for all species were qualitatively explored, though species with only X strandings per year were used in statistical analyses. Based on the robustness of available data, pinniped species were examined on a monthly basis while cetacean strandings were aggregated for annual-level data. All analyses were conducted on log-transformed counts. 
+
+#### Environmental data
+
+##### Local oceanographic conditions and prey densities
+
+Sea surface temperature (SST) values were obtained from northern California (buoy 46014, 39N/124W) and central Oregon (buoy 46050, 45N/125W) from the California Current Integrated Ecosystem Assessment project data portal. Data for SST was z-score stanrdardized by subtracting a given month SST value from a long-term (since 1981) mean SST in that month (e.g., mean of all Januaries 1981-2017 minus January 2005). Monthly upwelling values (from 39ºN/125ºW and 45ºN/125ºW) were included because seasonal upwelling in the California Current greatly drives primary production and fish prey density along the West Coast. Meridional winds at 39ºN and 45ºN were initially investigated but ultimately omitted due to strong correlation with upwelling values. 
+
+##### Large-scale oceanographic oscillations  
+
+Variables used to assess the effect of large-scale, climatic factors on strandings included: (1) the Multivariate ENSO index (MEI) index, (2) the Pacific Decadal Oscillation (PDO) index, and (3) the North Pacific Gyre Oscillation (NPGO) index, all of which were obtained from the California Current IEA at the monthly level. The MEI describes ENSO conditions since it combines six meteorological measures over portions of the Pacific Ocean (Wolter & Timlin, 1993). Large positive MEI values indicate the occurrence of El Niño conditions, while large negative MEI values indicate La Niña conditions. The presence of El Niño conditions was also included as a categorical variable. The PDO represents a recurring pattern of climate variability (Mantua & Hare, 2002) with historical records strongly suggesting an association with salmon production (Beamish et al., 1999; Hare, Mantua, & Francis, 1999) and zooplankton production in the eastern North Pacific (Francis, Hare, Hollowed, & Wooster, 2003). The NPGO is largely driven by sea surface height variability and is thought to influence salinity and nutrient concentrations (DiLorenzo et al. 2008). Oceanographic indices were examined in real-time and with 1-5 month lags while prey density variables were only considered in real-time. Because many of the oceanographic variables are inter-related, I tested for collinearity between variables. The larger number of potential covariates were considered due to the wide range of cetacean and pinniped species with different life histories and behaviors that could be influenced by environmental conditions at varying spatial and temporal scales. 
+
+##### Statistical analysis  
+
+To examine temporal patterns in cetacean and pinniped strandings and whether those trends correlate with variability in oceanographic conditions, I used a multivariate autoregressive state-space (MARSS) modeling framework () to account for both the state and observation process models that give rise to stranding data. This approach fits a random walk model through the data to identify variance in the ecological state process. The state process x at time *t* is modeled as:
+
+
+$$
+\begin{equation}
+\begin{gathered}
+\mathbf{x}_t = \mathbf{B} \mathbf{x}_{t-1}+\mathbf{u}+\mathbf{C_t}\mathbf{c_t} +\mathbf{w}_t \text{ where } \mathbf{w}_t \sim \,\text{MVN}(0,\mathbf{Q}) \\
+\mathbf{y}_t = \mathbf{Z}\mathbf{x}_t+\mathbf{a}+\mathbf{v}_t \text{ where } \mathbf{v}_t \sim \,\text{MVN}(0,\mathbf{R}) \\
+\mathbf{x}_0 = \boldsymbol{\mu}
+\end{gathered} 
+\end{equation}
+$$
+
+based on the state at time *t-1*, mean trend \mu, and vector of process errors wt being drawn from a multivariate normal distribution with mean of zero and variance matrix Q. The B and Z parameters are the autoregression coefficients in the state and observation process vectors, respectively. Covariate data are incorporated the C matrix. In this way, models can be fit and compared assuming varying numbers of state and observation processes. For both cetaceans and pinniped stranding data, potential models were explored where strandings were assumed to follow a single underlying state process (e.g., if all species exhibited similar stranding patterns) and then with each species having unique underlying processes (e.g., if strandings of each species were completely unrelated).  Models were specified with B and Z as identity matrices. For the base model, variance in the state and observation processes was initially assumed to be independent and equal, as stranding events are generally uncorrelated and the process of detecting stranding events for each species is the same. 
+
+To examine seasonal effects, I included a discrete Fourier series as a covariate in the marss() model specification. The Fourier series is a combination of sine and cosine waves that results in a smoothed estimated effect with far fewer parameters being estimated compared to a fixed seasonal effect. In order to ascertain what lag times should be considered for oceanographic indices, I examined the correlation between the state residuals for the seasonal effects model and PDO, MEI, SST, and upwelling data with 0-5 month lag times. Lagged covariates with the highest correlation were tested and compared. 
+
+Once the best model was identified using AICc values, other variance structures for the state process error were explored. Process errors in the Q matrix could either be (a) independent with equal variances across species, (b) independent with unique variance for each species, or (c) correlated with equal variance. Models were fit using `marss()` in the MARSS R package (Holmes et al. ), which maximizes likelihoods based on an expectation-maximization algorithm and Kalman filter. Models were compared using Akaike's Information Criterion-based model selection to assess and quantify support for various models of the underlying stranding process across marine mammal species.
+
+Though using a MARSS model approach to examine whether stranding patterns exhibit spatial patterns is currently outside the scope of this study, hotspot maps were generated (`geom_density2d` function in the ggplot2 R package) using kernel density estimation (Gatrell, Bailey, Diggle, & Rowlingson, 1996). 
+
+### Results  
+
+#### Summary of stranding events
+
+Over the study period (2003-2017), 1,463 strandings were recorded in Oregon (n = 516) and Washington (n = 946) (Table 2) across 26 species and a hybrid combination (*Phocoena phocoena*/*Phocoenoides dalli*), comprising 195 mysticetes, 1,245 odontocetes, and 23 cetacean spp. Nearly all cases (96%) were identified to species level. Mean annual strandings for harbor porpoises (n = 958) and gray whales (n = 131) amounted to 64 and 9 cases per year, respectively, and represented nearly 75% of total strandings (Table 2). Mean annual strandings for humpback whales, 3 per year, represented 2.6% of total stranding numbers. Striped dolphins (*Stenella coeruleoalba*) were the most commonly stranded species in the family Delphinidae (annual mean = 4.7; 3% of all strandings), with 80% of reports originating in Oregon. Approximately one-third of strandings were not identified for sex and there was no significant difference between the number of males and females over the study period for any of the six most commonly stranded species: harbor porpoise, gray whale, Dall’s porpoise (*Phocoenoides dalli*), striped dolphin, humpback whale, and Pacific white-sided dolphin (*Lagenorhynchus obliquidens*). Of the total stranding cases, 18.5% (n = 271) were documented as human interaction cases, the majority of which were harbor porpoises (Table 2). For the most part, the number of HI cases is proportional to the number of total strandings for each species with the exception of fin whales, where two-thirds of the stranding cases were anthropogenic in nature. 
+
+#### Temporal distribution 
+
+#### Geographic distribution
+
+Overall, the number of strandings reported in inland Washington waters was significantly higher than that reported along the coasts (2 = 67.7, p < 0.001), though this is largely driven by spatial patterns in harbor porpoise strandings while other species exhibit different patterns (Figure 1S). Other frequently stranding species exhibited different spatial trends, with a higher number of striped dolphins stranding in Oregon, Dall’s porpoises in inland Washington waters, and gray whales along the Oregon coast and inland Washington waters (Figure 3). At the seasonal level, gray and humpback whale strandings were concentrated further south during fall compared with other months when more strandings occurred in Washington (Figure 3). For harbor porpoises, cases were concentrated further north in fall and winter. 
+
+
+### Discussion
+
+General trends: strandings generally and often represent/indicate locally/temporally abundant species. 
+-	Did that pan out for us? 
+o	I think we need some brief descriptive sentences about the life history/range of The Six species we chose to highlight, or some others that are relevant that might have surprising results or those that differ from Norman et al.
+-	Anything to note about sex? –not really due to large proportion of unk.
+-	How do these values relate to Norman et al? (though it is hard to compare since I did not use linear regressions, maybe compare mean annual cases?)
+-	Some species have increased and others have decreased? 
+-	Anything to say about general HI cases? Sorta small sample size
+
+Temporal trends:
+-	Do seasonal stranding patterns reflect what we understand about seasonal presence/absence of species in the area? Why or why not? 
+
+Geographic trends: 
+-	Could combine and answer this in one category of spatio-temporal trends, since they are so closely related, but same question as above, do geographic trends reflect what we generally think we know about the spatial extent of these species? Why or why not? Range expansions or other HI-related issues?
+
+Ocean:
+-	Without fixating on the models too much (I personally am still on the fence about model selection, AIC, my own skills, etc., so I’m not sure how much to say here, but at least:
+o	Species are all different and would theoretically respond to different environmental conditions at different spatial and temporal scales.
+o	Find something to say about the models for each species, and particularly interesting that most of the covariates don’t seem to have a very large effect size, though most are negative? 
+-	Could spend at least a paragraph or two outlining future steps/possibilities
+o	Better prey availability metrics
+o	Longer timeseries consideration would be better for oceanographic indices
+o	Stronger methodological pairing between where/when conditions are experienced compared with where/when strandings are reported (drift, lag, etc.)
+o	Better description of why we think this matters for a few of the species – why would california current prey density matter, etc? 
+o	How might be comment on or tie back to future climate variability/change?
+
+Conclusion:
+-	Strandings are increasing and are influenced by oceanographic drivers
+-	Monitoring and long time-series perspective is important (relatedness to Norman et al)
+-	Implications for cetacean health, stranding response, management/conservation, and climate change?
+
+
+
+```{r}
+plot(runif(10))
+```
+
+#### Acknowledgements  
+
+This research was made possible through the hard work and dedication of all stranding response network work members in the Pacific Northwest, including Cascadia Research Collective, Central Puget Sound Marine Mammal Stranding Network, Dungeness National Wildlife Refuge & Protection Island, Feiro Marine Life Center, Makah Tribe, Marine Animal Rescue Center, MaST Center Stranding Team, Olympic Coast National Marine Sanctuary, Oregon State University Marine Mammal Institute, Port Townsend Marine Science Center, Portland State University, San Juan County Marine Mammal Stranding Network, Seal Sitters, Seaside Aquarium, Sno-King Marine Mammal Response, The Whale Museum, Vashon Hydrophone Project, Washington Dept of Fish and Wildlife Marine Mammal Investigations, and Whatcom Marine Mammal Stranding Network. In addition to the numerous volunteer hours invested in collecting the data presented, many stranding networks were the recipients of numerous U.S. Federal grants through the John H. Prescott Marine Mammal Rescue Assistance Grant Program, which supplied essential funding for this work.
+
+#### References
+
+Akaike, H. (1973). Information theory and an extension of maximum likelihood principle. In B. N. Petrov & F. Csaki (Eds.), Second International Symposium on Information Theory (pp. 267-281). Budapest, Hungary: Akademiai Kiado.
+
+Auth, T. D., Daly, E. A., Brodeur, R. D., & Fisher, J. L. (2017). Phenological and distributional shifts in ichthyoplankton associated with recent warming in the northeast Pacific Ocean. Global Change Biology, 24, 259-272. https://doi.org/10.1111/gcb.13872
+
+Bakun, A. (1973). Coastal upwelling indices, west coast of North America, 1946–71. U.S. Department of Commerce, NOAA Technical Report NMFS–SSRF–671.
+
+Beamish, R. J., Noakes, D. J., McFarlane, G. A., Klyashtorin, L., Ivanov, V. V., & Kurashov, V. 
+(1999). The regime concept and natural trends in the production of Pacific salmon.  Canadian Journal of Fisheries and Aquatic Sciences, 56, 516-526. http://www.nrcresearchpress.com/doi/10.1139/f98-200#.W3353-hKjD4
+
+Berini, C. R., Kracker, L. M., & McFee, W. E. (2015). Modeling pygmy sperm whale (Kogia breviceps, De Blainville 1838) strandings along the southeast coast of the United States from 1992 to 2006 in relation to environmental factors. NOAA Technical Memorandum NOS NCCOS 203 (pp. 44). Charleston, SC: NOAA Technical Memorandum. Retrieved from https://doi.org/10.7289/V5/TM-NOS-NCCOS-203 (accessed 13 August 2018).
+
+Bogomolni, A. L., Pugliares, K. R., Sharp, S. M., Patchett, K., Harry, C.T., LaRocque, J. M., Touhey, K. M., & Moore, M. (2010). Mortality trends of stranded marine mammals on Cape Cod and southeastern Massachusetts, USA, 2000 to 2006. Diseases of Aquatic Organisms, 88, 143-155. https://doi.org/10.3354/dao02146
+
+Bond, N. A., Cronin, M. F., Freeland, H., & Mantua, N. J. (2015). Causes and impacts of the 2014 warm anomaly in the NE Paciﬁc. Geophysical Research Letters, 42, 3414-3420. doi:10.1002/2015GL063306. https://doi.org/10.1002/2015GL063306
+
+Bond, N. A., M. F. Cronin, H. Freeland, and N. J. Mantua (2015), Causes and impacts of the 2014 warm anomaly in the NE Paciﬁc, Geophys. Res. Lett., 42, 3414–3420, doi:10.1002/2015GL063306.
+
+Bossart, G. D. (2011). Marine mammals as sentinel species for oceans and human health. Veterinary Pathology, 48, 676-690. https://doi.org/10.1177%2F0300985810388525
+
+Coates, K. S. (2002). 1. Border Crossings. In J. M. Findlay, & K. S. Coates (Eds.), Parallel destinies: Canadian-American relations west of the Rockies (pp. 3-30). Seattle and London: University of Washington Press.
+
+Cotté, C., & Simard, Y. (2005). Formation of dense krill patches under tidal forcing at whale feeding hot spots in the St. Lawrence Estuary. Marine Ecology Progress Series, 288, 199-210. https://doi:10.3354/meps288199
+
+Di Lorenzo E., Schneider N., Cobb K. M., Chhak, K, Franks P. J. S., Miller A. J., McWilliams J. C., Bograd S. J., Arango H., Curchister E., Powell T. M. and P. Rivere, 2008: North Pacific Gyre Oscillation links ocean climate and ecosystem change. Geophys. Res. Letters, 35, L08607, doi:10.1029/2007GL032838.
+
+DiLorenzo, E., & Mantua, N. (2016). Multi-year persistence of the 2014/15 North Paciﬁc marine heatwave. Nature Climate Change, 6, 1042-1047, doi:10.1038/NCLIMATE3082.
+
+Evans, K., Thresher, R., Warneke, R. M., Bradshaw, C. J. A., Pook, M., Thiele, D., & Hindell, M. A. (2005). Periodic variability in cetacean strandings: links to large-scale climate events. Biology Letters, 1, 147-150. https://dx.doi.org/10.1098%2Frsbl.2005.0313
+
+Evans, P. G. H., Pierce, G. J., & Panigada, S. (2010). Climate change and marine mammals. Journal of the Marine Biological Association of the United Kingdom, 90, 1483-1487. https://doi.org/10.1017/S0025315410001815
+
+Evans, P. G. H., & Bjørge, A. (2013). Impacts of climate change on marine mammals. Marine Climate Change Impacts Partnership: Science Review 2013, 134-148. 
+https://doi:10.14465/2013.arc15.134-148
+
+Fire, S. E., Wang, Z., Berman, M., Langlois, G. W., Morton, S. L., Sekula-Wood, E., & Benitez-Nelson, C. R. (2010). Trophic transfer of the harmful algal toxin domoic acid as a cause of death in a minke whale (Balaenoptera acutorostrata) stranding in southern California. Aquatic Mammals, 36, 342-350. https://doi:10.1578/AM.36.4.2010.342
+
+Flewelling, L. J., Naar, J. P., Abbott, J. P., Baden, D. G., Barros, N. B., Bossart, G. D.,... Landsberg, J. H. (2005). Red tides and marine mammal mortalities. Nature, 435, 755-756. https://www.nature.com/articles/nature435755a
+
+Francis, R. C., Hare, S. R., Hollowed, A. B., & Wooster, W. S. (2003). Effects of interdecadal climate variability on the oceanic ecosystems of the NE Pacific. Fisheries Oceanography, 7, 1-21. https://doi.org/10.1046/j.1365-2419.1998.00052.x
+
+Gatrell, A. C., Bailey, T. C., Diggle, P. J., & Rowlingson, B. S. (1996). Spatial point pattern analysis and its application in geographical epidemiology. Transactions of the Institute of British Geographers, 21, 256-274. https://www.jstor.org/stable/622936 
+
+Greene, C., Kuehne, L., Rise, C., Fresh, K., & Penttila, D. (2015). Forty years of change in forage fish and jellyfish abundance across greater Puget Sound, Washington (USA): anthropogenic and climate associations. Marine Ecology Progress Series, 525, 153-170. https://doi.org/10.3354/meps11251 
+
+Gulland, F. M. D., & Hall, A. J. (2007). Is marine mammal health deteriorating? Trends in the global reporting of marine mammal disease. EcoHealth, 4, 135-150. https://doi.org/10.1007/s10393-007-0097-1
+
+Hare, S. R., Mantua, N. J., & Francis, R. C. (1999). Inverse production regimes: Alaskan and 
+West Coast Salmon. Fisheries, 24, 6-14. https://doi.org/10.1577/1548-8446(1999)024%3C0006:IPR%3E2.0.CO;2
+
+Hemery, G., D’Amico, F., Castege, I., Dupont, B., D’Elbee, J., LaLanne, Y., & Mouches, C. (2008). Detecting the impact of oceano-climatic changes on marine ecosystems using a multivariate index: The case of the Bay of Biscay (North Atlantic-European Ocean). Global Change Biology, 14, 27-38. https://doi.org/10.1111/j.1365-2486.2007.01471.x
+
+Hinrichsen, R.A. (2009) Population viability analysis for several populationsusing multivariate state-space models.Ecological Modelling,220, 1197–1202.
+
+Hinrichsen, R.A. & Holmes, E.E. (2009) Using multivariate state-space modelsto study spatial structure and dynamics.Spatial Ecology(eds R. StephenCantrell, C. Cosner & S. Ruan), pp. 145–166. CRC⁄Chapman Hall, BocaRaton, FL.
+
+IPCC (2014). Climate change 2014: Synthesis report. Contribution of working groups I, II and III to the fifth assessment report of the Intergovernmental Panel on Climate Change. In Core Writing Team, RKPaLaME (Ed.), Report of the Intergovernmental Panel on Climate Change. Geneva: IPCC.
+
+Jacox, M. G., Hazen, E. L., Zaba, K. D., Rudnick, D. L., Edwards, C. A., Moore, A. M., & Bograd, S. J. (2016). Impacts of the 2015–2016 El Niño on the California Current System: early assessment and comparison to past events. Geophysical Research Letters, 43, 7072-7080. https://doi.org/10.1002/2016GL069716
+
+Jefferson, T. A., Smultea, M. A., Courbis, S. S., & Campbell, G. S. (2016). Harbor porpoise (Phocoena phocoena) recovery in the inland waters of Washington: estimates of density and abundance from aerial surveys, 2013–2015. Canadian Journal of Zoology, 94, 505-515. https://doi.org/10.1139/cjz-2015-0236
+
+Johnston, D. W., Bowers, M. T., Friedlaender, A. S., & Lavigne, D. M. (2012). The effects of climate change on harp seals (Pagophilus groenlandicus). PLoS One, 7, e29158. https://doi.org/10.1371/journal.pone.0029158 
+
+Keledjian, A., & Mesnick, S. L. (2013). The impacts of El Niño conditions on California sea lion (Zalophus californianus) fisheries interactions: predicting spatial and temporal hotspots along the California coast. Aquatic Mammals, 39, 221-232. https://doi:10.1578/AM.39.3.2013.221
+
+Laidre, K. L., Stirling, I., Lowry, L., Wiig, Ø., Heide-Jørgensen, M. P., & Ferguson, S. H. (2008). Quantifying the sensitivity of arctic marine mammals to climate-induced habitat change. In H. P. Huntington & S. E. Moore (Eds.), Arctic marine mammals and climate change. Ecological Applications, 18 (Supplement), S97-S125. https://doi.org/10.1890/06-0546.1
+
+MacLeod, C. D., Bannon, S. M., Pierce, G. J., Schweder, C., Learmonth, J. A., Herman, J. S., & Reid, R. J. (2005). Climate change and the cetacean community of north-west Scotland. Biological Conservation, 124, 477-483. https://doi.org/10.1016/j.biocon.2005.02.004
+
+Mantua, N. J., & Hare, S. R. (2002). The Pacific Decadal Oscillation. Journal of Oceanography, 58, 35-44. https://doi.org/10.1023/A:1015820616384
+
+Mauger, G. S., Casola, J. H., Morgan, H. A., Strauch, R. L., Jones, B., Curry, B., . . . Snover, A.K. (2015). State of Knowledge: Climate Change in Puget Sound. Report prepared for the Puget Sound Partnership and the National Oceanic and Atmospheric Administration. Climate Impacts Group, University of Washington, Seattle. doi:10.7915/CIG93777D. Retrieved from https://cig.uw.edu/resources/special-reports/ps-sok/ (accessed 2 August 2018).
+
+Moore, S. E. (2008). Marine mammals as ecosystem sentinels. Journal of Mammalogy, 89, 534–540. https://doi.org/10.1644/07-MAMM-S-312R1.1
+
+Mote, P. W., & Salathé Jr., E. P. (2010). Future climate in the Pacific Northwest. Climate Change, 102, 29-50. https://doi.org/10.1007/s10584-010-9848-z
+
+Murase, H., Matsuoka, K., Ichii, T., & Nishiwaki, S. (2002). Relationship between the distribution of euphausiids and baleen whales in the Antarctic (35 degrees E-145 degrees W). Polar Biology, 25, 135-145. https://doi.org/10.1007/s003000100321
+
+Norman, S. A., Bowlby, C. E., Brancato, M. S., Calambokidis, J., Duffield, D., Gearin, P. J., . . . 
+Scordino, J. (2004). Cetacean strandings in Oregon and Washington between 1930 and 2002. Journal of Cetacean Research and Management, 6, 87-100.
+
+Peterson, W. T., and J. E. Keister. (2003).  Interannual variability in copepod community composition at a coastal station in the northern California Current:  a multivariate approach.  Deep Sea Research Part II: Topical Studies in Oceanography 50(14–16): 2499–2517.
+
+Pierce, G. J., Santos, M. B., Smeenk, C., Saveliev, A., & Zuur, A. F. (2007). Historical trends in the incidence of strandings of sperm whales (Physeter macrocephalus) on North Sea coasts: An association with positive temperature anomalies. Fisheries Research, 87, 219-228. https://doi.org/10.1016/j.fishres.2007.06.001
+
+Pikesley, S. K., Witt, M. J., Hardy, T., Loveridge, J., Loveridge, J., Williams, R., & Godley, B. J. 
+(2012). Cetacean sightings and strandings: evidence for spatial and temporal trends? Journal of the Marine Biological Association of the United Kingdom, 92, 1809-1820. https://doi.org/10.1017/S0025315411000464
+
+R Development Core Team. 2009. R: A language and environment for statistical computing. Vienna, Austria: R Foundation for Statistical Computing. 
+
+Salvadeo, C. J., Gómez-Gallardo, U. A., Nájera-Caballero, M., Urbán-Ramirez, J., & Lluch-Belda D. (2015). The effect of climate variability on gray whales (Eschrichtius robustus) within their wintering areas. PLoS One, 10, e0134655. doi:10.1371/journal.pone.0134655.
+
+Soulen, B. K., Cammen, K., Schultz, T. F., & Johnston, D. W. (2013). Factors affecting harp seal (Pagophilus groenlandicus) strandings in the northwest Atlantic. PLoS One, 8, e68779. https://doi.org/10.1371/journal.pone.0068779.
+
+Sprogis, K. R., Christiansen, F., Wandres, M., & Bejder, L. (2017). El Niño Southern Oscillation 
+influences the abundance and movements of a marine top predator in coastal waters. Global Change Biology, 24, 1085-1096. https://doi.org/10.1111/gcb.13892
+
+Truchon, M.-H., Measures, L., L’Hérault, V., Brêthes, J.-C., Galbraith, P. S., Harvey, M., . . . 
+Lecomte, M. (2013). Marine mammal strandings and environmental changes: a 15-year study in the St. Lawrence ecosystem. PLoS One, 8, e59311. https://doi.org/10.1371/journal.pone.0059311
+
+Warlick, A. J., Duffield, D. A., Lambourn, D. M., Jeffries, S. J., Rice, J. M., Gaydos, J. K., … 
+Norman, S. A. (2018). Spatio-temporal characterization of pinniped strandings and human interaction cases in the Pacific Northwest, 1991-2016. Aquatic Mammals, 44, 299-318. https://doi.org/10.1578/AM.44.3.2018.299
+
+Wolter, K., & Timlin, M. S. (1993). Monitoring ENSO in COADS with a seasonally adjusted principal component index. In Proceedings of the 17th Climate Diagnostics Workshop, NOAA/N MC/CAC, NSSL, Oklahoma Climate Survey, CIMMS and the School of Meteorology, University of Oklahoma, Norman, OK. Retrieved from https://www.esrl.noaa.gov/psd/enso/mei/WT1.pdf (accessed 18 August 2018).
+
+Wolter, K., & Timlin, M. S. (1998). Measuring the strength of ENSO events—how does 1997/98 rank? Weather, 53, 315-324. https://doi.org/10.1002/j.1477-8696.1998.tb06408.x
+
+
+```{r correlation, echo = F}
+
+#function to plot acf better than acf()
+# plot.acf <- function(ACFobj) {
+#     rr <- ACFobj$acf[-1]
+#     kk <- length(rr)
+#     nn <- ACFobj$n.used
+#     plot(seq(kk), rr, type = "h", lwd = 2, yaxs = "i", xaxs = "i", 
+#         ylim = c(floor(min(rr)), 1), xlim = c(0, kk + 1), xlab = "Lag", 
+#         ylab = "Correlation", las = 1)
+#     abline(h = -1/nn + c(-2, 2)/sqrt(nn), lty = "dashed", col = "blue")
+#     abline(h = 0)
+# }
+# 
+# plot.pacf <- function(PACFobj) {
+#     rr <- PACFobj$acf
+#     kk <- length(rr)
+#     nn <- PACFobj$n.used
+#     plot(seq(kk), rr, type = "h", lwd = 2, yaxs = "i", xaxs = "i", 
+#         ylim = c(floor(min(rr)), 1), xlim = c(0, kk + 1), xlab = "Lag", 
+#         ylab = "PACF", las = 1)
+#     abline(h = -1/nn + c(-2, 2)/sqrt(nn), lty = "dashed", col = "blue")
+#     abline(h = 0)
+# }
+# 
+# #correlelograms
+# #pins - CSL
+# strands.acf <- acf(decomp_ts, plot = F)
+# plot.acf(strands.acf)
+# 
+# strands.pacf <- pacf(decomp_ts, plot = F)
+# plot.acf(strands.pacf)
+# 
+# #cetaceans - HP
+# strands.acf <- acf(decomp_ts_cet, plot = F)
+# plot.acf(strands.acf)
+# 
+# strands.pacf <- pacf(decomp_ts_cet, plot = F)
+# plot.acf(strands.pacf)
+# 
+# #ccf(explanatory, response)
+# MEI <- covs_pin[,c(1,4)]
+# PDO <- covs_pin[,c(1,3)]
+# SST <- covs_pin[,c(1,5)]
+# upwell <- covs_pin[,c(1,6)]
+# 
+# decomp_new <- decomp_dat
+# decomp_new[is.na(decomp_new)] <- 0.000001
+# 
+# #these aren't quite right - should be with de-seasoned data
+# par(mfrow = c(2,2))
+# ccf(ts(MEI[,2]), ts(log(decomp_new[,3])), ylab = "Cross-correlation", main = 'pinnipeds - MEI')
+# ccf(ts(SST[,2]), ts(log(decomp_new[,3])), ylab = "Cross-correlation", main = 'SST')
+# ccf(ts(PDO[,2]), ts(log(decomp_new[,3])), ylab = "Cross-correlation", main = 'PDO')
+# ccf(ts(upwell[,2]), ts(log(decomp_new[,3])), ylab = "Cross-correlation", main = 'Upwelling')
+# 
+# ##cetacean
+# MEI <- covs_cet[,c(1,4)]
+# PDO <- covs_cet[,c(1,3)]
+# SST <- covs_cet[,c(1,5)]
+# upwell <- covs_cet[,c(1,6)]
+# 
+# decomp_new <- decomp_dat_cet
+# decomp_new[is.na(decomp_new)] <- 0.000001
+# 
+# par(mfrow = c(2,2))
+# ccf(ts(MEI[,2]), ts(log(decomp_new[,3])), ylab = "Cross-correlation", main = 'cetaceans - MEI')
+# ccf(ts(SST[,2]), ts(log(decomp_new[,3])), ylab = "Cross-correlation", main = 'SST')
+# ccf(ts(PDO[,2]), ts(log(decomp_new[,3])), ylab = "Cross-correlation", main = 'PDO')
+# ccf(ts(upwell[,2]), ts(log(decomp_new[,3])), ylab = "Cross-correlation", main = 'Upwelling')
+
+#dev.off()
+
+#help - would make sense to look at species by species?
+
+```
+
+

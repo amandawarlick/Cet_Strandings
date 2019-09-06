@@ -123,7 +123,7 @@ cetaceans_ocean$Month.of.Observation <- factor(cetaceans_ocean$Month.of.Observat
 
 setwd("~/Documents/Research/Cet_Strandings")
 
-write.csv(cetaceans_ocean, "cetaceans_ocean.csv", row.names = F)
+#write.csv(cetaceans_ocean, "cetaceans_ocean.csv", row.names = F)
 #write.csv(fish, "fish.csv", row.names = F)
 
 ```
@@ -214,10 +214,10 @@ annual_anom_comb_plot_data <- annual_anom_melt %>%
   group_by(Year.of.Observation, variable) %>%
   dplyr::summarize(value = mean(value))
 
-annual_anom_comb_plot <- ggplot(annual_anom_comb_plot_data %>% filter(variable != 'cnt'), aes(Year.of.Observation, value, col = variable)) +
-  geom_line() +
-  xlab("") + ylab("Annual Anomalies") +
-  plot_theme(legend.position = 'top')
+# annual_anom_comb_plot <- ggplot(annual_anom_comb_plot_data %>% filter(variable != 'cnt'), aes(Year.of.Observation, value, col = variable)) +
+#   geom_line() +
+#   xlab("") + ylab("Annual Anomalies") +
+#   plot_theme(legend.position = 'top')
 
 #***Stranding and ocean anomalies - combined species, annual
 annual_anom_comb <- annual_anom_melt %>%
@@ -470,7 +470,7 @@ write.csv(monthly_anom_comb, "monthly_anom_comb.csv", row.names = F)
 write.csv(monthly_anom, "monthly_anom.csv", row.names = F)
 
 #setwd("~/Documents/SAFS/Courses/WIN_19/FSH507/StrandingsProject")
-setwd("~/Documents/Research/Cet_Strandings")
+setwd("~/Documents/Research/Cet_Strandings/PNW Strands Manuscript")
 write.csv(monthly_anom, "monthly_anom_cet.csv", row.names = F)
 
 #write.csv(monthly_anom_melt, "monthly_anom_melt.csv", row.names = F)
@@ -569,7 +569,7 @@ ggplot(data = spec_cnt, aes(Year.of.Observation, cnt, group = Cetacean.Common.Na
     legend.title = element_blank(),
     strip.background = element_blank(),
     strip.text = element_text(size = 10)) +
-  scale_x_continuous(breaks = c(2004, 2006, 2008, 2010, 2012, 2014, 2016)) +
+  scale_x_continuous(breaks = c(2000, 2002, 2004, 2006, 2008, 2010, 2012, 2014, 2016, 2018)) +
   scale_color_manual(values = color6, guide = guide_legend(nrow = 1))
 #combined cases
 # ggplot(annual_HI, aes(Year.of.Observation, cnt)) +
@@ -585,21 +585,21 @@ ggplot(data = spec_cnt, aes(Year.of.Observation, cnt, group = Cetacean.Common.Na
 #     strip.text = element_text(size = 10)) 
 
 #meh not great
-ggplot(sp_HI, aes(Year.of.Observation, cnt, group = Cetacean.Common.Name, col = Cetacean.Common.Name)) +
-  geom_line(aes(), linetype = 'dashed', size = .65) +
-  geom_point(size = 1) +
-  geom_smooth(aes(), size = 1, show.legend = F, se = F) +
-  xlab('') + ylab('Annual Human Interaction Cases') +
-  facet_wrap(~Cetacean.Common.Name, scales = 'free_x') +
-  theme(legend.position = 'none',
-    axis.title = element_text(size = 11),
-    axis.text.y = element_text(size = 10),
-    axis.text.x = element_text(size = 10, angle = 90, vjust = .5),
-    legend.title = element_blank(),
-    strip.background = element_blank(),
-    strip.text = element_text(size = 10)) +
-  scale_x_continuous(breaks = c(2004, 2006, 2008, 2010, 2012, 2014, 2016)) +
-  scale_color_manual(values = color6, guide = guide_legend(nrow = 1))
+# ggplot(sp_HI, aes(Year.of.Observation, cnt, group = Cetacean.Common.Name, col = Cetacean.Common.Name)) +
+#   geom_line(aes(), linetype = 'dashed', size = .65) +
+#   geom_point(size = 1) +
+#   geom_smooth(aes(), size = 1, show.legend = F, se = F) +
+#   xlab('') + ylab('Annual Human Interaction Cases') +
+#   facet_wrap(~Cetacean.Common.Name, scales = 'free_x') +
+#   theme(legend.position = 'none',
+#     axis.title = element_text(size = 11),
+#     axis.text.y = element_text(size = 10),
+#     axis.text.x = element_text(size = 10, angle = 90, vjust = .5),
+#     legend.title = element_blank(),
+#     strip.background = element_blank(),
+#     strip.text = element_text(size = 10)) +
+#   scale_x_continuous(breaks = c(2000, 2002, 2004, 2006, 2008, 2010, 2012, 2014, 2016, 2018)) +
+#   scale_color_manual(values = color6, guide = guide_legend(nrow = 1))
 
 
 ```

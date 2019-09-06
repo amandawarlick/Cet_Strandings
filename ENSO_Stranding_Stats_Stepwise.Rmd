@@ -295,7 +295,7 @@ summary(glm.nb(cnt ~ Year.of.Observation, data = all_sp %>% filter(Cetacean.Comm
 
 #na.omit() removes all rows with any missing data, glm.nb(keeps rows but removes the single NA value)
 fit_step_all <- glm.nb(cnt_all ~ 
-          MEI + PDO + NPGO + NOI + SST_39 + SST_39_anom + SST_44 + SST_44_anom + Wind_39 + Wind_44 + Upwelling_39 + Upwelling_45 + CBA_North + CBA_South + ENSO_cat + Sard + Anch + Herring + Msquid_N,
+          MEI + PDO + NPGO + SST_39 + SST_39_anom + SST_44 + SST_44_anom + Wind_39 + Wind_44 + Upwelling_39 + Upwelling_45 + CBA_North + CBA_South + ENSO_cat + Sard + Anch + Herring + Msquid_N,
           # MEI_lag1 + PDO_lag1 + NPGO_lag1 + SST_39_lag1 + SST_44_lag1 + Wind_39_lag1 + Wind_44_lag1 + Upwelling_39_lag1 + Upwelling_45_lag1 + CBA_North_lag1 + CBA_South_lag1 + SST_39_anom_lag1 + SST_44_anom_lag1 +
           # MEI_lag2 + PDO_lag2 + NPGO_lag2 + SST_39_lag2 + SST_44_lag2 + Wind_39_lag2 + Wind_44_lag2 + Upwelling_39_lag2 + Upwelling_45_lag2 + CBA_North_lag2 + CBA_South_lag2 + SST_39_anom_lag2 + SST_44_anom_lag2 +
           # MEI_lag3 + PDO_lag3 + NPGO_lag3 + SST_39_lag3 + SST_44_lag3 + Wind_39_lag3 + Wind_44_lag3 + Upwelling_39_lag3 + Upwelling_45_lag3 + CBA_North_lag3 + CBA_South_lag3 + SST_39_anom_lag3 + SST_44_anom_lag3, 
