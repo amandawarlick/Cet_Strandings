@@ -88,11 +88,13 @@ color_seas <- c("#a3d39c", "#e45f56", "#f6b61c", "#6ea3ec")
 
 setwd("~/Documents/Research/Cet_Strandings/")
 
-cetaceans <- cetaceans %>%
+cetaceans <- read.csv("cetacean_data_CleaningOuput00_18.csv", header = TRUE, na.strings = "", 
+                      stringsAsFactors = FALSE) %>% 
   transform(Season = ifelse(Month.of.Observation %in% c('DEC', 'JAN', 'FEB'), 'Winter',
                         ifelse(Month.of.Observation %in% c('MAR', 'APR', 'MAY'), 'Spring',
                             ifelse(Month.of.Observation %in% c('JUN', 'JUL', 'AUG'), 'Summer', 'Fall')))) %>%
-  transform(Season = factor(Season, levels = c("Spring", "Summer", "Fall", "Winter")))
+  transform(Season = factor(Season, levels = c("Spring", "Summer", "Fall", "Winter"))) %>%
+  transform(sci_name = paste(Genus, Species, sep = " "))
 
 #setwd("..") 
 
@@ -134,7 +136,7 @@ test <- cetaceans_mapping_sp %>% group_by(sci_name) %>%
 
 cetaceans_mapping_sp_small <- cetaceans_mapping_sp %>%
   merge(test, by = 'sci_name') %>%
-  filter(cnt > 10 & sci_name != 'NA NA')
+  filter(cnt > 13 & sci_name != 'NA NA')
 
 cetaceans_mapping_sp_smaller <- cetaceans_mapping_sp_small %>%
   filter(Cetacean.Common.Name %in% c('Harbor porpoise', 'Gray whale', 'Humpback whale', 'Striped dolphin', 'Dalls porpoise'))
@@ -254,7 +256,7 @@ aes(x = long_corr, y = lat_corr), col = 'black', bins = 3, size = .5) +
 ```
 
 ```{r}
-#statis maps inland only 
+#static maps inland only 
 
 # merge <- cetaceans_mapping_sp %>% group_by(Cetacean.Common.Name) %>%
 #   summarize(cnt = n_distinct(National.Database.Number))
@@ -372,10 +374,6 @@ geom_polygon(aes(x = long, y = lat, group = group), fill = "grey93", color = "gr
 gganimate(strands_species_seas, interval = 2.0, filename = "~/Documents/R/Cet_Strandings/manuscript_figs/strands_species_an_seas.gif") 
 ```
 
-```{r seasonal HI}
-
-  
-```
 
 ```{r annual hotspots}
 

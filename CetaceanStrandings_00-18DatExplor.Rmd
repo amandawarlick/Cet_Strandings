@@ -217,7 +217,7 @@ age_sex_table <- age_sex_all %>%
             Prop.Unid = round(Unid/(Female + Male + Unid), 3)*100) %>%
   merge(age_all, by = 'Age.Class') %>%
   arrange(Age.Class) %>%
-  select(c(Age.Class, cnt, Female, Prop.Fem, Male, Prop.Male, Unid, Prop.Unid)) 
+  dplyr::select(c(Age.Class, cnt, Female, Prop.Fem, Male, Prop.Male, Unid, Prop.Unid)) 
   
 colnames(age_sex_table) <- c("Age.Class", "Total (N)", "Female (N)", "Female (%)", "Male (N)", "Male (%)", "Unid. (N)", "Unid. (%)")
 average_sex <- c(as.character("Average"), "--", "--", round(mean(age_sex_table[,4]), 1), "--", round(mean(age_sex_table[,6]), 1), "--", round(mean(age_sex_table[,8]), 1))
@@ -233,15 +233,15 @@ age_sex_table <- write.csv(age_sex_table, file = "./Figures_inland_nohp/age_sex_
 
 #Are the number of cases of all combined species increasing or decreasing over time?
 
-data_by_year <- cetaceans %>% filter(Cetacean.Common.Name == 'Minke whale') %>%
+data_by_year <- cetaceans %>% #filter(Cetacean.Common.Name == 'Minke whale') %>%
   group_by(Year.of.Observation) %>%
   dplyr::summarize(cnt = n_distinct(National.Database.Number)) 
 
 #Statistically significant change in all stranding cases in OR and WA combined over time (p < 0.05, 25 strandings per year increase).
-timeseries_all_model <- glm(cnt ~ Year.of.Observation, family = poisson(link = log), data = data_by_year)
-timeseries_all_model <- lm(cnt ~ Year.of.Observation, data = data_by_year)
-summary(timeseries_all_model)
-plot(timeseries_all_model)
+# timeseries_all_model <- glm(cnt ~ Year.of.Observation, family = poisson(link = log), data = data_by_year)
+# timeseries_all_model <- lm(cnt ~ Year.of.Observation, data = data_by_year)
+# summary(timeseries_all_model)
+# plot(timeseries_all_model)
 
 all_yr_figure <- 
   ggplot(data_by_year, aes(x = Year.of.Observation, y = cnt)) + 
@@ -272,10 +272,11 @@ summary(timeseries_HI_model)
 #anova confirms years are different, p-val < 0.05
 summary(aov(cnt ~ Year.of.Observation, data = HI_by_year))
 
+#consider including?
 HI_year_figure <- 
   ggplot(HI_by_year, aes(x = Year.of.Observation, y = cnt)) + 
   geom_point(position = "identity") +
-  geom_smooth(method = "lm", se = FALSE, col = 'black', linetype = 3) +
+  geom_smooth(method = "loess", se = FALSE, col = 'black', linetype = 3) +
   xlab("") + ylab("Annual Human Interaction Cases") +
   scale_x_continuous(breaks = c(2000:2018)) +
   plot_theme(legend.position = 'top') +
@@ -287,9 +288,36 @@ ggsave(HI_year_figure, file = "./Figures_inland_nohp/HI_year_figure.pdf")
 ```{r monthly by species}
 #Monthly per species
 
+#paper table
 species_tot <- cetaceans %>%
   group_by(sci_name) %>%
-  summarize(tot = n_distinct(National.Database.Number))
+  summarize(tot = n_distinct(National.Database.Number)) %>%
+  arrange(desc(tot))
+
+species_state <- cetaceans %>%
+  group_by(sci_name, State) %>%
+  summarize(cnt = n_distinct(National.Database.Number)) %>%
+  dcast(sci_name ~ State, value.var = 'cnt') %>%
+  transform(OR = ifelse(is.na(OR), 0, OR),
+            WA = ifelse(is.na(WA), 0, WA)) %>%
+  transform(tot = OR + WA)
+
+species_sex <- cetaceans %>%
+  group_by(sci_name, Sex) %>%
+  summarize(cnt = n_distinct(National.Database.Number)) %>%
+  dcast(sci_name ~ Sex, value.var = 'cnt') %>%
+  dplyr::select(-N) %>%
+  merge(species_state, by = 'sci_name')
+
+species_HI <- cetaceans %>%
+  filter(Findings.of.Human.Interaction == 'Y') %>%
+  group_by(sci_name) %>%
+  summarize(HI = n_distinct(National.Database.Number)) 
+
+species_tab <- species_sex %>% merge(species_HI, by = 'sci_name', all = T) %>%
+  dplyr::select(sci_name, tot, OR, WA, Male, Female, Unid, HI)
+
+write.csv(species_tab, 'species_tab.csv', row.names = F)
 
 seasonal_sp <- cetaceans %>%
   #filter(Cetacean.Common.Name != 'Unidentified') %>%
@@ -344,18 +372,18 @@ ggsave(monthly_species_figure, file = "./Figures_inland_nohp/monthly_species_fig
 # 
 # summary(aov(cnt ~ Month.of.Observation + Cetacean.Common.Name, data = monthly_species_HI))
 # 
-# monthly_species_HI_figure <- 
-#   cetaceans %>%
-#   #filter(Observation.Status == 'ALIVE' | Observation.Status == 'FRESH DEAD') %>%
-#   filter(Findings.of.Human.Interaction == 'Y') %>%
-#   group_by(Month.of.Observation, Cetacean.Common.Name) %>%
-#   summarize(cnt = n_distinct(National.Database.Number)) %>%
-#   ggplot(aes(x = factor(Month.of.Observation), y = cnt, group = Cetacean.Common.Name, color = Cetacean.Common.Name)) +
-#   geom_line(aes(group = Cetacean.Common.Name)) + 
-#   geom_smooth(se = F) +
-#   ylab("Total Monthly Human Interaction Cases") + xlab("") + 
-#   plot_theme(legend.position = 'top') + 
-#   scale_color_brewer(palette = 'Set3')
+monthly_species_HI_figure <-
+  cetaceans %>%
+  #filter(Observation.Status == 'ALIVE' | Observation.Status == 'FRESH DEAD') %>%
+  filter(Findings.of.Human.Interaction == 'Y') %>%
+  group_by(Month.of.Observation, Cetacean.Common.Name) %>%
+  summarize(cnt = n_distinct(National.Database.Number)) %>%
+  ggplot(aes(x = factor(Month.of.Observation), y = cnt, group = Cetacean.Common.Name, color = Cetacean.Common.Name)) +
+  geom_line(aes(group = Cetacean.Common.Name)) +
+  geom_smooth(se = F) +
+  ylab("Total Monthly Human Interaction Cases") + xlab("") +
+  plot_theme(legend.position = 'top') +
+  scale_color_brewer(palette = 'Set3')
 # #ggsave(monthly_species_HI_figure, file = "./Figures_inland_nohp/monthly_species_HI_figure.pdf")
 # 
 # #Human interactions monthly each year
@@ -493,13 +521,13 @@ species_year_HI <- cetaceans %>%
   group_by(Year.of.Observation, Cetacean.Common.Name) %>%
   summarize(cnt = n_distinct(National.Database.Number))
 
-species_year_HI_figure <- 
-  ggplot(species_year_HI, aes(Cetacean.Common.Name, cnt)) +
-  geom_boxplot() +
-  xlab("") + ylab("Annual Human Interaction Cases") +
-  scale_y_continuous(labels = comma) +
-  plot_theme()
-ggsave(species_year_HI_figure, file = "./Figures_inland_nohp/species_year_HI_figure.pdf")
+# species_year_HI_figure <- 
+#   ggplot(species_year_HI, aes(Cetacean.Common.Name, cnt)) +
+#   geom_boxplot() +
+#   xlab("") + ylab("Annual Human Interaction Cases") +
+#   scale_y_continuous(labels = comma) +
+#   plot_theme()
+# ggsave(species_year_HI_figure, file = "./Figures_inland_nohp/species_year_HI_figure.pdf")
 
 #Anova shows that yes, the mean annual HI strandings are different across species.
 #Harbor seals are different from everything else, but no other sig difs
