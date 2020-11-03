@@ -67,6 +67,9 @@ presfigure_theme <- function(...) {
     ...)
 }
 
+source(here::here('PNW Strands Manuscript', 'PlotTheme.R'))
+
+
 color6 <- c("#e45f56", "#363e7e", "#4aaaa5", "#a3d39c", "#f6b61c", "#3b98ee", "#999aa7")
 color3 <- c("#e45f56", "#363e7e", "#a3d39c")
 color4_HI <- c("#3b98ee", "#a3d39c", "#e45f56", "#f6b61c")
@@ -86,9 +89,9 @@ color_seas <- c("#a3d39c", "#e45f56", "#f6b61c", "#6ea3ec")
 
 ```{r load pre-cleaned csv, echo = FALSE}
 
-setwd("~/Documents/Research/Cet_Strandings/")
+setwd("~/Documents/Research/Cet_Strandings/PNW Strands Manuscript")
 
-cetaceans <- read.csv("cetacean_data_CleaningOuput00_18.csv", header = TRUE, na.strings = "", 
+cetaceans <- read.csv("cetacean_data_CleaningOuput10_25_20updated.csv", header = TRUE, na.strings = "", 
                       stringsAsFactors = FALSE) %>% 
   transform(Season = ifelse(Month.of.Observation %in% c('DEC', 'JAN', 'FEB'), 'Winter',
                         ifelse(Month.of.Observation %in% c('MAR', 'APR', 'MAY'), 'Spring',
@@ -101,6 +104,8 @@ cetaceans <- read.csv("cetacean_data_CleaningOuput00_18.csv", header = TRUE, na.
 # cetaceans$Month.of.Observation <- factor(cetaceans$Month.of.Observation, levels = c('JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'))
 
 cetaceans$County <- factor(cetaceans$County, levels = c('Whatcom', 'San Juan', 'Island', 'Skagit', 'Snohomish', 'King', 'Kitsap', 'Pierce', 'Thurston', 'Mason', 'Clallam', 'Jefferson', 'Grays Harbor', 'Pacific', 'Cowlitz', 'Clark', 'Clatsop', 'Columbia', 'Multnomah', 'Tillamook', 'Lincoln', 'Lane', 'Douglas', 'Coos', 'Curry'))
+
+# fish_intsHP <- read.csv()
 
 
 ```
@@ -255,7 +260,7 @@ aes(x = long_corr, y = lat_corr), col = 'black', bins = 3, size = .5) +
 
 ```
 
-```{r}
+```{r static inland}
 #static maps inland only 
 
 # merge <- cetaceans_mapping_sp %>% group_by(Cetacean.Common.Name) %>%
@@ -471,156 +476,114 @@ gganimate(all_strands_year_an_sp, interval = 1, filename = "~/Documents/R/Cet_St
 
 ```
 
-```{r unused figures}
 
-#from figure, before switch to ggplot
+```{r hp HI}
 
-# #HI type facet map
-# HI_type_facet <- ggmap(get_googlemap(center = 'Portland, OR', maptype = "terrain", zoom = 6, size = c(640, 640), style = c(feature = "all", element = "labels", visibility = "off"))) +
-#   geom_point(data = cetaceans_mapping_HI, aes(x = long_corr, y = lat_corr), color = 'grey20', size = 0.2, alpha = 0.8)  +
-#   geom_density2d(data = cetaceans_mapping_HI, aes(x = long_corr, y = lat_corr), bins = 5, col = 'grey30') +
-#   scale_alpha(range = c(0, 0.1), guide = FALSE) +
-#   xlab("") + ylab("") +
-#   facet_wrap(~ Interaction.Type) +
-#   scale_x_continuous(limits = c(-127, -120)) + scale_y_continuous(limits = c(42.8, 49.05)) +
-#    theme(plot.margin = unit(c(0, -10, 0, -10), "mm"),
-#     axis.line = element_blank(),
-#     #axis.ticks = element_blank(),
-#     #axis.text = element_blank(),
-#     strip.text = element_text(size = 10),
-#     strip.background = element_blank(),
-#     panel.border = element_rect(colour = "black", fill = NA, size = 1))
-#   
-# figs("HI_type_facet", caption = "Strandings (grey points) and kernel density hotspot contour lines showing hotspots of human interaction cases, with fisheries and boat collisions distributed throughout inland Washington waters and at the mouth of the Columbia River, and a gunshot wound cluster centered at the mouth of the Columbia River.")
-# 
-# #HI and strandings - species facet, red and black
-# HIstrands_species <-
-#  ggmap(get_googlemap(center = 'Portland, OR', maptype = "terrain", zoom = 6, size = c(640, 640), style = c(feature = "all", element = "labels", visibility = "off"))) +
-#   geom_point(data = cetaceans_mapping_sp %>% filter(Findings.of.Human.Interaction == 'Y' & Interaction.Type != 'NA'), 
-#              aes(x = long_corr, y = lat_corr), col = 'grey35', size = 0.2, alpha = 0.5)  +
-#   geom_density2d(data = cetaceans_mapping_sp %>% filter(Findings.of.Human.Interaction == 'Y' & Interaction.Type != 'NA'), aes(x = long_corr, y = lat_corr, weight = weight), bins = 3, col = 'red') +
-#   geom_density2d(data = cetaceans_mapping_sp, aes(x = long_corr, y = lat_corr, weight = weight), bins = 2, col = 'grey20') +  scale_alpha(range = c(0, 0.1), guide = FALSE) +
-#   xlab("") + ylab("") +
-#   facet_wrap(~ Cetacean.Common.Name) +
-#   scale_x_continuous(limits = c(-127, -120)) + scale_y_continuous(limits = c(42.9, 48.95)) +
-#    theme(plot.margin = unit(c(0, -5, 0, -5), "mm"),
-#     axis.line = element_blank(),
-#     #axis.ticks = element_blank(),
-#     #axis.text = element_blank(),
-#     strip.text = element_text(size = 10),
-#     strip.background = element_blank(),
-#     panel.border = element_rect(colour = "black", fill = NA, size = 1))
-# 
-# figs("HIstrands_species", caption = "Strandings (grey points) and kernel density hotspot contour lines showing overlapping hotspots for all strandings (black) and human interaction cases (red) for all species, with hotspots occurring throughout inland Washington for harbor seals and along the outer coast near the mouth of the Columbia River for the other species.")
+hp_data <- read.csv("HP_data_CleaningOuput10_25_20updated.csv", header = TRUE, na.strings = "", 
+                      stringsAsFactors = FALSE)
+hp_map <- hp_data %>% 
+  filter(Cetacean.Common.Name == 'Harbor porpoise' & State == 'WA') %>%
+  filter(HI %in% c('Confirmed', 'Probable', 'Possible')) %>%
+  dplyr::select(Cetacean.Common.Name, County, Region, HI, State, Latitude, Longitude, lat_corr, long_corr, Water.Body, Body.of.Water, Year.of.Observation, Age.Class, Sex, Findings.of.Human.Interaction, Month.of.Observation)
+
+ggplot(pnw_state_outline) +
+geom_polygon(aes(x = long, y = lat, group = group), fill = "grey93", color = "grey50", size = 0.2) +
+  coord_fixed(1, ylim = c(45.8, 49.15), xlim = c(-125, -121.8)) +
+  # geom_point(data = hp_map, aes(x = Longitude, y = Latitude), color = 'grey50', size = 0.2, alpha = 0.8)  +
+  geom_point(data = hp_map, aes(x = Longitude, y = Latitude, color = HI), size = 0.8, alpha = 0.8)  +
+  geom_density2d(data = hp_map, aes(x = Longitude, y = Latitude), col = "black", bins = 3) +
+  xlab("") + ylab("") +
+  #theme_classic() +
+  theme(
+    plot.margin = unit(c(10, -10, 0, -10), "mm"),
+    axis.line = element_blank(), 
+    axis.ticks = element_blank(),
+    axis.text = element_blank(),
+    plot.background = element_rect(), 
+    panel.background = element_rect(fill = 'white'), 
+    # legend.text = element_text(size = 20, face = 'bold'),
+    # plot.title = element_text(size = 20, face = "bold", hjust = 0.5),
+    strip.background = element_blank(),
+    legend.key = element_blank(),
+    legend.position = 'bottom', legend.title = element_blank(),
+    panel.border = element_rect(colour = "black", fill = NA, size = 1))  #+ 
+  # scale_color_manual(values = c('red', 'orange', 'green'))
 
 
+hp_yr <- ggplot(pnw_state_outline) +
+geom_polygon(aes(x = long, y = lat, group = group), fill = "grey93", color = "grey50", size = 0.2) +
+  coord_fixed(1, ylim = c(42.3, 49.15), xlim = c(-125, -121.8)) +
+  geom_point(data = hp_map, aes(x = long_corr, y = lat_corr, group = Year.of.Observation, frame = Year.of.Observation, cumulative = F), color = 'grey50', size = 0.2, alpha = 0.8)  +
+# geom_density2d(data = hp_map %>%
+#                  filter(Findings.of.Human.Interaction == 'Y'), aes(x = long_corr, y = lat_corr, group = Year.of.Observation, frame = Year.of.Observation, cumulative = F, col = 'HI Cases'), bins = 4) +
+  geom_density2d(data = hp_map, aes(x = long_corr, y = lat_corr, group = Year.of.Observation, frame = Year.of.Observation, cumulative = F), col = "black", bins = 3) +
+  #scale_fill_gradient(low = "yellow", high = "red", guide = FALSE) +
+  #scale_alpha(range = c(0, 0.1), guide = FALSE) +
+  xlab("") + ylab("") + facet_wrap(~Year.of.Observation) +
+  #theme_classic() +
+  theme(
+    plot.margin = unit(c(10, -10, 0, -10), "mm"),
+    axis.line = element_blank(), 
+    axis.ticks = element_blank(),
+    axis.text = element_blank(),
+    legend.text = element_text(size = 20, face = 'bold'),
+    plot.title = element_text(size = 20, face = "bold", hjust = 0.5),
+    strip.background = element_blank(),
+    legend.position = 'top', legend.title = element_blank(),
+    panel.border = element_rect(colour = "black", fill = NA, size = 1)) + 
+  scale_color_manual(values = c("black", "red")) 
 
-#county lines
-# counties <- tolower(unique(cetaceans_mapping_sp$County)) 
-# 
-# pnw_outline <- map_data("county", region = c("oregon", "washington")) %>%
-#   filter(subregion %in% counties) %>%
-#   mutate(subregion = ifelse(region == 'washington' & subregion == 'lincoln', 'NA',
-#                             ifelse(region == 'washington' & subregion == 'douglas', 'NA',
-#                                    ifelse(region == 'oregon' & subregion == 'jefferson', 'NA',
-#                                           ifelse(region == 'washington' & subregion == 'columbia', 'NA', subregion))))) %>%
-#   filter(subregion != 'NA')
+#all HI
 
-# pnw_map <- ggplot(pnw_outline) +
-# geom_polygon(aes(x = long, y = lat, group = group), fill = "grey", color = "black") + 
-#   coord_fixed(1.3) + 
-#   geom_point(data = cetaceans_mapping_HI, aes(x = long_corr, y = lat_corr), color = 'grey20', size = 0.2, alpha = 0.8)  +
-#   geom_density2d(data = cetaceans_mapping_HI, aes(x = long_corr, y = lat_corr), bins = 5, col = 'grey30') +
-#   scale_alpha(range = c(0, 0.1), guide = FALSE) +
-#   xlab("") + ylab("") +
-#   #facet_wrap(~ Interaction.Type) +
-#   scale_x_continuous(limits = c(-127, -120)) + scale_y_continuous(limits = c(42.8, 49.05)) + 
-#   #theme_nothing() +
-#   theme(plot.margin = unit(c(0, -10, 0, -10), "mm"),
-#     axis.line = element_blank(),
-#     #axis.ticks = element_blank(),
-#     #axis.text = element_blank(),
-#     strip.text = element_text(size = 10),
-#     strip.background = element_blank(),
-#     panel.border = element_rect(colour = "black", fill = NA, size = 1))
+hp_HI_map <- hp_map %>%
+  filter(Findings.of.Human.Interaction == 'Y' & State == 'WA')
 
-#play with qmplot
-# test <- qmplot(long_corr, lat_corr, data = cetaceans_mapping_HI,
-#                geom = "density2d")
+hp_HI <- ggplot(pnw_state_outline) +
+geom_polygon(aes(x = long, y = lat, group = group), fill = "grey93", color = "grey50", size = 0.2) +
+  coord_fixed(1, ylim = c(45.3, 49.15), xlim = c(-125, -121.8)) +
+  geom_point(data = hp_HI_map, aes(x = long_corr, y = lat_corr), color = 'grey50', size = 0.2, alpha = 0.8)  +
+# geom_density2d(data = hp_HI_map, aes(x = long_corr, y = lat_corr, col = 'HI Cases'), bins = 4) +
+  geom_density2d(data = hp_HI_map, aes(x = long_corr, y = lat_corr), col = "black", bins = 3) +
+  scale_fill_gradient(low = "yellow", high = "red", guide = FALSE) +
+  scale_alpha(range = c(0, 0.1), guide = FALSE) +
+  xlab("") + ylab("")  +
+  #theme_classic() +
+  theme(
+    plot.margin = unit(c(10, -10, 0, -10), "mm"),
+    axis.line = element_blank(), 
+    axis.ticks = element_blank(),
+    axis.text = element_blank(),
+    legend.text = element_text(size = 20, face = 'bold'),
+    plot.title = element_text(size = 20, face = "bold", hjust = 0.5),
+    strip.background = element_blank(),
+    legend.position = 'top', 
+    legend.title = element_blank(),
+    panel.border = element_rect(colour = "black", fill = NA, size = 1)) + 
+  scale_color_manual(values = color6)
 
-
-#All strandings - species facet
-# allstrands_species <-
-#  ggmap(get_googlemap(center = 'Portland, OR', maptype = "terrain", zoom = 6, size = c(640, 640), style = c(feature = "all", element = "labels", visibility = "off"))) +
-#   geom_point(data = cetaceans_mapping_sp, aes(x = long_corr, y = lat_corr), color = 'grey40', size = 0.2, alpha = 0.8)  +
-#   geom_density2d(data = cetaceans_mapping_sp, aes(x = long_corr, y = lat_corr), bins = 3, col = 'grey20', h = c(5, 0.5)) +
-#   # stat_density2d(data = cetaceans_mapping_sp, aes(x = long_corr, y = lat_corr, fill = ..level.., alpha = ..level..), size = 0.1, geom = "polygon") +
-#   # scale_fill_gradient(low = "yellow", high = "red", guide = FALSE) +
-#   scale_alpha(range = c(0, 0.1), guide = FALSE) +
-#   xlab("") + ylab("") +
-#   facet_wrap(~ Cetacean.Common.Name) +
-#   scale_x_continuous(limits = c(-127, -120)) + scale_y_continuous(limits = c(42.8, 49.05)) +
-#    theme(plot.margin = unit(c(0, -5, 0, -5), "mm"),
-#     axis.line = element_blank(),
-#     axis.ticks = element_blank(),
-#     axis.text = element_blank(),
-#     strip.text = element_text(size = 10),
-#     strip.background = element_blank(),
-#     panel.border = element_rect(colour = "black", fill = NA, size = 5))
-# 
-# figs("allstrands_species", caption = "All stranding cases (grey points) and kernel density hotspot contour lines showing stranding hotspots for each species, with hotspots occurring in the Salish Sea for harbor seals and along the outer coast near the mouth of the Columbia River for the other species.")
-
-#Checking whether hotspots have changed over time - definitely sort of has
-# HIstrands_yr <-
-#  ggmap(get_googlemap(center = 'Portland, OR', maptype = "terrain", zoom = 6, size = c(640, 640), style = c(feature = "all", element = "labels", visibility = "off"))) +
-#   # geom_point(data = cetaceans_mapping_sp %>% filter(Findings.of.Human.Interaction == 'Y' & Interaction.Type != 'NA'), aes(x = long_corr, y = lat_corr), color = 'grey50', size = 0.3, alpha = 0.5)  +
-#   geom_density2d(data = cetaceans_mapping %>% filter(Findings.of.Human.Interaction == 'Y' & Interaction.Type != 'NA') %>% filter(Year.of.Observation == 1990 |
-#                    Year.of.Observation == 1995 |
-#                    Year.of.Observation == 2000 | 
-#                    Year.of.Observation == 2005 |
-#                    Year.of.Observation == 2010 |
-#                    Year.of.Observation == 2015), aes(x = long_corr, y = lat_corr), bins = 3, col = 'red') +
-#   geom_density2d(data = cetaceans_mapping %>% 
-#                    filter(Year.of.Observation == 1990 |
-#                    Year.of.Observation == 1995 |
-#                    Year.of.Observation == 2000 | 
-#                    Year.of.Observation == 2005 |
-#                    Year.of.Observation == 2010 |
-#                    Year.of.Observation == 2015), aes(x = long_corr, y = lat_corr), bins = 2, col = 'grey20') +
-#   scale_alpha(range = c(0, 0.1), guide = FALSE) +
-#   xlab("") + ylab("") +
-#   facet_wrap(~ Year.of.Observation) +
-#   scale_x_continuous(limits = c(-127, -120)) + scale_y_continuous(limits = c(42, 49.65)) +
-#    theme(plot.margin = unit(c(0, -5, 0, -5), "mm"),
-#     axis.line = element_blank(),
-#     axis.ticks = element_blank(),
-#     axis.text = element_blank(),
-#     strip.text = element_text(size = 10),
-#     strip.background = element_blank(),
-#     panel.border = element_rect(colour = "black", fill = NA, size = 5))
-
-
-#Option with overlapping HI types
-# HI_overlap <-
-#  ggmap(get_googlemap(center = 'Portland, OR', maptype = "terrain", zoom = 6, size = c(640, 640), style = c(feature = "all", element = "labels", visibility = "off"))) +
-#   geom_point(data = cetaceans_mapping_HI, 
-#              aes(x = long_corr, y = lat_corr), color = 'grey30', size = 0.2, alpha = 0.8)  +
-#   geom_density2d(data = cetaceans_mapping_HI, aes(x = long_corr, y = lat_corr, col = Interaction.Type), bins = 4, size = .8) +
-#   scale_alpha(range = c(0, 0.1), guide = FALSE) +
-#   xlab("") + ylab("") +
-#   #facet_wrap(~ Interaction.Type) +
-#   scale_x_continuous(limits = c(-127, -120)) + scale_y_continuous(limits = c(42.8, 49.05)) +
-#    theme(legend.position = 'top', legend.title = element_blank(),
-#     plot.margin = unit(c(0, -5, 0, -5), "mm"),
-#     axis.line = element_blank(),
-#     axis.ticks = element_blank(),
-#     axis.text = element_blank(),
-#     strip.text = element_text(size = 10),
-#     strip.background = element_blank(),
-#     panel.border = element_rect(colour = "black", fill = NA, size = 5)) +
-#   scale_color_manual(values = color1)
-# 
-# figs("HI_overlap", caption = "Strandings (grey points) and kernel density hotspot contour lines showing hotspots of human interaction cases, with fisheries and boat collisions distributed throughout the Salish Sea and at the mouth of the Columbia River, and gunshot wound cluster centered at the mouth of the Columbia River.")
+hp_HI_yr <- ggplot(pnw_state_outline) +
+geom_polygon(aes(x = long, y = lat, group = group), fill = "grey93", color = "grey50", size = 0.2) +
+  coord_fixed(1, ylim = c(42.3, 49.15), xlim = c(-125, -121.8)) +
+  geom_point(data = hp_HI_map, aes(x = long_corr, y = lat_corr, group = Year.of.Observation, frame = Year.of.Observation, cumulative = F), color = 'grey50', size = 0.2, alpha = 0.8)  +
+# geom_density2d(data = hp_HI_map %>%
+#                  filter(Findings.of.Human.Interaction == 'Y'), aes(x = long_corr, y = lat_corr, group = Year.of.Observation, frame = Year.of.Observation, cumulative = F, col = 'HI Cases'), bins = 4) +
+  geom_density2d(data = hp_HI_map, aes(x = long_corr, y = lat_corr, group = Year.of.Observation, frame = Year.of.Observation, cumulative = F), col = "black", bins = 3) +
+  #scale_fill_gradient(low = "yellow", high = "red", guide = FALSE) +
+  #scale_alpha(range = c(0, 0.1), guide = FALSE) +
+  xlab("") + ylab("") + facet_wrap(~Year.of.Observation) +
+  #theme_classic() +
+  theme(
+    plot.margin = unit(c(10, -10, 0, -10), "mm"),
+    axis.line = element_blank(), 
+    axis.ticks = element_blank(),
+    axis.text = element_blank(),
+    legend.text = element_text(size = 20, face = 'bold'),
+    plot.title = element_text(size = 20, face = "bold", hjust = 0.5),
+    strip.background = element_blank(),
+    legend.position = 'top', legend.title = element_blank(),
+    panel.border = element_rect(colour = "black", fill = NA, size = 1)) + 
+  scale_color_manual(values = c("black", "red"))
 
 
 ```
+

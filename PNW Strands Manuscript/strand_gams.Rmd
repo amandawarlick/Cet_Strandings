@@ -27,11 +27,12 @@ library(rstudioapi)
 library(mgcv)
 library(MuMIn)
 library(gratia)
+library(here)
 
-source('~/Documents/Research/SRKW/mydraw.gam.R')
+source('mydraw.gam.R')
 
-path <- getActiveDocumentContext()$path
-setwd(dirname(path))
+# path <- getActiveDocumentContext()$path
+# setwd(dirname(path))
 
 source('PlotTheme.R')
 
@@ -52,72 +53,74 @@ flattenCorrMatrix <- function(cormat, pmat) {
 #impute missing covariate data following this example 
 #https://www.analyticsvidhya.com/blog/2016/03/tutorial-powerful-packages-imputing-missing-values/
 
-covs_cet <- read.csv('CetCovs00_18.csv', header = T, stringsAsFactors = F) %>%
-  transform(sst = scale(sst), upwell = scale(upwell), upwell_avg = scale(upwell_avg))
-covs_miss <- data.frame(sst = as.numeric(covs_cet$sst), upwell = as.numeric(covs_cet$upwell))
-
-imp_sst <- mice(covs_miss[,1:2], m=2, maxit = 50, method = 'pmm', seed = 500)
-
-#2000-2018
+#2000-2018; not available after 2018; variables already scaled in Satelite_vars_PNW.R
 covs_local <- read.csv('copernicus_dat.csv') 
 #covs_loc[is.na(covs_loc)] <- 0  
 
-#2002-2018
+#2000-2019
 chla <- read.csv('chl_data.csv') %>%
   transform(month = month(date), year = year(date)) %>%
-  dplyr::select(-date) %>% transform(chl = scale(chl)) %>%
-  filter(year < 2019)
+  dplyr::select(-date) %>% 
+  transform(chl = scale(chl)) %>%
+  filter(year < 2020)
 
-#2002-2018
-sst2 <- read.csv('sst2_data.csv') %>%
-  transform(month = month(date), year = year(date)) %>%
-  transform(sst_salish = scale(sst)) %>%
-  dplyr::select(-c(date, sst)) %>% 
-  filter(year < 2019)
+#cetcovs00-19.csv created in OceanDataLoad.R in OceanData folder
+covs_cet <- read.csv('CetCovs00_19.csv', header = T, stringsAsFactors = F) 
 
-covs_cet <- complete(imp_sst,2) %>%
-  dplyr::select(-upwell) %>%
-  bind_cols(covs_cet) %>% #
-  dplyr::select(year, month, PDO, MEI, sst, upwell, NPGO, upwell_avg) %>%
-  merge(covs_local, by = c('year', 'month')) %>%
-  merge(chla, by = c('year', 'month'), all = T) %>%
-  merge(sst2, by = c('year', 'month'), all = T)
+#upwelling most corr with SST - use to impute sst45
+covs_miss <- data.frame(SST45 = as.numeric(covs_cet$SST45), 
+                        upwell_imp = as.numeric(covs_cet$upwell39))
 
-covs_miss <- data.frame(chl_comp = as.numeric(covs_cet$chl), sst_compare = as.numeric(covs_cet$sst))
-imp_chl <- mice(covs_miss[,1:2], m=2, maxit = 50, method = 'pmm', seed = 500)
-comp_chl <- complete(imp_chl, 2)
-covs_miss <- data.frame(sst2_comp = as.numeric(covs_cet$sst_salish), sst_compare = as.numeric(covs_cet$sst))
-imp_sst2 <- mice(covs_miss[,1:2], m=2, maxit = 50, method = 'pmm', seed = 500)
-comp_sst_sal <- complete(imp_sst2)
+imp_sst45 <- mice(covs_miss[,1:2], m=2, maxit = 50, method = 'pmm', seed = 500)
 
-covs <- covs_cet %>% dplyr::select(-c(chl, sst_salish, upwell_avg, temp)) %>%
-  bind_cols(comp_chl %>% dplyr::select(-sst_compare) %>% rename(chl = chl_comp)) #%>%
-  #bind_cols(comp_sst_sal %>% dplyr::select(-sst_compare) %>% rename(sst_sali = sst2_comp)) 
-covs[is.na(covs)] <- 0
+covs_cet <- complete(imp_sst45,2) %>%
+  dplyr::select(-upwell_imp) %>%
+  bind_cols(covs_cet %>% dplyr::select(-SST45))
 
-covs_an <- covs %>%
+#use sst45 to impute sst 39 (sst much fewer missing to begin with)
+covs_miss <- data.frame(SST39 = as.numeric(covs_cet$SST39), 
+                        SST45_imp = as.numeric(covs_cet$SST45))
+
+imp_sst39 <- mice(covs_miss[,1:2], m=2, maxit = 50, method = 'pmm', seed = 500)
+
+covs_cet <- complete(imp_sst39,2) %>%
+  dplyr::select(-SST45_imp) %>%
+  bind_cols(covs_cet %>% dplyr::select(-SST39)) 
+
+covs_merge <- covs_cet %>% 
+  dplyr::select(year, month, PDO, MEI, SST45, upwell39, NPGO) %>%
+  merge(covs_local %>% dplyr::select(-temp), by = c('year', 'month'), all = T) %>%
+  merge(chla, by = c('year', 'month'), all = T) 
+
+covs_cet <- covs_merge %>%
+  arrange(year, month) #%>%
+  # transform(month = factor(month, levels = c(1:12)))
+
+# covs[is.na(covs)] <- 0
+
+covs_an <- covs_cet %>%
   group_by(year) %>%
   dplyr::summarize(MEI = mean(MEI, na.rm = T), PDO = mean(PDO, na.rm = T),
-                   sst = mean(sst, na.rm = T), upwell = mean(upwell, na.rm = T),
-                   NPGO = mean(NPGO, na.rm = T), chla = mean(chl, na.rm = T),
+                   sst = mean(SST45, na.rm = T), upwell = mean(upwell39, na.rm = T),
+                   NPGO = mean(NPGO, na.rm = T), chla = mean(chla, na.rm = T),
                    mld = mean(mld, na.rm = T),
                    uwnd = mean(uwnd, na.rm = T), vwnd = mean(vwnd, na.rm = T))
 
 #note - the naming of these sst variables is a little confusing in this script, but:
 #sst2 (from coperniculs ctd 'temp'), sst from ecosys assessment buoy, and 
 # sst_sali (erroneously named sst2 in imputation for convenience) from sat data of salish sea
-corr(cbind(data.frame(covs_an_cet$sst), data.frame(covs_an_cet$sst2)))
-corr(cbind(data.frame(covs_an_cet$sst), data.frame(covs_an_cet$sst2)))
-corr(cbind(data.frame(covs_an_cet$sst), data.frame(covs_an_cet$sst2)))
-corr(cbind(data.frame(covs_an_cet$sst), data.frame(covs_an_cet$sst2)))
-corr(cbind(data.frame(covs_an_cet$sst), data.frame(covs_an_cet$sst2)))
+# corr(cbind(data.frame(covs_an$sst), data.frame(covs_an$sst2)))
+# corr(cbind(data.frame(covs_an$sst), data.frame(covs_an$sst2)))
+# corr(cbind(data.frame(covs_an$sst), data.frame(covs_an$sst2)))
+# corr(cbind(data.frame(covs_an$sst), data.frame(covs_an$sst2)))
+# corr(cbind(data.frame(covs_an$sst), data.frame(covs_an$sst2)))
 
-# plot(covs_an_cet$sst)
-# lines(covs_an_cet$sst)
-# plot(covs_an_cet$sst2)
-# lines(covs_an_cet$sst2)
-# plot(covs_an_cet$sst_sali)
-# lines(covs_an_cet$sst_sali)
+# plot(covs_an$sst)
+# lines(covs_an$sst)
+# plot(covs_an$sst2)
+# lines(covs_an$sst2)
+# plot(covs_an$sst_sali)
+# lines(covs_an$sst_sali)
 
 #Monthly anomalies separate species
 cet_mo <- read.csv("monthly_anom_cet.csv", header = TRUE, na.strings = "NA", stringsAsFactors = FALSE) %>%
@@ -142,16 +145,27 @@ cet_an <- cet_mo %>%
   group_by(year, Sp) %>%
   dplyr::summarize(cnt = sum(cnt))
 
-cor_test <- rcorr(as.matrix(covs[,-c(1:2)]))
+cor_test <- rcorr(as.matrix(covs_merge[,-c(1:2)]))
 cor_vals <- flattenCorrMatrix(cor_test$r, cor_test$P) %>% arrange(cor)
 corrplot(cor_test$r, type = "lower", order = "original", p.mat = cor_test$P, 
          insig = "blank", sig.level = 0.01, tl.col = "black", tl.cex = .9, number.cex = .2)
-#correlated > 0.65 upwell/mld, sst/mld*, uwnd/vwnd, upwell/vwnd** -- makes sense
+#correlated > 0.65 upwell/mld, sst/mld*, uwnd/vwnd, upwell/vwnd**, mld/wind, ssh/PDO/MEI -- makes sense
+cor_combos <- cor_vals %>% filter(cor > 0.31 | cor < -0.31)
 
-# write.csv(covs, 'covs.csv')
+write.csv(covs_cet, 'covs_cet.csv', row.names = F)
 
-#manually adjusted env data to lag them
-covs_all <- read.csv('covs.csv', header = T)
+#opened up cet_covs.csv and manually adjusted env variables to lag them
+covs_all <- read.csv('covs_cet_lagged.csv', header = T, stringsAsFactors = F) %>%
+    transform(PDO_lag = mean(c(PDO_lag1, PDO_lag2, PDO_lag3), na.rm = T)) %>%
+    transform(MEI_lag = mean(c(MEI_lag1, MEI_lag2, MEI_lag3), na.rm = T)) %>%
+    transform(SST45_lag = mean(c(SST45_lag1, SST45_lag2, SST45_lag3), na.rm = T)) %>%
+    transform(upwell39_lag = mean(c(upwell39_lag1, upwell39_lag2, upwell39_lag3), na.rm = T)) %>%
+    transform(NPGO_lag = mean(c(NPGO_lag1, NPGO_lag2, NPGO_lag3), na.rm = T)) %>%
+    transform(vwnd_lag = mean(c(vwnd_lag1, vwnd_lag2, vwnd_lag3), na.rm = T)) %>%
+    transform(uwnd_lag = mean(c(uwnd_lag1, uwnd_lag2, uwnd_lag3), na.rm = T)) %>%
+    transform(mld_lag = mean(c(mld_lag1, mld_lag2, mld_lag3), na.rm = T)) %>%
+    transform(ssh_lag = mean(c(ssh_lag1, ssh_lag2, ssh_lag3), na.rm = T)) %>%
+    transform(chl_lag = mean(c(chl_lag1, chl_lag2, chl_lag3), na.rm = T))
 
 ```
 
@@ -160,119 +174,54 @@ covs_all <- read.csv('covs.csv', header = T)
 
 dat_hp <- cet_mo %>% filter(Sp == 'Harbor porpoise') %>%
   merge(covs_all, by = c('year', 'month'), all = T) %>%
-  transform(cnt = ifelse(is.na(cnt), 0, cnt), Sp = ifelse(is.na(Sp), 'Harbor porpoise', Sp))
+  transform(cnt = ifelse(is.na(cnt), 0, cnt), Sp = ifelse(is.na(Sp), 'Harbor porpoise', Sp)) %>%
+  # transform(month = factor(month)) %>%
+  filter(!is.na(year)) 
+dat_hp[is.na(dat_hp)] <- 0
 
 mod0 <- gam(cnt ~ 1, family = 'poisson', method = 'REML', data = dat_hp)
-#summary(mod0) #1.7 strandings per month in months when there are strandings
+#summary(mod0) #1.5 strandings per month in months when there are strandings
 
 mod1 <- gam(cnt ~ s(month, bs = 'cc') + s(year), 
             family = 'poisson', method = 'REML', select = T, 
             data = dat_hp, drop.unused.levels = F)
+summary(mod1)
 
-mod2 <- gam(cnt ~ s(month, bs = 'cc') + s(year) +
-              #s(PDO) + 
-              #s(MEI) +
-                s(sst) + 
-                #s(upwell) + 
-                  s(vwnd) + 
-                  s(uwnd) + 
-                  s(mld) + s(chl),
+mod_full <- gam(cnt ~ s(month, bs = 'cc') +
+              s(PDO) +
+              # s(PDO_lag3) +
+              # s(PDO_lag) +
+              # s(MEI) +
+              # s(MEI_lag3) +
+              # s(MEI_lag) +
+              
+                # s(SST45) +
+                # s(mld_lag3) +
+                # s(vwnd) +
+                # s(uwnd) +
+              
+                # s(upwell39) +
+               # s(upwell39_lag) +
+               # s(upwell39_lag3) +
+              
+              # s(chl_lag1) +
+              s(chl) +
+                s(year),
             family = 'poisson', method = 'REML', select = T, 
             data = dat_hp, drop.unused.levels = F)
-
-mod3 <- gam(cnt ~ s(month, bs = 'cc') + s(year) +
-              #s(PDO) + 
-              #s(MEI) +
-                s(sst) + 
-                s(upwell) + 
-                  s(vwnd) + 
-                  s(uwnd) + 
-                  s(mld) + s(chl),
-            family = 'poisson', method = 'REML', select = T, 
-            data = dat_hp, drop.unused.levels = F)
-
-mod4 <- gam(cnt ~ s(month, bs = 'cc') + s(year) +
-              #s(PDO) + 
-              s(MEI) +
-                s(sst) + 
-                s(upwell) + 
-                  s(vwnd) + 
-                  s(uwnd) + 
-                  s(mld) + s(chl),
-            family = 'poisson', method = 'REML', select = T, 
-            data = dat_hp, drop.unused.levels = F)
-
-mod5 <- gam(cnt ~ s(month, bs = 'cc') + s(year) +
-              s(PDO) + s(MEI) +
-                s(sst) + 
-                s(upwell) + 
-                  s(vwnd) + 
-                  s(uwnd) + 
-                  s(mld) + s(chl),
-            family = 'poisson', method = 'REML', select = T, 
-            data = dat_hp, drop.unused.levels = F)
-
-mod6 <- gam(cnt ~ s(month, bs = 'cc') + s(year) +
-              #s(PDO) + 
-              #s(MEI) +
-                #s(sst) + 
-                #s(upwell) + 
-                  s(vwnd) + 
-                  s(uwnd) + 
-                  s(mld) + s(chl),
-            family = 'poisson', method = 'REML', select = T, 
-            data = dat_hp, drop.unused.levels = F)
-
-modfull <- gam(cnt ~ s(month, bs = 'cc') + s(year) +
-                #s(PDO2) + #s(MEI2) +
-                s(sst1) + 
-                  s(vwnd) + 
-                  #s(vwnd1) + vwnd and vwnd1 were both good
-                #s(upwell2) + #s(vwnd2) +
-                s(uwnd) + 
-                 s(mld) + 
-                #s(uwnd1) + #s(mld1) + 
-                  s(chl1),
-            #family = 'quasipoisson', 
-            family = 'poisson', 
-            method = 'REML', select = T, 
-            data = dat_hp, drop.unused.levels = F)
-
-modfull_keep <- gam(cnt ~ s(month, bs = 'cc') + s(year) +
-                #s(PDO) + #s(MEI) + 
-                #s(PDO1) + s(MEI1) +
-                # s(PDO2) + s(MEI2) +
-                # s(PDO3) + s(MEI3) +
-                #s(sst) + #s(ssh) +
-                 s(sst1) + #s(ssh1) +
-                 #s(sst2) + s(ssh2) +
-                # s(sst3) + s(ssh3) +
-                 #s(upwell) + 
-                  s(vwnd) + 
-                 #s(upwell1) + 
-                  #s(vwnd1) +
-                # s(upwell2) + s(vwnd2) +
-                # s(upwell3) + s(vwnd3) +
-                 s(uwnd) + s(mld) + #s(chl) +
-                #(uwnd1) + #s(mld1) + 
-                  s(chl1) #+
-                #s(uwnd2) + s(mld2) + s(chl2) +
-                #s(uwnd3) + s(mld3) + s(chl3)
-                ,
-            family = 'poisson', method = 'REML', select = T, 
-            data = dat_hp, drop.unused.levels = F)
+summary(mod_full)
 
 dev.expl <- c(summary(mod1)$dev.expl,
-              summary(mod2)$dev.expl,
-              summary(mod3)$dev.expl,
-              summary(mod4)$dev.expl,
-              summary(mod5)$dev.expl,
-              summary(mod6)$dev.expl,
-              summary(modfull)$dev.expl,
-              summary(modfull_keep)$dev.expl)
+              # summary(mod2)$dev.expl,
+              # summary(mod3)$dev.expl,
+              # summary(mod4)$dev.expl,
+              # summary(mod5)$dev.expl,
+              # summary(mod6)$dev.expl,
+              # summary(mod_full)$dev.expl,
+              summary(mod_full)$dev.expl)
 
-AIC <- data.frame(AIC(mod0, mod1, mod2, mod3, mod4, mod5, mod6, modfull, modfull_keep)) %>%
-  transform(delAIC = AIC-min(AIC(mod0, mod1, mod2, mod3, mod4, mod5, mod6, modfull, modfull_keep)[2])) %>%
+AIC <- data.frame(AIC(mod0, mod1, mod_full)) %>%
+  transform(delAIC = AIC-min(AIC(mod0, mod1, mod_full)[2])) %>%
   transform(delAIC = round(delAIC, 2), AIC = round(AIC, 2))
 
 weights <- Weights(AIC$delAIC)
@@ -280,69 +229,45 @@ weights <- Weights(AIC$delAIC)
 AIC$Weight <- round(weights, 2)
 AIC$Dev.exp <- round(c(NA, dev.expl),2)
 
-mod_best <- modfull
+mod_best <- mod_full
+summary(mod_best)
 
 #mydraw.gam(modfull)
 
 hp1 <- mydraw.gam(mod_best)[[1]] + ggtitle('') +
   xlab('Month') + ylab('Effect') +
-    annotate('text', label = paste('edf','=','7.3,', 'p', '<', '0.01'), 
-             x = 8, y = -2, size = 2.5, parse = F) +
+    annotate('text', label = paste('edf','=','5.9,', 'p', '<', '0.01'), 
+             x = 7, y = -2.3, size = 3, parse = F) +
   plot_theme(plot.title = element_text(size = 12)) + 
   scale_x_continuous(breaks = c(1,3,5,7,9,11), labels = c(1,3,5,7,9,11)) +
-  scale_y_continuous(limits = c(-2, 2.8))
+  scale_y_continuous(limits = c(-2.3, 1.5), breaks = seq(-2, 1, 1))
   
-hp2 <- mydraw.gam(mod_best)[[2]] + ggtitle('') + 
+hp2 <- mydraw.gam(mod_best)[[4]] + ggtitle('') + 
   xlab('') + ylab('') + 
   plot_theme(plot.title = element_text(size = 12),
              axis.title.x = element_blank(),
              axis.title.y = element_blank()) + 
-  annotate('text', label = paste('edf','=','4.1,', 'p', '<', '0.01'), 
-                        x = 2012, y = -2.3, size = 2.5, parse = F) +
-  scale_y_continuous(limits = c(-2.3, 1), breaks = seq(-2, 1, 0.5))
+  annotate('text', label = paste('edf','=','4.4,', 'p', '<', '0.01'), 
+                        x = 2011, y = -2.3, size = 3, parse = F) +
+  scale_y_continuous(limits = c(-2.3, 1.5), breaks = seq(-2, 1, 1))
   
-hp3 <- mydraw.gam(mod_best)[[3]] + ggtitle('') + 
-  xlab('SST (lag)') + ylab('') + 
+hp3 <- mydraw.gam(mod_best)[[2]] + ggtitle('') + 
+  xlab('PDO') + ylab('') + 
   plot_theme(plot.title = element_text(size = 12),
              axis.title.y = element_blank()) + 
-annotate('text', label = paste('edf','=','0.7,', 'p', '<', '0.05'), 
-                        x = 0.8, y = -1.5, size = 2.5, parse = F) +
-  scale_y_continuous(limits = c(-1.5,1))
+annotate('text', label = paste('edf','=','3.2,', 'p', '<', '0.05'), 
+                        x = 0.7, y = -2.3, size = 3, parse = F) +
+  scale_y_continuous(limits = c(-2.3, 1.5), breaks = seq(-2, 1, 1))
   
-hp4 <- mydraw.gam(mod_best)[[6]] + ggtitle('') + 
-  xlab('Mixed Layer Depth') + ylab('') + 
+hp4 <- mydraw.gam(mod_best)[[3]] + ggtitle('') + 
+  xlab('Chlorophyll') + ylab('') + 
   plot_theme(plot.title = element_text(size = 12),
              axis.title.y = element_blank()) + 
-  annotate('text', label = paste('edf','=','3.9,', 'p', '<', '0.01'), 
-                        x = 1, y = -1.5, size = 2.5, parse = F) +
-  scale_y_continuous(limits = c(-1.5, 1))
-  
-hp5 <- mydraw.gam(mod_best)[[7]] + ggtitle('') + 
-  xlab('Chlorophyll (lag)') + ylab('') + 
-  plot_theme(plot.title = element_text(size = 12),
-             axis.title.y = element_blank()) + 
-  annotate('text', label = paste('edf','=','1.2,', 'p', '<', '0.05'), 
-                        x = 1.5, y = -1.5, size = 2.5, parse = F) +
-  scale_y_continuous(limits = c(-1.5, 1))
-  
-hp6 <- mydraw.gam(mod_best)[[5]] + ggtitle('') + 
-  xlab('Zonal Wind') + ylab('') + 
-  plot_theme(plot.title = element_text(size = 12),
-             axis.title.y = element_blank()) + 
-  annotate('text', label = paste('edf','=','2.9,', 'p', '<', '0.01'), 
-                        x = 0.5, y = -1.5, size = 2.5, parse = F) +
-  scale_y_continuous(limits = c(-1.5, 1))
-  
-hp7 <- mydraw.gam(mod_best)[[4]] + ggtitle('') + 
-  xlab('Meridional Wind') + ylab('') + 
-  plot_theme(plot.title = element_text(size = 12),
-             axis.title.y = element_blank()) + 
-  annotate('text', label = paste('edf','=','0.9,', 'p', '<', '0.01'), 
-                        x = 0.8, y = -1.5, size = 2.5, parse = F) +
-  scale_y_continuous(limits = c(-1.5, 1), breaks = seq(-1.5,1, 0.5)) +
-  scale_x_continuous(limits = c(-2,2))
+  annotate('text', label = paste('edf','=','5.8,', 'p', '<', '0.01'), 
+                        x = 0.8, y = -2.3, size = 3, parse = F) +
+  scale_y_continuous(limits = c(-2.3, 1.5), breaks = seq(-2, 1, 1))
 
-plot_grid(hp1, hp2, hp3, hp5, hp4, hp6, hp7, nrow = 1)
+plot_grid(hp1, hp2, hp3, hp4, nrow = 1)
   
 ```
 
@@ -350,95 +275,56 @@ plot_grid(hp1, hp2, hp3, hp5, hp4, hp6, hp7, nrow = 1)
 
 dat_gw <- cet_mo %>% filter(Sp == 'Gray whale') %>%
   merge(covs_all, by = c('year', 'month'), all = T) %>%
-  transform(cnt = ifelse(is.na(cnt), 0, cnt), Sp = ifelse(is.na(Sp), 'Gray whale', Sp))
+  transform(cnt = ifelse(is.na(cnt), 0, cnt), Sp = ifelse(is.na(Sp), 'Gray whale', Sp)) %>%
+  filter(!is.na(year))
 # gw_yr <- dat_gw %>% group_by(year) %>% summarize(cnt = sum(cnt))
 # ggplot(gw_yr, aes(x = year, y = cnt)) + geom_line() + geom_point()
 
 mod0 <- gam(cnt ~ 1, family = 'poisson', method = 'REML', data = dat_gw)
 #summary(mod0) #0.7 strandings per month in months when there are strandings
 
-mod1 <- gam(cnt ~ s(month, bs = 'cc') + s(year, k = 17), 
+mod1 <- gam(cnt ~ s(month, bs = 'cc') + s(year), 
             family = 'poisson', method = 'REML', select = T, 
             data = dat_gw, drop.unused.levels = F)
+summary(mod1)
 
-mod2 <- gam(cnt ~ s(month, bs = 'cc') + s(year) +
-              s(PDO) + s(NPGO) +
-                s(sst) + s(ssh) +
-                s(vwnd) + s(mld) + s(chl),
+mod_full <- gam(cnt ~ s(month, bs = 'cc') + s(year) +
+              # s(PDO) +
+              # s(PDO_lag3) +
+              # s(PDO_lag) +
+              # s(MEI) +
+              # s(MEI_lag3) +
+              # s(MEI_lag) +
+              
+                s(SST45) +
+                # s(mld) +
+                # s(vwnd) +
+                # s(uwnd) +
+                # s(SST45_lag) +
+                # s(mld_lag) +
+                # s(vwnd_lag) +
+                # s(uwnd_lag) +
+                # s(SST45_lag3) +
+                # s(mld_lag3) +
+                # s(vwnd_lag3) +
+                # s(uwnd_lag3) +
+              
+                s(upwell39), #+
+               # s(upwell39_lag) +
+               # s(upwell39_lag3) +
+              
+              # s(chl)
+              # s(chl)
+              # s(chl_lag3),
             family = 'poisson', method = 'REML',select = T, 
              data = dat_gw, drop.unused.levels = F)
-#summary(mod)
-
-mod3 <- gam(cnt ~ s(month, bs = 'cc') + s(year) +
-              s(PDO) + 
-                s(sst) + 
-                s(vwnd) + s(mld) + s(chl),
-            family = 'poisson', method = 'REML', select = T, 
-            data = dat_gw, drop.unused.levels = F)
-
-mod4 <- gam(cnt ~ s(month, bs = 'cc') + s(year) +
-              s(PDO) + 
-                s(chl) + #s(sst) +
-                s(vwnd) + s(mld),
-            family = 'poisson', method = 'REML', select = T, 
-            data = dat_gw, drop.unused.levels = F)
-
-mod5 <- gam(cnt ~ s(month, bs = 'cc') + s(year) +
-              s(PDO) + 
-                #s(chla) + 
-                s(vwnd) + s(mld),
-            family = 'poisson', method = 'REML', select = T, 
-            data = dat_gw, drop.unused.levels = F)
-
-mod6 <- gam(cnt ~ s(month, bs = 'cc') + s(year) +
-              s(PDO) + #s(MEI) + 
-                s(sst) + #s(ssh) +
-              s(vwnd) + #s(uwnd) + 
-              s(mld) + 
-              s(chl),
-            family = 'poisson', method = 'REML', select = T, 
-            data = dat_gw, drop.unused.levels = F)
-
-modfull <- gam(cnt ~ s(month, bs = 'cc') + 
-                # s(year) +
-                s(year, fx = T, k = 6) +
-                s(PDO) + 
-                #s(sst1) + #s(vwnd) +
-                  s(chl) + s(mld)
-                ,
-            family = 'poisson', method = 'REML', select = T, 
-            data = dat_gw, drop.unused.levels = F)
-
-modfull_keep <- gam(cnt ~ s(month, bs = 'cc') + s(year, fx = T) +
-                #s(PDO) + #s(MEI) + 
-                #s(PDO1) + s(MEI1) +
-                # s(PDO2) + s(MEI2) +
-                # s(PDO3) + s(MEI3) +
-                #s(sst) + s(ssh) +
-                 s(sst1) + #s(ssh1) +
-                 #s(sst2) + s(ssh2) +
-                # s(sst3) + s(ssh3) +
-                  s(vwnd) + 
-                  #s(mld) +
-                  #s(chl) #+
-                s(upwell)
-                #(uwnd1) + #s(mld1) + 
-                  #s(chl1) 
-                ,
-            family = 'poisson', method = 'REML', select = T, 
-            data = dat_gw, drop.unused.levels = F)
-
+summary(mod_full)
 
 dev.expl <- c(summary(mod1)$dev.expl,
-              summary(mod2)$dev.expl,
-              summary(mod3)$dev.expl,
-              summary(mod4)$dev.expl,
-              summary(mod5)$dev.expl,
-              summary(mod6)$dev.expl,
-              summary(modfull_keep)$dev.expl)
+              summary(mod_full)$dev.expl)
 
-AIC <- data.frame(AIC(mod0, mod1, mod2, mod3, mod4, mod5, mod6, modfull_keep)) %>%
-  transform(delAIC = AIC-min(AIC(mod0, mod1, mod2, mod3, mod4, mod5, mod6, modfull_keep)[2])) %>%
+AIC <- data.frame(AIC(mod0, mod1, mod_full)) %>%
+  transform(delAIC = AIC-min(AIC(mod0, mod1, mod_full)[2])) %>%
   transform(delAIC = round(delAIC, 2), AIC = round(AIC, 2))
 
 weights <- Weights(AIC$delAIC)
@@ -446,61 +332,46 @@ weights <- Weights(AIC$delAIC)
 AIC$Weight <- round(weights, 2)
 AIC$Dev.exp <- round(c(NA, dev.expl),2)
 
-mod_best <- modfull_keep
+mod_best <- mod_full
+summary(mod_full)
 gam.check(mod_best)
 
 #mydraw.gam(mod_best)
 
 gw1 <- mydraw.gam(mod_best)[[1]] + ggtitle('') +
   xlab('Month') + ylab('Effect') +
-    annotate('text', label = paste('edf','=','5.6,', 'p', '<', '0.01'), 
-             x = 9, y = -3, size = 2.5, parse = F) +
+    annotate('text', label = paste('edf','=','5.3,', 'p', '<', '0.01'), 
+             x = 8, y = -2.5, size = 3.3, parse = F) +
   plot_theme(plot.title = element_text(size = 12)) + 
   scale_x_continuous(breaks = c(1,3,5,7,9,11), labels = c(1,3,5,7,9,11)) +
-  scale_y_continuous(limits = c(-3, 2.5), breaks = c(-3:2))
+  scale_y_continuous(limits = c(-2.5, 2.5), breaks = c(-3:2))
 
 gw2 <- mydraw.gam(mod_best)[[2]] + ggtitle('') + 
   xlab('') + ylab('') + 
   plot_theme(plot.title = element_text(size = 12),
              axis.title.x = element_blank(),
              axis.title.y = element_blank()) + 
-  annotate('text', label = paste('edf','=','9.0,', 'p', '<', '0.01'), 
-                        x = 2013, y = -2, size = 2.5, parse = F) +
+  annotate('text', label = paste('edf','=','5.7,', 'p', '<', '0.01'), 
+                        x = 2013, y = -2, size = 3.3, parse = F) +
   scale_y_continuous(limits = c(-2, 2), breaks = c(-3:2))
   
 gw3 <- mydraw.gam(mod_best)[[4]] + ggtitle('') + 
-  xlab('Meridional Wind') + ylab('') + 
+  xlab('Upwelling') + ylab('') + 
   plot_theme(plot.title = element_text(size = 12),
              axis.title.y = element_blank()) +
-  annotate('text', label = paste('edf','=','0.7,', 'p', '<', '0.05'), 
-                        x = 0.6, y = -2, size = 2.5, parse = F) +
+  annotate('text', label = paste('edf','=','0.8,', 'p', '<', '0.05'), 
+                        x = 0.6, y = -2, size = 3.3, parse = F) +
   scale_y_continuous(limits = c(-2, 2), breaks = c(-2:2))
   
 gw4 <- mydraw.gam(mod_best)[[3]] + ggtitle('') +
-  xlab('SST (lag)') + ylab('') +
+  xlab('SST') + ylab('') +
   plot_theme(plot.title = element_text(size = 12),
              axis.title.y = element_blank()) +
-  annotate('text', label = paste('edf','=','0.6,', 'p', '=', '0.10'),
-                        x = 1, y = -2, size = 2.5, parse = F) +
+  annotate('text', label = paste('edf','=','1.2,', 'p', '=', '0.05'),
+                        x = 1, y = -2, size = 3.3, parse = F) +
   scale_y_continuous(limits = c(-2, 2), breaks = c(-2:2))
-  
-gw5 <- mydraw.gam(mod_best)[[5]] + ggtitle('') + 
-  xlab('Upwelling') + ylab('') + 
-  plot_theme(plot.title = element_text(size = 12),
-             axis.title.y = element_blank()) + 
-  annotate('text', label = paste('edf','=','0.4,', 'p', '=', '0.15'), 
-                        x = 1, y = -2, size = 2.5, parse = F) +  
-   scale_y_continuous(limits = c(-2, 2.5), breaks = c(-2:2))
-  
-# gw6 <- mydraw.gam(mod_best)[[6]] + ggtitle('') + 
-#   xlab('Chlorophyll') + ylab('') + 
-#   plot_theme(plot.title = element_text(size = 12),
-#              axis.title.y = element_blank()) + 
-# annotate('text', label = paste('edf','=','3.2,', 'p', '<', '0.05'), 
-#                         x = 1, y = -3.5, size = 2.5, parse = F) +  
-#    scale_y_continuous(limits = c(-3.5, 2.4), breaks = c(-3:2))
 
-plot_grid(gw1, gw2, gw4, gw5, gw3, nrow = 1)
+plot_grid(gw1, gw2, gw4, gw3, nrow = 1)
 
 ```
 
@@ -509,91 +380,39 @@ plot_grid(gw1, gw2, gw4, gw5, gw3, nrow = 1)
 
 dat_str <- cet_mo %>% filter(Sp == 'Striped dolphin') %>%
   merge(covs_all, by = c('year', 'month'), all = T) %>%
-  transform(cnt = ifelse(is.na(cnt), 0, cnt), Sp = ifelse(is.na(Sp), 'Striped dolphin', Sp))
+  transform(cnt = ifelse(is.na(cnt), 0, cnt), Sp = ifelse(is.na(Sp), 'Striped dolphin', Sp)) %>%
+  filter(!is.na(year))
 
 mod0 <- gam(cnt ~ 1, family = 'poisson', method = 'REML', data = dat_str)
 #summary(mod0) 
-mod1 <- gam(cnt ~ s(month, bs = 'cc') + s(year, k = 17), 
+mod1 <- gam(cnt ~ s(month, bs = 'cc') + s(year), 
             family = 'poisson', method = 'REML', select = T,
             data = dat_str, drop.unused.levels = F)
+summary(mod1)
 
-mod2 <- gam(cnt ~ s(month, bs = 'cc') + s(year) +
-                s(sst) + #s(ssh) +
-                s(upwell) + 
-              #s(vwnd) + 
-              #s(uwnd) + 
-              #s(mld) + 
-              s(chl),
+mod2 <- gam(cnt ~ s(month, bs = 'cc') + 
+                # s(PDO) +
+              # s(MEI) +
+              
+                # s(SST45) +
+                # s(mld) +
+                # s(vwnd) +
+                # s(uwnd) +
+              
+                s(ssh) +
+                # s(upwell39_lag1) +
+          
+              s(chl) +
+              s(year),
             family = 'poisson', method = 'REML', select = T,
             data = dat_str, drop.unused.levels = F)
-
-mod3 <- gam(cnt ~ s(month, bs = 'cc') + s(year) +
-              #s(PDO) + #s(MEI) + s(NPGO) +
-                s(sst) + s(ssh) +
-                s(upwell),
-            family = 'poisson', method = 'REML', select = T,
-            data = dat_str, drop.unused.levels = F)
-
-mod4 <- gam(cnt ~ s(month, bs = 'cc') + s(year) +
-              #s(PDO) + #s(MEI) + s(NPGO) +
-                s(sst) + s(ssh) +
-                s(upwell) + 
-              s(vwnd) + 
-              #s(uwnd) + 
-              #s(mld) + 
-              s(chl),
-            family = 'poisson', method = 'REML', select = T,
-            data = dat_str, drop.unused.levels = F)
-
-mod5 <- gam(cnt ~ s(month, bs = 'cc') + s(year, k = 8) +
-              s(PDO) + #s(MEI) + s(NPGO) +
-                s(sst) + s(ssh) +
-                s(upwell) + 
-              s(vwnd) + 
-              #s(uwnd) + 
-              #s(mld) + 
-              s(chl),
-            family = 'poisson', method = 'REML', select = T,
-            data = dat_str, drop.unused.levels = F)
-
-mod6 <- gam(cnt ~ s(month, bs = 'cc') + s(year) +
-               s(PDO) + #s(MEI) + s(NPGO) +
-                s(sst) + s(ssh) +
-                s(upwell) + 
-              s(vwnd) + s(uwnd) + #s(mld) + 
-              s(chl),
-            family = 'poisson', method = 'REML', select = T,
-            data = dat_str, drop.unused.levels = F)
-
-modfull <- gam(cnt ~ s(month, bs = 'cc') + s(year) +
-              s(PDO) + s(MEI) + s(NPGO) +
-                s(sst) + s(ssh) +
-                s(upwell) + 
-              s(vwnd) + s(uwnd) + #s(mld) + 
-                s(chl),
-            family = 'poisson', method = 'REML', select = T,
-            data = dat_str, drop.unused.levels = F)
-
-modfull_keep <- gam(cnt ~ #s(month, bs = 'cc') + 
-                      s(year) +
-                  s(ssh) +
-                #s(sst1) + 
-                s(upwell) + 
-                #s(mld) + 
-                  s(chl),
-            family = 'poisson', method = 'REML', select = T,
-            data = dat_str, drop.unused.levels = F)
+summary(mod2)
 
 dev.expl <- c(summary(mod1)$dev.expl,
-              summary(mod2)$dev.expl,
-              summary(mod3)$dev.expl,
-              summary(mod4)$dev.expl,
-              summary(mod5)$dev.expl,
-              summary(mod6)$dev.expl,
-              summary(modfull)$dev.expl, summary(modfull_keep)$dev.expl)
+              summary(mod2)$dev.expl)
 
-AIC <- data.frame(AIC(mod0, mod1, mod2, mod3, mod4, mod5, mod6, modfull, modfull_keep)) %>%
-  transform(delAIC = AIC-min(AIC(mod0, mod1, mod2, mod3, mod4, mod5, mod6, modfull, modfull_keep)[2])) %>%
+AIC <- data.frame(AIC(mod0, mod1, mod2)) %>%
+  transform(delAIC = AIC-min(AIC(mod0, mod1, mod2)[2])) %>%
   transform(delAIC = round(delAIC, 2), AIC = round(AIC, 2))
 
 weights <- Weights(AIC$delAIC)
@@ -601,62 +420,49 @@ weights <- Weights(AIC$delAIC)
 AIC$Weight <- round(weights, 2)
 AIC$Dev.exp <- round(c(NA, dev.expl),2)
 
-mod_best <- modfull_keep
+mod_best <- mod2
 gam.check(mod_best)
+summary(mod_best)
 
 #mydraw.gam(mod_best)
 
-# str1 <- mydraw.gam(mod_best)[[1]] + ggtitle('s(month)') +
-#   xlab('') + ylab('Effect') +
-#   plot_theme(plot.title = element_text(size = 12)) +
-#   scale_x_continuous(breaks = c(1:12), labels = c(1:12)) #+
-#   scale_y_continuous(limits = c(-0.3, 0.3), breaks = round(seq(-0.3,0.3, by = 0.1),1))
-  
-str2 <- mydraw.gam(mod_best)[[1]] + ggtitle('') + 
-  xlab('') + ylab('Effect') + 
+str1 <- mydraw.gam(mod_best)[[1]] + ggtitle('') +
+  xlab('Month') + ylab('Effect') +
+    annotate('text', label = paste('edf','=','3.4,', 'p', '<', '0.01'), 
+             x = 8, y = -3, size = 3.3, parse = F) +
+  plot_theme(plot.title = element_text(size = 12)) + 
+  scale_x_continuous(breaks = c(1,3,5,7,9,11), labels = c(1,3,5,7,9,11)) +
+  scale_y_continuous(limits = c(-3, 2), breaks = c(-3:2))
+
+
+str2 <- mydraw.gam(mod_best)[[4]] + ggtitle('') + 
+  xlab('') + ylab('') + 
   plot_theme(plot.title = element_text(size = 12),
+             axis.title.y = element_blank(), 
              axis.title.x = element_blank()) + 
-  annotate('text', label = paste('edf','=','1.0,', 'p', '<', '0.01'), 
-                        x = 2011, y = -2.4, size = 2.5, parse = F) +
-  scale_y_continuous(limits = c(-2.4, 3), breaks = seq(-2,3, 1))
+  annotate('text', label = paste('edf','=','1.7,', 'p', '<', '0.01'), 
+                        x = 2011, y = -3, size = 3.3, parse = F) +
+  scale_y_continuous(limits = c(-3, 2), breaks = seq(-3,3, 1))
   
-str3 <- mydraw.gam(mod_best)[[2]] + ggtitle('') + 
-  xlab('Sea Surface Height') + ylab('') + 
+str3 <- mydraw.gam(mod_best)[[2]] + ggtitle('') +
+  xlab('Sea surface height') + ylab('') +
   plot_theme(plot.title = element_text(size = 12),
-             axis.title.y = element_blank()) + 
-  annotate('text', label = paste('edf','=','3.7,', 'p', '<', '0.01'), 
-                        x = 1.1, y = -8, size = 2.5, parse = F) #+  
-  # scale_y_continuous(limits = c(-6, 2.5), breaks = c(-2,0,2)) # +
-  # scale_x_continuous(limits = c(-1,3), )
-  
-# str4 <- mydraw.gam(mod_best)[[3]] + ggtitle('') + 
-#   xlab('SST (lag)') + ylab('') + 
-#   plot_theme(plot.title = element_text(size = 12),
-#              axis.title.y = element_blank()) + 
-#   annotate('text', label = paste('edf','=','4.4,', 'p', '<', '0.10'), 
-#                         x = 0.8, y = -3, size = 2.5, parse = F) +  
-#   scale_y_continuous(limits = c(-3, 2.8), breaks = c(-3:2)) +
-#   scale_x_continuous(limits = c(-2,2.2))
+             axis.title.y = element_blank()) +
+  annotate('text', label = paste('edf','=','3.9,', 'p', '<', '0.01'),
+                        x = 0.8, y = -5.5, size = 3.3, parse = F) +
+  scale_y_continuous(limits = c(-5.5, 2), breaks = c(-5:2)) +
+  scale_x_continuous(limits = c(-1.4,2.2))
   
 str4 <- mydraw.gam(mod_best)[[3]] + ggtitle('') + 
-  xlab('Upwelling') + ylab('') + 
-  plot_theme(plot.title = element_text(size = 12),
-             axis.title.y = element_blank()) + 
-  annotate('text', label = paste('edf','=','4.7,', 'p', '<', '0.01'), 
-                        x = 0.5, y = -2, size = 2.5, parse = F) +  
-  scale_y_continuous(limits = c(-2, 3.5), breaks = seq(-2,3, 1)) +
-  scale_x_continuous(limits = c(-3.5, 2))
-  
-str5 <- mydraw.gam(mod_best)[[4]] + ggtitle('') + 
   xlab('Chlorophyll') + ylab('') + 
   plot_theme(plot.title = element_text(size = 12),
              axis.title.y = element_blank()) + 
-  annotate('text', label = paste('edf','=','0.9,', 'p', '<', '0.01'), 
-                        x = 1, y = -3.3, size = 2.5, parse = F) +  
-  scale_y_continuous(limits = c(-3.3, 3), breaks = seq(-2,3, 1)) +
-  scale_x_continuous(limits = c(-1.5, 2.3))
+  annotate('text', label = paste('edf','=','1.7,', 'p', '<', '0.01'), 
+                        x = 0.5, y = -3, size = 3.3, parse = F) +  
+  scale_y_continuous(limits = c(-3, 2), breaks = seq(-3,2, 1)) #+
+  # scale_x_continuous(limits = c(-3.5, 2))#
   
-plot_grid(str2, str3, str4, str5, nrow = 1)
+plot_grid(str1, str2, str4, str3, nrow = 1)
 
 ```
 
@@ -664,56 +470,44 @@ plot_grid(str2, str3, str4, str5, nrow = 1)
 
 dat_da <- cet_mo %>% filter(Sp == 'Dalls porpoise') %>%
   merge(covs_all, by = c('year', 'month'), all = T) %>%
-  transform(cnt = ifelse(is.na(cnt), 0, cnt), Sp = ifelse(is.na(Sp), 'Dalls porpoise', Sp))
+  transform(cnt = ifelse(is.na(cnt), 0, cnt), Sp = ifelse(is.na(Sp), 'Dalls porpoise', Sp)) %>%
+  filter(!is.na(year))
 
 mod0 <- gam(cnt ~ 1, family = 'poisson', method = 'REML', data = dat_da)
 #summary(mod0) 
 mod1 <- gam(cnt ~ s(month, bs = 'cc') + s(year), 
             family = 'poisson', method = 'REML', select = T,
             data = dat_da, drop.unused.levels = F)
+summary(mod1)
 
-mod3 <- gam(cnt ~ s(month, bs = 'cc') + s(year) +
-                            s(NPGO),
+mod2 <- gam(cnt ~ s(month, bs = 'cc') + s(year) +
+              s(NPGO) +
+              # s(PDO_lag3) +
+              # s(PDO_lag) +
+              # s(MEI) +
+              # s(MEI_lag3) +
+              # s(MEI) +
+              
+                # s(SST45_lag) +
+                s(SST45),
+                # s(mld_lag3) +
+                # s(uwnd_lag3) +
+                # s(uwnd) +
+              
+                # s(chl_lag3) +
+                # s(upwell39) +
+               # s(upwell39_lag) +
+               # s(upwell39_lag3) +
+              # s(ssh) +
+              # ,
             family = 'poisson', method = 'REML', data = dat_da, drop.unused.levels = F)
-
-mod4 <- gam(cnt ~ s(month, bs = 'cc') + s(year) +
-              s(MEI) + s(NPGO),
-            family = 'poisson', method = 'REML', select = T,
-            data = dat_da, drop.unused.levels = F)
-
-mod5 <- gam(cnt ~ s(month, bs = 'cc') + s(year, k = 8) +
-              s(MEI) + 
-              s(NPGO) + 
-                  s(uwnd1), #lagged uwnd is key
-            family = 'poisson', method = 'REML', select = T,
-            data = dat_da, drop.unused.levels = F)
-
-mod6 <- gam(cnt ~ s(month, bs = 'cc') + s(year) +
-                  s(MEI) + s(NPGO) + 
-                s(sst) + 
-                  s(uwnd1), 
-            family = 'poisson', method = 'REML', select = T,
-            data = dat_da, drop.unused.levels = F)
-
-modfull <- gam(cnt ~ s(month, bs = 'cc') +
-                      s(year) +
-                  s(MEI) + s(NPGO) + 
-                s(sst) + 
-                  s(vwnd) +
-                  s(uwnd1),
-            family = 'poisson', method = 'REML', select = T,
-            data = dat_da, drop.unused.levels = F)
+summary(mod2)
 
 dev.expl <- c(summary(mod1)$dev.expl,
-              #summary(mod2)$dev.expl,
-              summary(mod3)$dev.expl,
-              summary(mod4)$dev.expl,
-              summary(mod5)$dev.expl,
-              summary(mod6)$dev.expl,
-              summary(modfull)$dev.expl)
+              summary(mod2)$dev.expl)
 
-AIC <- data.frame(AIC(mod0, mod1, mod3, mod4, mod5, mod6, modfull)) %>%
-  transform(delAIC = AIC-min(AIC(mod0, mod1, mod3, mod4, mod5, mod6, modfull)[2])) %>%
+AIC <- data.frame(AIC(mod0, mod1, mod2)) %>%
+  transform(delAIC = AIC-min(AIC(mod0, mod1, mod2)[2])) %>%
   transform(delAIC = round(delAIC, 2), AIC = round(AIC, 2))
 
 weights <- Weights(AIC$delAIC)
@@ -721,7 +515,8 @@ weights <- Weights(AIC$delAIC)
 AIC$Weight <- round(weights, 2)
 AIC$Dev.exp <- round(c(NA, dev.expl),2)
 
-mod_best <- mod6
+mod_best <- mod2
+summary(mod_best)
 
 #mydraw.gam(mod_best)
 
@@ -729,7 +524,7 @@ da1 <- mydraw.gam(mod_best)[[1]] + ggtitle('') +
   xlab('Month') + ylab('Effect')  + 
   plot_theme(plot.title = element_text(size = 12)) +
     annotate('text', label = paste('edf','=','2.4,', 'p', '<', '0.01'), 
-             x = 7, y = -1.2, size = 2.5, parse = F) +
+             x = 7, y = -1.2, size = 3, parse = F) +
   plot_theme(plot.title = element_text(size = 12)) + 
   scale_x_continuous(breaks = c(1,3,5,7,9,11), labels = c(1,3,5,7,9,11)) +
   scale_y_continuous(limits = c(-1.2,1.2))
@@ -740,42 +535,34 @@ da2 <- mydraw.gam(mod_best)[[2]] + ggtitle('') +
              axis.title.x = element_blank(),
              axis.title.y = element_blank()) + 
   annotate('text', label = paste('edf','=','1.0,', 'p', '<', '0.01'), 
-                        x = 2012, y = -1.9, size = 2.5, parse = F) +
-  scale_y_continuous(limits = c(-1.9, 1.8), breaks = c(-1, 0, 1))
+                        x = 2012, y = -2.5, size = 3, parse = F) +
+  scale_y_continuous(limits = c(-2.5, 1.8), breaks = c(-1, 0, 1))
   
 da3 <- mydraw.gam(mod_best)[[3]] + ggtitle('') + 
-  xlab('MEI') + ylab('') + 
-  plot_theme(plot.title = element_text(size = 12),
-             axis.title.y = element_blank()) + 
-  annotate('text', label = paste('edf','=','0.80,', 'p', '<', '0.05'), 
-                        x = 1, y = -1.5, size = 2.5, parse = F) +
-  scale_y_continuous(limits = c(-1.5, 1.5))#, breaks = c(-1.5, 1.5))
-  
-da4 <- mydraw.gam(mod_best)[[4]] + ggtitle('') + 
   xlab('NPGO') + ylab('') + 
   plot_theme(plot.title = element_text(size = 12),
              axis.title.y = element_blank()) + 
-  annotate('text', label = paste('edf','=','1.6,', 'p', '<', '0.01'), 
-                        x = 1, y = -1.5, size = 2.5, parse = F) +
-  scale_y_continuous(limits = c(-1.5, 1.5))#, breaks = c(-1.5, 1.5))
+  annotate('text', label = paste('edf','=','0.80,', 'p', '<', '0.05'), 
+                        x = 1, y = -1.5, size = 3, parse = F) +
+  scale_y_continuous(limits = c(-1.5, 2))#, breaks = c(-1.5, 1.5))
   
-da5 <- mydraw.gam(mod_best)[[6]] + ggtitle('') + 
-  xlab('Zonal Wind (lag)') + ylab('') + 
-  plot_theme(plot.title = element_text(size = 12),
-             axis.title.y = element_blank()) + 
-  annotate('text', label = paste('edf','=','1.4,', 'p', '<', '0.01'), 
-                        x = 0.1, y = -1.5, size = 2.5, parse = F) +
-  scale_y_continuous(limits = c(-1.5, 1.5))#, breaks = c(-1.5, 1.5))
-
-da6 <- mydraw.gam(mod_best)[[5]] + ggtitle('') + 
+da4 <- mydraw.gam(mod_best)[[4]] + ggtitle('') + 
   xlab('SST') + ylab('') + 
   plot_theme(plot.title = element_text(size = 12),
              axis.title.y = element_blank()) + 
-  annotate('text', label = paste('edf','=','0.6,', 'p', '<', '0.10'), 
-                        x = 0.1, y = -1.5, size = 2.5, parse = F) +
+  annotate('text', label = paste('edf','=','1.6,', 'p', '<', '0.01'), 
+                        x = 1, y = -1.5, size = 3, parse = F) +
   scale_y_continuous(limits = c(-1.5, 1.5))#, breaks = c(-1.5, 1.5))
   
-plot_grid(da1, da2, da6, da3, da4, da5, nrow = 1, rel_widths = c(1.15,1,1,1,1,1))
+# da5 <- mydraw.gam(mod_best)[[5]] + ggtitle('') + 
+#   xlab('Sea surface height') + ylab('') + 
+#   plot_theme(plot.title = element_text(size = 12),
+#              axis.title.y = element_blank()) + 
+#   annotate('text', label = paste('edf','=','1.4,', 'p', '<', '0.01'), 
+#                         x = 0.1, y = -1.5, size = 3, parse = F) +
+#   scale_y_continuous(limits = c(-1.5, 1.5))#, breaks = c(-1.5, 1.5))
+  
+plot_grid(da1, da2, da3, da4, nrow = 1)
 
 
 ```
@@ -785,7 +572,8 @@ plot_grid(da1, da2, da6, da3, da4, da5, nrow = 1, rel_widths = c(1.15,1,1,1,1,1)
 
 dat_hump <- cet_mo %>% filter(Sp == 'Humpback whale') %>%
   merge(covs_all, by = c('year', 'month'), all = T) %>%
-  transform(cnt = ifelse(is.na(cnt), 0, cnt), Sp = ifelse(is.na(Sp), 'Humpback whale', Sp))
+  transform(cnt = ifelse(is.na(cnt), 0, cnt), Sp = ifelse(is.na(Sp), 'Humpback whale', Sp)) %>%
+  filter(!is.na(year))
 
 mod0 <- gam(cnt ~ 1, family = 'poisson', method = 'REML', data = dat_hump)
 #summary(mod0) #1.7 strandings per month in months when there are strandings
@@ -793,103 +581,60 @@ mod0 <- gam(cnt ~ 1, family = 'poisson', method = 'REML', data = dat_hump)
 mod1 <- gam(cnt ~ s(month, bs = 'cc') + s(year), 
             family = 'poisson', method = 'REML', select = T, 
             data = dat_hump, drop.unused.levels = F)
+summary(mod1)
 
 mod2 <- gam(cnt ~ s(month, bs = 'cc') + s(year) +
+              # s(NPGO) +
+              # s(PDO_lag3) +
               # s(PDO) +
               # s(MEI) +
-                s(sst) +
-                s(upwell) +
-                  # s(vwnd) + 
-                  # s(uwnd) + 
-                  # s(mld) + 
-              s(chl),
-            family = 'poisson', method = 'REML', select = T, 
-            data = dat_hump, drop.unused.levels = F)
-
-mod3 <- gam(cnt ~ s(month, bs = 'cc') + s(year) +
-              #s(PDO) + 
-              #s(MEI) +
-                # s(sst) + 
-                s(upwell) + 
-                  # s(vwnd) + 
-                  # s(uwnd) + 
-                  # s(mld) + 
-              s(chl),
-            family = 'poisson', method = 'REML', select = T, 
-            data = dat_hump, drop.unused.levels = F)
-
-mod4 <- gam(cnt ~ s(month, bs = 'cc') + s(year) +
-              #s(PDO) + 
+              s(MEI_lag3) +
               # s(MEI) +
-                # s(sst) + 
-                s(upwell) #+
-                  # s(vwnd) + 
-                  # s(uwnd) + 
-                  # s(mld) + s(chl),
-              ,
+              
+                # s(SST45_lag3) +
+                # s(SST45_lag3) +
+                # s(mld_lag3) +
+                # s(uwnd_lag3) +
+                 +
+              
+                s(chl_lag3),
+                # s(upwell39_lag3) +
+               # s(upwell39_lag3) +
+               # s(upwell39_lag3) +
+              # s(ssh_lag3) +
+              # s(vwnd_lag3),
             family = 'poisson', method = 'REML', select = T, 
             data = dat_hump, drop.unused.levels = F)
+summary(mod2)
 
-# mod5 <- gam(cnt ~ s(month, bs = 'cc') + s(year) +
-#               s(PDO) + s(MEI) +
-#                 s(sst) + 
-#                 s(upwell) + 
-#                   s(vwnd) + 
-#                   s(uwnd) + 
-#                   s(mld) + s(chl),
-#             family = 'poisson', method = 'REML', select = T, 
-#             data = dat_hump, drop.unused.levels = F)
-# 
-# mod6 <- gam(cnt ~ s(month, bs = 'cc') + s(year) +
-#               #s(PDO) + 
-#               #s(MEI) +
-#                 #s(sst) + 
-#                 #s(upwell) + 
-#                   s(vwnd) + 
-#                   s(uwnd) + 
-#                   s(mld) + s(chl),
-#             family = 'poisson', method = 'REML', select = T, 
-#             data = dat_hump, drop.unused.levels = F)
-# 
-# modfull <- gam(cnt ~ s(month, bs = 'cc') + s(year) +
-#                 #s(PDO2) + #s(MEI2) +
-#                 s(sst1) + 
-#                   s(vwnd) + 
-#                   #s(vwnd1) + vwnd and vwnd1 were both good
-#                 #s(upwell2) + #s(vwnd2) +
-#                 s(uwnd) + 
-#                  s(mld) + 
-#                 #s(uwnd1) + #s(mld1) + 
-#                   s(chl1),
-#             #family = 'quasipoisson', 
-#             family = 'poisson', 
-#             method = 'REML', select = T, 
-#             data = dat_hump, drop.unused.levels = F)
-
-modfull_keep <- gam(cnt ~ s(month, bs = 'cc') + s(year) +
-                 s(upwell) + 
-                   s(sst2) +
-                  # s(vwnd) + 
-                 # s(upwell1) +
-                # s(upwell2) + 
-                  s(vwnd2),
+mod2 <- gam(cnt ~ s(month, bs = 'cc') + s(year) +
+              # s(NPGO) +
+              # s(PDO_lag3) +
+              # s(PDO) +
+              # s(MEI) +
+              s(MEI_lag3) +
+              # s(MEI) +
+              
+                # s(SST45_lag3) +
+                # s(SST45_lag3) +
+                # s(mld_lag3) +
+                # s(uwnd_lag3) +
+              # s(ssh_lag3) +
+                s(chl_lag3),
+                # s(upwell39_lag3) +
+               # s(upwell39_lag3) +
+               # s(upwell39_lag3) +
+              
+              # s(vwnd_lag3),
             family = 'poisson', method = 'REML', select = T, 
             data = dat_hump, drop.unused.levels = F)
+summary(mod2)
 
 dev.expl <- c(summary(mod1)$dev.expl,
-              summary(mod2)$dev.expl,
-              summary(mod3)$dev.expl,
-              summary(mod4)$dev.expl,
-              # summary(mod6)$dev.expl,
-              # summary(modfull)$dev.expl,
-              summary(modfull_keep)$dev.expl)
+              summary(mod2)$dev.expl)
 
-AIC <- data.frame(AIC(mod0, mod1, mod2, mod3, mod4, 
-                      # mod6, modfull, 
-                      modfull_keep)) %>%
-  transform(delAIC = AIC-min(AIC(mod0, mod1, mod2, mod3, mod4, 
-                                 # mod6, modfull, 
-                                 modfull_keep)[2])) %>%
+AIC <- data.frame(AIC(mod0, mod1, mod2)) %>%
+  transform(delAIC = AIC-min(AIC(mod0, mod1, mod2))) %>%
   transform(delAIC = round(delAIC, 2), AIC = round(AIC, 2))
 
 weights <- Weights(AIC$delAIC)
@@ -897,52 +642,44 @@ weights <- Weights(AIC$delAIC)
 AIC$Weight <- round(weights, 2)
 AIC$Dev.exp <- round(c(NA, dev.expl),2)
 
-mod_best <- modfull_keep
+mod_best <- mod2
+summary(mod_best)
 
 #mydraw.gam(modfull_keep)
 
 hump1 <- mydraw.gam(mod_best)[[1]] + ggtitle('') +
   xlab('Month') + ylab('Effect') +
-    annotate('text', label = paste('edf','=','2.0,', 'p', '<', '0.01'), 
-             x = 8, y = -2, size = 2.5, parse = F) +
+    annotate('text', label = paste('edf','=','2.2,', 'p', '<', '0.01'), 
+             x = 8, y = -1.5, size = 3, parse = F) +
   plot_theme(plot.title = element_text(size = 12)) + 
-  #scale_x_continuous(breaks = c(1,3,5,7,9,11), labels = c(1,3,5,7,9,11)) +
-  scale_y_continuous(limits = c(-2, 2))
+  scale_x_continuous(breaks = c(1,3,5,7,9,11), labels = c(1,3,5,7,9,11)) +
+  scale_y_continuous(limits = c(-1.5, 1.5))
   
 hump2 <- mydraw.gam(mod_best)[[2]] + ggtitle('') + 
-  xlab('') + ylab('') + 
+  xlab(' ') + ylab('') + 
   plot_theme(plot.title = element_text(size = 12),
              axis.title.x = element_blank(),
              axis.title.y = element_blank()) + 
   annotate('text', label = paste('edf','=','0.9,', 'p', '<', '0.01'), 
-                        x = 2012, y = -1.8, size = 2.5, parse = F) +
+                        x = 2012, y = -1.8, size = 3, parse = F) +
   scale_y_continuous(limits = c(-1.8, 1.5))
   
 hump3 <- mydraw.gam(mod_best)[[3]] + ggtitle('') + 
-  xlab('Upwelling') + ylab('') + 
+  xlab('MEI (lag)') + ylab('') + 
   plot_theme(plot.title = element_text(size = 12),
              axis.title.y = element_blank()) + 
-annotate('text', label = paste('edf','=','0.5,', 'p', '=', '0.11'), 
-                        x = 0.8, y = -1.5, size = 2.5, parse = F) +
+annotate('text', label = paste('edf','=','1.3,', 'p', '=', '0.12'), 
+                        x = 0.8, y = -1.5, size = 3, parse = F) +
   scale_y_continuous(limits = c(-1.5,1.8))
   
 hump4 <- mydraw.gam(mod_best)[[4]] + ggtitle('') + 
-  xlab('SST (lag)') + ylab('') + 
+  xlab('Chlorophyll (lag)') + ylab('') + 
   plot_theme(plot.title = element_text(size = 12),
              axis.title.y = element_blank()) + 
-  annotate('text', label = paste('edf','=','0.77,', 'p', '<', '0.05'), 
-                        x = 1, y = -1.7, size = 2.5, parse = F) +
-  scale_y_continuous(limits = c(-1.7, 2))
+  annotate('text', label = paste('edf','=','2.0,', 'p', '<', '0.05'), 
+                        x = 1, y = -2.8, size = 3, parse = F) +
+  scale_y_continuous(limits = c(-2.8, 2))
   
-hump5 <- mydraw.gam(mod_best)[[5]] + ggtitle('') + 
-  xlab('Meridional Wind (lag)') + ylab('') + 
-  plot_theme(plot.title = element_text(size = 12),
-             axis.title.y = element_blank()) + 
-  annotate('text', label = paste('edf','=','1.0,', 'p', '<', '0.10'), 
-                        x = 1.5, y = -1.3, size = 2.5, parse = F) +
-  scale_y_continuous(limits = c(-1.3, 1.5))
-  
-
-plot_grid(hump1, hump2, hump3, hump5, hump4, hump5, nrow = 1)
+plot_grid(hump1, hump2, hump4, hump3, nrow = 1)
   
 ```

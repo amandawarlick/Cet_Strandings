@@ -19,7 +19,7 @@ library(devtools)
 #devtools::install_github("hadley/ggplot2")
 #devtools::install_github("adletaw/captioner")
 library(tidyr)
-library(ggmap)
+# library(ggmap)
 library(data.table)
 library(dplyr)
 library(sciplot)
@@ -27,57 +27,19 @@ library(ggplot2)
 library(cowplot)
 library(stats)
 library(scales)
-library(captioner)
+# library(captioner)
 library(knitr)
 library(reshape2)
 library(stringr)
 library(magrittr)
-library(stats) #kruskal.test
-library(PMCMR) # posthoc.kruskal.nemenyi.test https://cran.r-project.org/web/packages/PMCMR/vignettes/PMCMR.pdf
-library(strucchange) # chow test https://cran.r-project.org/web/packages/strucchange/strucchange.pdf  
+# library(stats) #kruskal.test
+# library(PMCMR) # posthoc.kruskal.nemenyi.test https://cran.r-project.org/web/packages/PMCMR/vignettes/PMCMR.pdf
+# library(strucchange) # chow test https://cran.r-project.org/web/packages/strucchange/strucchange.pdf  
 library(pgirmess) 
-library(gganimate)
-
-plot_theme <- function(...) {
-  theme(
-    #text = element_text(size = 11),
-    axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5, color = "black", size = 10), 
-    axis.text = element_text(vjust = 0.5, color = "black", size = 10), 
-    axis.title = element_text(size = 11),
-    axis.line.y = element_line(colour = "black"), 
-    axis.line.x = element_line(colour = "black"), 
-    plot.background = element_rect(), 
-    panel.background = element_blank(), 
-    panel.grid = element_blank(), 
-    legend.title = element_blank(),
-    legend.key = element_blank(),
-    legend.text = element_text(size = 8),
-    ...)
-}
+# library(gganimate)
 
 case <- function(x)
   paste0(toupper(substr(x, 1, 1)), tolower(substring(x, 2)))
-
-figs <- captioner(prefix="Figure")
-tbls <- captioner(prefix="Table")
-
-# figs("name")
-# ## [1] "Figure  1: Caption."
-# 
-# figs("name",display="cite")
-# ## [1] "Figure  1"
-# 
-# figs("name",display="num")
-# ## [1] "1"
-
-color6 <- c("#e45f56", "#363e7e", "#4aaaa5", "#a3d39c", "#f6b61c", "#3b98ee", "#999aa7")
-color3 <- c("#e45f56", "#363e7e", "#a3d39c")
-color4_HI <- c("#3b98ee", "#a3d39c", "#e45f56", "#f6b61c")
-color4_age <- c("#ff8000", "#363e7e", "#3b98ee", "#a3d39c")
-color2 <- c("#e45f56", "#363e7e")
-color1 <- c("#e45f56", "#363e7e")
-red_blue <- c('#d73027','#f46d43','#fdae61','#fee090','#e0f3f8','#abd9e9','#74add1','#4575b4')
-
 
 # Read Me Notes
 # ***Indicates important dataframe
@@ -88,9 +50,10 @@ red_blue <- c('#d73027','#f46d43','#fdae61','#fee090','#e0f3f8','#abd9e9','#74ad
 
 ```{r load pre-built data, echo = FALSE}
 
-setwd("~/Documents/Research/Cet_Strandings")
+setwd("~/Documents/Research/Cet_Strandings/PNW Strands Manuscript")
 
-cetaceans <- read.csv("cetacean_data_CleaningOuput00_18.csv", header = TRUE, na.strings = "", stringsAsFactors = FALSE) %>% 
+cetaceans <- read.csv(here::here('PNW Strands Manuscript', "cetacean_data_CleaningOuput10_25_20updated.csv"), 
+                      header = TRUE, na.strings = "", stringsAsFactors = FALSE) %>% 
   #filter(Cetacean.Common.Name != 'Harbor porpoise') %>%
   transform(sci_name = paste(Genus, Species, sep = " "))
 
@@ -106,9 +69,9 @@ fish <- read.csv("fish_full.csv", header = TRUE, na.strings = "NA", stringsAsFac
 #Full data set
 cetaceans_ocean <- cetaceans %>%
   #filter(National.Database.Number != 'NA' | !is.na(National.Database.Number)) %>%
-  dplyr::select(-c(Affiliation, Locality.Detail, Report.Status, Observation.Date.Act.Est, Additional.Identifiers, Year.of.Necropsy, Month.of.Necropsy, Day.of.Necropsy, Date.of.Necropsy, Necropy.Carcass.Fresh.Frozen, Necropsy.Limited.Flag, Latitude.Units, Field.Number, Day.of.Observation, City, Common.Name, Genus, Species, Restrand, How.Observed)) %>%
-  merge(fish, by = c('Year.of.Observation', 'Month.of.Observation'), all.x = T) %>%
-  merge(ocean, by = c('Year.of.Observation', 'Month.of.Observation'), all.x = T) %>%
+  dplyr::select(-c(Affiliation, Locality.Detail, Report.Status, Observation.Date.Act.Est, Year.of.Necropsy, Month.of.Necropsy, Day.of.Necropsy, Date.of.Necropsy, Latitude.Units, Day.of.Observation, City, Common.Name, Genus, Species, Restrand, How.Observed)) %>%
+  # merge(fish, by = c('Year.of.Observation', 'Month.of.Observation'), all.x = T) %>%
+  # merge(ocean, by = c('Year.of.Observation', 'Month.of.Observation'), all.x = T) %>%
   #filter(Year.of.Observation > 2002) %>%
   transform(Season = 
         ifelse(Month.of.Observation == 'DEC' | Month.of.Observation == 'JAN' | Month.of.Observation == 'FEB', 'Winter', 
@@ -126,6 +89,39 @@ setwd("~/Documents/Research/Cet_Strandings")
 #write.csv(cetaceans_ocean, "cetaceans_ocean.csv", row.names = F)
 #write.csv(fish, "fish.csv", row.names = F)
 
+#tables for Stephanie/manuscript
+#cases per year and per month
+
+#checking nrow()
+
+n_distinct(cetaceans$Field.Number)
+test <- cetaceans %>% arrange(Field.Number)
+
+year_table <- cetaceans %>%
+  group_by(Year.of.Observation, Cetacean.Common.Name) %>%
+  dplyr::summarize(cnt = n_distinct(National.Database.Number))
+
+tot_table <- cetaceans %>%
+  group_by(Cetacean.Common.Name) %>%
+  dplyr::summarize(cnt = n_distinct(Field.Number))
+
+month_table <- cetaceans %>%
+  group_by(Year.of.Observation, Month.of.Observation, Cetacean.Common.Name) %>%
+  dplyr::summarize(cnt = n_distinct(National.Database.Number)) %>%
+  transform(Month.of.Observation = factor(Month.of.Observation, levels = c('JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'))) %>%
+  dcast(Year.of.Observation + Cetacean.Common.Name ~ Month.of.Observation)
+
+sum(is.na(cetaceans$National.Database.Number))
+
+write.csv(year_table, 'year_table_stephanie.csv')
+write.csv(tot_table, 'tot_table_stephanie.csv')
+write.csv(month_table, 'month_table_stephanie.csv')
+
+state <- cetaceans %>%
+  group_by(State) %>%
+  dplyr::summarize(tot = n_distinct(Field.Number))
+
+
 ```
 
 
@@ -136,7 +132,7 @@ setwd("~/Documents/Research/Cet_Strandings")
 annual_mean_ocean <- ocean %>%
   dplyr::select(-matches("_cat")) %>%
   #dplyr::select(-matches("_lag")) %>%
-  merge(fish, by = c('Month.of.Observation', 'Year.of.Observation')) %>%
+  # merge(fish, by = c('Month.of.Observation', 'Year.of.Observation')) %>%
   #dplyr::select(-c(Date)) %>%
   melt(id.vars = c('Month.of.Observation', 'Year.of.Observation')) %>%
   group_by(Year.of.Observation, variable) %>%
@@ -186,11 +182,14 @@ annual_anom_strands <- cetaceans_ocean %>%
 #Annual anomalies dataframe from above, melted 
 annual_anom_melt <- annual_anom_strands %>%
  # dplyr::select(-mean_strand) %>%
-  merge(annual_mean_ocean, by = 'Year.of.Observation') %>%
+  # merge(annual_mean_ocean, by = 'Year.of.Observation') %>%
   melt(id.vars = c('Year.of.Observation', 'Cetacean.Common.Name'))
 
 #***Anual anomalies with ocean and strandings, casted from melted above
-annual_anom <- annual_anom_melt %>%
+# annual_anom <- annual_anom_melt %>%
+#   dcast(Year.of.Observation ~ Cetacean.Common.Name, value.var = 'cnt_all')
+
+annual_anom <- annual_anom_strands %>%
   dcast(Year.of.Observation ~ Cetacean.Common.Name, value.var = 'cnt_all')
   
 #Stranding anomalies only
@@ -345,8 +344,8 @@ monthly_anom <- cetaceans_ocean %>%
   dplyr::summarize(cnt_all = n_distinct(National.Database.Number)) %>%
   merge(monthly_mean_all, by = c('Cetacean.Common.Name', 'Month.of.Observation'), all = T) %>%
   transform(strand_anom_all = cnt_all - mean_all) %>%
-  merge(ocean, by = c('Year.of.Observation', 'Month.of.Observation'), all = T) %>%
-  merge(fish, by = c('Year.of.Observation', 'Month.of.Observation'), all = T)
+  merge(ocean, by = c('Year.of.Observation', 'Month.of.Observation'), all = T) #%>%
+  # merge(fish, by = c('Year.of.Observation', 'Month.of.Observation'), all = T)
 
 #Monthly separate species from above, melted, simplifying variables for plotting
 monthly_anom_melt <- monthly_anom %>%
@@ -512,8 +511,14 @@ tot_sp <- cetaceans_ocean %>%
 
 state_cnt <- cetaceans_ocean %>%
   group_by(Water.Body) %>%
-  summarize(cnt = n_distinct(National.Database.Number))
+  filter(Cetacean.Common.Name == 'Striped dolphin') %>%
+  dplyr::summarize(cnt = n_distinct(National.Database.Number))
 
+seas <- cetaceans_ocean %>%
+  group_by(Season, Year.of.Observation) %>%
+  dplyr::summarize(cnt = n_distinct(Field.Number)) %>%
+  group_by(Season) %>%
+  dplyr::summarize(cnt = mean(cnt))
 
 ```
 
@@ -549,28 +554,25 @@ spec_cnt <- cetaceans_ocean %>%
              'Dalls porpoise', 'Pacific white-sided dolphin')) %>%
   group_by(Year.of.Observation, Cetacean.Common.Name) %>%
   dplyr::summarize(cnt = n_distinct(National.Database.Number)) %>%
-  transform(grp = ifelse(Cetacean.Common.Name == 'Harbor porpoise', 1, 2)) %>%
+  # transform(grp = ifelse(Cetacean.Common.Name == 'Harbor porpoise', 1, 2)) %>%
   transform(Cetacean.Common.Name = factor(Cetacean.Common.Name, 
-            levels = c('Harbor porpoise', 'Striped dolphin', 'Dalls porpoise', 
-                       'Pacific white-sided dolphin', 'Gray whale', 'Humpback whale'),
-            labels = c('Harbor porpoise', 'Striped dolphin', 'Dall\'s porpoise', 
-                       'Pacific white-sided dolphin', 'Gray whale', 'Humpback whale')))
+            levels = c('Harbor porpoise', 'Gray whale', 'Striped dolphin', 'Dalls porpoise', 
+                       'Pacific white-sided dolphin', 'Humpback whale'),
+            labels = c('Harbor porpoise', 'Gray whale', 'Striped dolphin', 'Dall\'s porpoise', 
+                       'Pacific white-sided dolphin', 'Humpback whale'))) %>%
+  dcast(Cetacean.Common.Name ~ Year.of.Observation, value.var = 'cnt', fill = 0) %>%
+  reshape2::melt(id.vars = c('Cetacean.Common.Name'))
 
-ggplot(data = spec_cnt, aes(Year.of.Observation, cnt, group = Cetacean.Common.Name, col = Cetacean.Common.Name)) +
-  geom_line(aes(), linetype = 'dashed', size = .65) +
+ggplot(data = spec_cnt, aes(variable, value, group = Cetacean.Common.Name)) +
+  geom_line(aes(), size = .65, alpha = 0.5) +
   geom_point(size = 1) +
-  geom_smooth(aes(group = Cetacean.Common.Name, col = Cetacean.Common.Name), size = 1, show.legend = F, se = F) +
+  geom_smooth(aes(group = Cetacean.Common.Name), size = 0.8, show.legend = F, se = F) +
   xlab("") + ylab("Annual Strandings") +
-  facet_wrap(~Cetacean.Common.Name, scales = 'free') +
-  theme(legend.position = 'none',
-    axis.title = element_text(size = 11),
-    axis.text.y = element_text(size = 10),
-    axis.text.x = element_text(size = 10, angle = 90, vjust = .5),
-    legend.title = element_blank(),
-    strip.background = element_blank(),
-    strip.text = element_text(size = 10)) +
-  scale_x_continuous(breaks = c(2000, 2002, 2004, 2006, 2008, 2010, 2012, 2014, 2016, 2018)) +
-  scale_color_manual(values = color6, guide = guide_legend(nrow = 1))
+  # facet_wrap(~Cetacean.Common.Name) +
+  facet_wrap(~Cetacean.Common.Name, scales = 'free_y') +
+  plot_theme() +
+  scale_x_discrete(breaks = c(2000, 2005, 2010, 2015)) 
+
 #combined cases
 # ggplot(annual_HI, aes(Year.of.Observation, cnt)) +
 #   geom_line(aes(), linetype = 'dashed', size = .65) +

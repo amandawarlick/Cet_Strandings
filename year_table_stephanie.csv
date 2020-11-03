@@ -1,0 +1,229 @@
+"","Year.of.Observation","Cetacean.Common.Name","cnt"
+"1",2000,"Dalls porpoise",10
+"2",2000,"Gray whale",25
+"3",2000,"Harbor porpoise",7
+"4",2000,"Killer whale",1
+"5",2000,"Rissos",1
+"6",2000,"Sperm whale",1
+"7",2000,"Unidentified",6
+"8",2001,"Cuviers beaked whale",1
+"9",2001,"Dalls porpoise",7
+"10",2001,"Gray whale",1
+"11",2001,"Harbor porpoise",17
+"12",2001,"Stejnegers beaked whale",2
+"13",2001,"Unidentified",2
+"14",2002,"Cuviers beaked whale",1
+"15",2002,"Dalls porpoise",7
+"16",2002,"Fin whale",4
+"17",2002,"Gray whale",5
+"18",2002,"Harbor porpoise",11
+"19",2002,"Killer whale",3
+"20",2002,"Other",1
+"21",2002,"Pacific white-sided dolphin",1
+"22",2002,"Sperm whale",4
+"23",2002,"Unidentified",3
+"24",2003,"Bairds beaked whale",2
+"25",2003,"Dalls porpoise",6
+"26",2003,"Gray whale",5
+"27",2003,"Harbor porpoise",35
+"28",2003,"Humpback whale",1
+"29",2003,"Minke whale",1
+"30",2003,"Northern right whale dolphin",1
+"31",2003,"Other",1
+"32",2003,"Pacific white-sided dolphin",2
+"33",2003,"Sperm whale",1
+"34",2003,"Stejnegers beaked whale",1
+"35",2003,"Striped dolphin",1
+"36",2003,"Unidentified",5
+"37",2004,"Bottlenose dolphin",1
+"38",2004,"Dalls porpoise",16
+"39",2004,"Gray whale",6
+"40",2004,"Harbor porpoise",33
+"41",2004,"Humpback whale",2
+"42",2004,"Killer whale",1
+"43",2004,"Minke whale",1
+"44",2004,"Northern right whale dolphin",1
+"45",2004,"Pacific white-sided dolphin",1
+"46",2004,"Sperm whale",1
+"47",2004,"Striped dolphin",2
+"48",2004,"Unidentified",9
+"49",2005,"Cuviers beaked whale",1
+"50",2005,"Dalls porpoise",13
+"51",2005,"Gray whale",16
+"52",2005,"Harbor porpoise",30
+"53",2005,"Humpback whale",1
+"54",2005,"Pacific white-sided dolphin",1
+"55",2005,"Pygmy sperm whale",2
+"56",2005,"Sperm whale",1
+"57",2005,"Unidentified",2
+"58",2006,"Cuviers beaked whale",2
+"59",2006,"Dalls porpoise",6
+"60",2006,"Fin whale",2
+"61",2006,"Gray whale",14
+"62",2006,"Harbor porpoise",65
+"63",2006,"Humpback whale",2
+"64",2006,"Minke whale",1
+"65",2006,"Other",1
+"66",2006,"Pacific white-sided dolphin",3
+"67",2006,"Pygmy sperm whale",1
+"68",2006,"Short-beaked common dolphin",2
+"69",2006,"Striped dolphin",4
+"70",2006,"Unidentified",4
+"71",2007,"Cuviers beaked whale",1
+"72",2007,"Dalls porpoise",5
+"73",2007,"Gray whale",8
+"74",2007,"Harbor porpoise",50
+"75",2007,"Humpback whale",2
+"76",2007,"Hybrid",1
+"77",2007,"Killer whale",1
+"78",2007,"Northern right whale dolphin",1
+"79",2007,"Other",1
+"80",2007,"Pacific white-sided dolphin",1
+"81",2007,"Short-beaked common dolphin",1
+"82",2007,"Sperm whale",2
+"83",2007,"Unidentified",8
+"84",2008,"Cuviers beaked whale",2
+"85",2008,"Gray whale",4
+"86",2008,"Harbor porpoise",53
+"87",2008,"Humpback whale",4
+"88",2008,"Killer whale",1
+"89",2008,"Northern right whale dolphin",1
+"90",2008,"Sperm whale",3
+"91",2008,"Unidentified",4
+"92",2009,"Dalls porpoise",5
+"93",2009,"Fin whale",2
+"94",2009,"Gray whale",10
+"95",2009,"Harbor porpoise",68
+"96",2009,"Short-beaked common dolphin",1
+"97",2009,"Sperm whale",1
+"98",2009,"Unidentified",4
+"99",2010,"Bairds beaked whale",1
+"100",2010,"Bottlenose dolphin",1
+"101",2010,"Dalls porpoise",1
+"102",2010,"Fin whale",1
+"103",2010,"Gray whale",10
+"104",2010,"Harbor porpoise",56
+"105",2010,"Humpback whale",6
+"106",2010,"Killer whale",2
+"107",2010,"Long-beaked common dolphin",1
+"108",2010,"Minke whale",1
+"109",2010,"Other",3
+"110",2010,"Pacific white-sided dolphin",1
+"111",2010,"Sperm whale",1
+"112",2010,"Striped dolphin",2
+"113",2010,"Unidentified",2
+"114",2011,"Bottlenose dolphin",1
+"115",2011,"Dalls porpoise",3
+"116",2011,"Fin whale",1
+"117",2011,"Gray whale",6
+"118",2011,"Harbor porpoise",92
+"119",2011,"Hybrid",1
+"120",2011,"Killer whale",2
+"121",2011,"Pacific white-sided dolphin",2
+"122",2011,"Short-beaked common dolphin",1
+"123",2011,"Striped dolphin",1
+"124",2011,"Unidentified",5
+"125",2012,"Bottlenose dolphin",1
+"126",2012,"Dalls porpoise",2
+"127",2012,"Gray whale",3
+"128",2012,"Harbor porpoise",116
+"129",2012,"Humpback whale",1
+"130",2012,"Killer whale",1
+"131",2012,"Long-beaked common dolphin",1
+"132",2012,"Northern right whale dolphin",1
+"133",2012,"Pacific white-sided dolphin",2
+"134",2012,"Sperm whale",2
+"135",2012,"Striped dolphin",6
+"136",2012,"Unidentified",1
+"137",2013,"Cuviers beaked whale",1
+"138",2013,"Dalls porpoise",1
+"139",2013,"Fin whale",2
+"140",2013,"Gray whale",7
+"141",2013,"Harbor porpoise",56
+"142",2013,"Humpback whale",2
+"143",2013,"Killer whale",1
+"144",2013,"Pacific white-sided dolphin",1
+"145",2013,"Rissos",4
+"146",2013,"Short-beaked common dolphin",2
+"147",2013,"Sperm whale",1
+"148",2013,"Striped dolphin",1
+"149",2013,"Unidentified",2
+"150",2014,"Dalls porpoise",6
+"151",2014,"Gray whale",10
+"152",2014,"Harbor porpoise",97
+"153",2014,"Humpback whale",5
+"154",2014,"Minke whale",1
+"155",2014,"Other",1
+"156",2014,"Pacific white-sided dolphin",3
+"157",2014,"Rissos",1
+"158",2014,"Short-beaked common dolphin",3
+"159",2014,"Sperm whale",1
+"160",2014,"Striped dolphin",7
+"161",2014,"Unidentified",3
+"162",2015,"Bairds beaked whale",1
+"163",2015,"Dalls porpoise",5
+"164",2015,"Gray whale",5
+"165",2015,"Harbor porpoise",74
+"166",2015,"Humpback whale",4
+"167",2015,"Killer whale",1
+"168",2015,"Long-beaked common dolphin",1
+"169",2015,"Northern right whale dolphin",1
+"170",2015,"Other",1
+"171",2015,"Pacific white-sided dolphin",4
+"172",2015,"Rissos",1
+"173",2015,"Short-beaked common dolphin",2
+"174",2015,"Stejnegers beaked whale",2
+"175",2015,"Striped dolphin",6
+"176",2015,"Unidentified",4
+"177",2016,"Blainvilles beaked whale",1
+"178",2016,"Dalls porpoise",3
+"179",2016,"Gray whale",8
+"180",2016,"Harbor porpoise",68
+"181",2016,"Humpback whale",6
+"182",2016,"Killer whale",2
+"183",2016,"Long-beaked common dolphin",2
+"184",2016,"Northern right whale dolphin",2
+"185",2016,"Pacific white-sided dolphin",4
+"186",2016,"Pygmy sperm whale",1
+"187",2016,"Sperm whale",1
+"188",2016,"Striped dolphin",15
+"189",2016,"Unidentified",4
+"190",2017,"Bairds beaked whale",1
+"191",2017,"Dalls porpoise",3
+"192",2017,"Fin whale",1
+"193",2017,"Gray whale",14
+"194",2017,"Harbor porpoise",69
+"195",2017,"Humpback whale",3
+"196",2017,"Killer whale",1
+"197",2017,"Long-beaked common dolphin",2
+"198",2017,"Minke whale",1
+"199",2017,"Northern right whale dolphin",1
+"200",2017,"Pacific white-sided dolphin",6
+"201",2017,"Pygmy sperm whale",1
+"202",2017,"Short-beaked common dolphin",1
+"203",2017,"Sperm whale",2
+"204",2017,"Striped dolphin",10
+"205",2017,"Unidentified",6
+"206",2018,"Dalls porpoise",1
+"207",2018,"Gray whale",11
+"208",2018,"Harbor porpoise",69
+"209",2018,"Humpback whale",6
+"210",2018,"Killer whale",2
+"211",2018,"Long-beaked common dolphin",1
+"212",2018,"Northern right whale dolphin",1
+"213",2018,"Pacific white-sided dolphin",3
+"214",2018,"Short-beaked common dolphin",3
+"215",2018,"Sperm whale",2
+"216",2018,"Stejnegers beaked whale",1
+"217",2018,"Striped dolphin",3
+"218",2018,"Unidentified",5
+"219",2019,"Dalls porpoise",3
+"220",2019,"Gray whale",42
+"221",2019,"Harbor porpoise",67
+"222",2019,"Humpback whale",2
+"223",2019,"Long-beaked common dolphin",1
+"224",2019,"Northern right whale dolphin",1
+"225",2019,"Pacific white-sided dolphin",2
+"226",2019,"Pygmy sperm whale",1
+"227",2019,"Striped dolphin",3
+"228",2019,"Unidentified",1

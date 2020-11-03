@@ -37,9 +37,6 @@ pres_theme <- function(...) {
     legend.text = element_text(size = 11),
     ...)
 } 
-color6 <- c("#e45f56", "#363e7e", "#4aaaa5", "#a3d39c", "#f6b61c", "#3b98ee", "#999aa7")
-color3 <- c("#e45f56", "#363e7e", "#a3d39c")
-color4 <- c("#3b98ee", "#a3d39c", "#e45f56", "#f6b61c")
-color2 <- c("#e45f56", "#363e7e")
+
 rainbow <- c("#363e7e", 'dodgerblue2', "#4aaaa5", "#a3d39c", "#f6b61c", "chocolate2", "red3", "violetred4")
 rainbow2 <- c("violetred4", "dodgerblue3", 'deepskyblue1', "#4aaaa5", "#a3d39c", "#f6b61c", "chocolate2", "red3")

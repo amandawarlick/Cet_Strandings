@@ -1,180 +1,21 @@
-"Year.of.Observation","Cetacean.Common.Name","cnt_all"
-2003,"Bairds beaked whale",2
-2003,"Dalls porpoise",6
-2003,"Gray whale",5
-2003,"Harbor porpoise",34
-2003,"Humpback whale",1
-2003,"Minke whale",1
-2003,"Northern right whale dolphin",1
-2003,"Other",1
-2003,"Pacific white-sided dolphin",2
-2003,"Sperm whale",1
-2003,"Stejnegers beaked whale",1
-2003,"Striped dolphin",1
-2003,"Unidentified",5
-2004,"Bottlenose dolphin",1
-2004,"Dalls porpoise",16
-2004,"Gray whale",6
-2004,"Harbor porpoise",33
-2004,"Humpback whale",2
-2004,"Killer whale",1
-2004,"Minke whale",1
-2004,"Northern right whale dolphin",1
-2004,"Pacific white-sided dolphin",1
-2004,"Sperm whale",1
-2004,"Striped dolphin",2
-2004,"Unidentified",9
-2005,"Cuviers beaked whale",1
-2005,"Dalls porpoise",13
-2005,"Gray whale",17
-2005,"Harbor porpoise",30
-2005,"Humpback whale",1
-2005,"Pacific white-sided dolphin",1
-2005,"Pygmy sperm whale",2
-2005,"Sperm whale",1
-2005,"Unidentified",3
-2006,"Cuviers beaked whale",2
-2006,"Dalls porpoise",6
-2006,"Fin whale",3
-2006,"Gray whale",15
-2006,"Harbor porpoise",68
-2006,"Humpback whale",2
-2006,"Minke whale",1
-2006,"Pacific white-sided dolphin",3
-2006,"Pygmy sperm whale",1
-2006,"Short-beaked common dolphin",2
-2006,"Striped dolphin",4
-2006,"Unidentified",4
-2007,"Cuviers beaked whale",1
-2007,"Dalls porpoise",5
-2007,"Gray whale",8
-2007,"Harbor porpoise",52
-2007,"Humpback whale",2
-2007,"Hybrid",1
-2007,"Killer whale",1
-2007,"Northern right whale dolphin",1
-2007,"Other",1
-2007,"Pacific white-sided dolphin",1
-2007,"Short-beaked common dolphin",1
-2007,"Sperm whale",2
-2007,"Unidentified",7
-2008,"Cuviers beaked whale",2
-2008,"Gray whale",4
-2008,"Harbor porpoise",53
-2008,"Humpback whale",4
-2008,"Killer whale",1
-2008,"Northern right whale dolphin",1
-2008,"Sperm whale",3
-2008,"Unidentified",3
-2009,"Dalls porpoise",5
-2009,"Fin whale",2
-2009,"Gray whale",10
-2009,"Harbor porpoise",71
-2009,"Short-beaked common dolphin",1
-2009,"Sperm whale",1
-2009,"Unidentified",3
-2010,"Bairds beaked whale",1
-2010,"Bottlenose dolphin",2
-2010,"Dalls porpoise",1
-2010,"Fin whale",1
-2010,"Gray whale",11
-2010,"Harbor porpoise",58
-2010,"Humpback whale",6
-2010,"Killer whale",2
-2010,"Long-beaked common dolphin",1
-2010,"Minke whale",1
-2010,"Other",3
-2010,"Pacific white-sided dolphin",1
-2010,"Sperm whale",1
-2010,"Striped dolphin",2
-2010,"Unidentified",2
-2011,"Bottlenose dolphin",1
-2011,"Dalls porpoise",3
-2011,"Gray whale",7
-2011,"Harbor porpoise",92
-2011,"Hybrid",1
-2011,"Killer whale",2
-2011,"Pacific white-sided dolphin",2
-2011,"Short-beaked common dolphin",1
-2011,"Striped dolphin",1
-2011,"Unidentified",5
-2012,"Bottlenose dolphin",1
-2012,"Dalls porpoise",2
-2012,"Gray whale",3
-2012,"Harbor porpoise",118
-2012,"Humpback whale",1
-2012,"Killer whale",1
-2012,"Long-beaked common dolphin",1
-2012,"Northern right whale dolphin",1
-2012,"Pacific white-sided dolphin",2
-2012,"Sperm whale",2
-2012,"Striped dolphin",6
-2012,"Unidentified",1
-2013,"Cuviers beaked whale",1
-2013,"Dalls porpoise",1
-2013,"Fin whale",2
-2013,"Gray whale",8
-2013,"Harbor porpoise",55
-2013,"Humpback whale",2
-2013,"Killer whale",2
-2013,"Pacific white-sided dolphin",1
-2013,"Rissos",4
-2013,"Short-beaked common dolphin",2
-2013,"Sperm whale",1
-2013,"Striped dolphin",1
-2013,"Unidentified",2
-2014,"Dalls porpoise",6
-2014,"Gray whale",12
-2014,"Harbor porpoise",96
-2014,"Humpback whale",4
-2014,"Minke whale",1
-2014,"Other",1
-2014,"Pacific white-sided dolphin",3
-2014,"Rissos",1
-2014,"Short-beaked common dolphin",3
-2014,"Sperm whale",1
-2014,"Striped dolphin",7
-2014,"Unidentified",3
-2015,"Bairds beaked whale",1
-2015,"Dalls porpoise",5
-2015,"Gray whale",5
-2015,"Harbor porpoise",74
-2015,"Humpback whale",4
-2015,"Killer whale",1
-2015,"Long-beaked common dolphin",1
-2015,"Northern right whale dolphin",1
-2015,"Other",1
-2015,"Pacific white-sided dolphin",4
-2015,"Rissos",2
-2015,"Short-beaked common dolphin",2
-2015,"Stejnegers beaked whale",2
-2015,"Striped dolphin",6
-2015,"Unidentified",3
-2016,"Blainvilles beaked whale",2
-2016,"Dalls porpoise",3
-2016,"Gray whale",7
-2016,"Harbor porpoise",69
-2016,"Humpback whale",6
-2016,"Killer whale",2
-2016,"Long-beaked common dolphin",2
-2016,"Northern right whale dolphin",2
-2016,"Pacific white-sided dolphin",3
-2016,"Pygmy sperm whale",1
-2016,"Sperm whale",1
-2016,"Striped dolphin",14
-2016,"Unidentified",8
-2017,"Bairds beaked whale",1
-2017,"Dalls porpoise",3
-2017,"Fin whale",1
-2017,"Gray whale",13
-2017,"Harbor porpoise",55
-2017,"Humpback whale",3
-2017,"Long-beaked common dolphin",2
-2017,"Minke whale",1
-2017,"Northern right whale dolphin",1
-2017,"Pacific white-sided dolphin",5
-2017,"Pygmy sperm whale",1
-2017,"Short-beaked common dolphin",1
-2017,"Sperm whale",2
-2017,"Striped dolphin",8
-2017,"Unidentified",5
+"Year.of.Observation","Bairds beaked whale","Blainvilles beaked whale","Bottlenose dolphin","Cuviers beaked whale","Dalls porpoise","Fin whale","Gray whale","Harbor porpoise","Humpback whale","Hybrid","Killer whale","Long-beaked common dolphin","Minke whale","Northern right whale dolphin","Other","Pacific white-sided dolphin","Pygmy sperm whale","Rissos","Short-beaked common dolphin","Sperm whale","Stejnegers beaked whale","Striped dolphin","Unidentified"
+2000,NA,NA,NA,NA,10,NA,25,7,NA,NA,1,NA,NA,NA,NA,NA,NA,1,NA,1,NA,NA,6
+2001,NA,NA,NA,1,7,NA,1,17,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,2,NA,2
+2002,NA,NA,NA,1,7,4,5,11,NA,NA,3,NA,NA,NA,1,1,NA,NA,NA,4,NA,NA,3
+2003,2,NA,NA,NA,6,NA,5,35,1,NA,NA,NA,1,1,1,2,NA,NA,NA,1,1,1,5
+2004,NA,NA,1,NA,16,NA,6,33,2,NA,1,NA,1,1,NA,1,NA,NA,NA,1,NA,2,9
+2005,NA,NA,NA,1,13,NA,16,30,1,NA,NA,NA,NA,NA,NA,1,2,NA,NA,1,NA,NA,2
+2006,NA,NA,NA,2,6,2,14,65,2,NA,NA,NA,1,NA,1,3,1,NA,2,NA,NA,4,4
+2007,NA,NA,NA,1,5,NA,8,50,2,1,1,NA,NA,1,1,1,NA,NA,1,2,NA,NA,8
+2008,NA,NA,NA,2,NA,NA,4,53,4,NA,1,NA,NA,1,1,NA,NA,NA,NA,2,NA,NA,4
+2009,NA,NA,NA,NA,5,2,10,67,NA,NA,NA,NA,NA,NA,1,NA,NA,NA,1,1,NA,NA,4
+2010,1,NA,1,NA,1,1,10,56,6,NA,2,1,1,NA,3,1,NA,NA,NA,1,NA,2,2
+2011,NA,NA,1,NA,3,1,6,91,NA,1,2,NA,NA,NA,1,2,NA,NA,1,NA,NA,1,5
+2012,NA,NA,1,NA,2,NA,3,116,1,NA,1,1,NA,1,NA,2,NA,NA,NA,2,NA,6,1
+2013,NA,NA,NA,1,1,2,7,56,2,NA,1,NA,NA,NA,NA,1,NA,4,2,1,NA,1,2
+2014,NA,NA,NA,NA,6,NA,10,97,5,NA,NA,NA,1,NA,1,3,NA,1,3,1,NA,7,3
+2015,1,NA,NA,NA,5,NA,5,74,4,NA,1,1,NA,1,1,4,NA,1,2,NA,2,6,4
+2016,NA,1,NA,NA,3,NA,8,67,6,NA,2,2,NA,2,1,4,1,NA,NA,1,NA,15,4
+2017,1,NA,NA,NA,3,1,14,69,3,NA,1,2,1,1,NA,6,1,NA,1,2,NA,10,6
+2018,NA,NA,NA,NA,1,NA,11,66,5,NA,2,1,NA,1,4,3,NA,NA,3,2,1,3,5
+2019,NA,NA,NA,NA,3,NA,42,67,2,NA,NA,1,NA,1,NA,2,1,NA,NA,NA,NA,3,1

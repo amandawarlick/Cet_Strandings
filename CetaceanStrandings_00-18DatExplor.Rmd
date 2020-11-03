@@ -168,13 +168,20 @@ tbls <- captioner(prefix="Table")
 
 ```{r load pre-cleaned csv, echo = FALSE}
 
-setwd("~/Documents/Research/Cet_Strandings")
+setwd("~/Documents/Research/Cet_Strandings/PNW Strands Manuscript")
+# setwd("~/Documents/Research/Cet_Strandings")
 
-cetaceans <- read.csv("cetacean_data_CleaningOuput00_18.csv", header = TRUE, na.strings = "", stringsAsFactors = FALSE) %>% 
+
+cetaceans <- read.csv("cetacean_data_CleaningOuput00_18_updated.csv", header = TRUE, na.strings = "", stringsAsFactors = FALSE) %>% 
   #filter(Cetacean.Common.Name != 'Harbor porpoise') %>% 
   #filter(Water.Body == 'Inland_WA')
-  transform(Season = ifelse(Month.of.Observation == 'DEC' | Month.of.Observation == 'JAN' | Month.of.Observation == 'FEB', 'Winter', ifelse(Month.of.Observation == 'MAR' | Month.of.Observation == 'APR' | Month.of.Observation == 'MAY', 'Spring', ifelse(Month.of.Observation == 'JUN' | Month.of.Observation == 'JUL' | Month.of.Observation == 'AUG', 'Summer', ifelse(Month.of.Observation == 'SEP' | Month.of.Observation == 'OCT' | Month.of.Observation == 'NOV', 'Fall', 'NA'))))) %>%
-  transform(sci_name = paste(Genus, Species, sep = " "))
+  transform(Season = ifelse(Month.of.Observation == 'DEC' | Month.of.Observation == 'JAN' | Month.of.Observation == 'FEB', 'Winter', 
+                            ifelse(Month.of.Observation == 'MAR' | Month.of.Observation == 'APR' | Month.of.Observation == 'MAY', 'Spring', 
+                                   ifelse(Month.of.Observation == 'JUN' | Month.of.Observation == 'JUL' | Month.of.Observation == 'AUG', 'Summer', 
+                                          ifelse(Month.of.Observation == 'SEP' | Month.of.Observation == 'OCT' | Month.of.Observation == 'NOV', 'Fall', 'NA'))))) %>%
+  transform(sci_name = paste(Genus, Species, sep = " ")) %>%
+  transform(State = toupper(State)) %>%
+  transform(Sex = ifelse(Sex == 'Unknown', 'Unid', Sex))
 
 cetaceans$Age.Class <- factor(cetaceans$Age.Class,
           levels = c("Calf", "Yearling", "Subadult", "Adult", "Unid", "NA"))
@@ -234,22 +241,21 @@ age_sex_table <- write.csv(age_sex_table, file = "./Figures_inland_nohp/age_sex_
 #Are the number of cases of all combined species increasing or decreasing over time?
 
 data_by_year <- cetaceans %>% #filter(Cetacean.Common.Name == 'Minke whale') %>%
-  group_by(Year.of.Observation) %>%
-  dplyr::summarize(cnt = n_distinct(National.Database.Number)) 
+  group_by(Year.of.Observation, Cetacean.Common.Name) %>%
+  dplyr::summarize(cnt = n_distinct(National.Database.Number)) %>%
+  filter(Cetacean.Common.Name %in% c('Humpback whale', 'Gray whale', 'Harbor porpoise', 'Dalls porpoise',
+                                     'Pacific white-sided dolphin', 'Striped dolphin'))
 
-#Statistically significant change in all stranding cases in OR and WA combined over time (p < 0.05, 25 strandings per year increase).
-# timeseries_all_model <- glm(cnt ~ Year.of.Observation, family = poisson(link = log), data = data_by_year)
-# timeseries_all_model <- lm(cnt ~ Year.of.Observation, data = data_by_year)
-# summary(timeseries_all_model)
-# plot(timeseries_all_model)
 
-all_yr_figure <- 
-  ggplot(data_by_year, aes(x = Year.of.Observation, y = cnt)) + 
-  geom_point(position = "identity") +
-  geom_smooth(method = "loess", se = FALSE, col = 'black', linetype = 3) +
+ggplot(data_by_year, aes(x = Year.of.Observation, y = cnt)) + 
+  geom_point(size = 0.8) +
+  geom_line(linetype = 'dashed') +
+  geom_smooth(method = "loess", se = T) +
   xlab("") + ylab("Annual Strandings") +
-  plot_theme() +
-  scale_color_brewer(palette = 'Set1') 
+  plot_theme(strip.background = element_blank(),
+             panel.border = element_rect(fill = NA)) +
+  facet_wrap(~Cetacean.Common.Name, scale = 'free_y') +
+  scale_color_brewer(palette = 'Spectral') 
 ggsave(all_yr_figure, file = "./Figures_inland_nohp/all_year_figure.pdf")
 
 ```
@@ -288,6 +294,10 @@ ggsave(HI_year_figure, file = "./Figures_inland_nohp/HI_year_figure.pdf")
 ```{r monthly by species}
 #Monthly per species
 
+ids <- cetaceans %>% dplyr::select(National.Database.Number, sci_name)
+
+numbers <- sum(duplicated(cetaceans$National.Database.Number))
+
 #paper table
 species_tot <- cetaceans %>%
   group_by(sci_name) %>%
@@ -295,18 +305,19 @@ species_tot <- cetaceans %>%
   arrange(desc(tot))
 
 species_state <- cetaceans %>%
+  filter(State != 'NA') %>%
   group_by(sci_name, State) %>%
   summarize(cnt = n_distinct(National.Database.Number)) %>%
   dcast(sci_name ~ State, value.var = 'cnt') %>%
   transform(OR = ifelse(is.na(OR), 0, OR),
             WA = ifelse(is.na(WA), 0, WA)) %>%
-  transform(tot = OR + WA)
+  merge(species_tot, by = 'sci_name')
 
 species_sex <- cetaceans %>%
   group_by(sci_name, Sex) %>%
   summarize(cnt = n_distinct(National.Database.Number)) %>%
   dcast(sci_name ~ Sex, value.var = 'cnt') %>%
-  dplyr::select(-N) %>%
+  #dplyr::select(-N) %>%
   merge(species_state, by = 'sci_name')
 
 species_HI <- cetaceans %>%
@@ -339,22 +350,41 @@ seasonal_sp_wide <- seasonal_sp_wide %>%
 setwd("~/Documents/R/Cet_Strandings/manuscript_figs")
 write.csv(seasonal_sp_wide, "seasonal_sp.csv", row.names = F)
   
-monthly_species_figure <- 
-  cetaceans %>%
-  #filter(Findings.of.Human.Interaction == 'Y') %>%
-  #filter(Observation.Status == 'ALIVE' | Observation.Status == 'FRESH DEAD') %>%
+#paper figure
+monthly_sp_dat <- cetaceans %>%
   filter(sci_name != 'NA NA') %>%
-  group_by(Month.of.Observation, sci_name) %>%
-  summarize(cnt = n_distinct(National.Database.Number)) %>%
-  ggplot(aes(x = factor(Month.of.Observation), y = cnt, 
-          group = sci_name, color = sci_name)) +
-  geom_line(aes(group = sci_name)) + 
-  #geom_smooth(se = F) + 
-  #geom_point() +
+  filter(Cetacean.Common.Name %in% c('Humpback whale', 'Gray whale', 'Harbor porpoise', 'Dalls porpoise', 'Pacific white-sided dolphin', 'Striped dolphin')) %>%
+  group_by(Month.of.Observation, Cetacean.Common.Name) %>%
+  summarize(cnt = n_distinct(National.Database.Number)) 
+
+ggplot(monthly_sp_dat, aes(x = as.numeric(Month.of.Observation), y = cnt)) +
+  geom_line(linetype = 'dashed') + 
+  geom_smooth(se = T) +
+  geom_point(size = 0.8) +
   ylab("Total Monthly Strandings") + xlab("") + 
-  plot_theme(legend.position = 'top') #+ 
-  #scale_color_brewer(palette = 'Set3')
-ggsave(monthly_species_figure, file = "./Figures_inland_nohp/monthly_species_figure.pdf")
+  facet_wrap(~Cetacean.Common.Name, scales = 'free_y') +
+  plot_theme(strip.background = element_blank(),
+             panel.border = element_rect(fill = NA)) + 
+  scale_x_continuous(breaks = c(1,3,5,7,9,11), 
+                     labels = c('Jan', 'Mar', 'May', 'Jul', 'Sep', 'Nov'))
+  
+#not summed
+monthly_sp_dat2 <- cetaceans %>%
+  filter(sci_name != 'NA NA') %>%
+  filter(Cetacean.Common.Name %in% c('Humpback whale', 'Gray whale', 'Harbor porpoise', 'Dalls porpoise', 'Pacific white-sided dolphin', 'Striped dolphin')) %>%
+  group_by(Month.of.Observation, Cetacean.Common.Name, Year.of.Observation) %>%
+  summarize(cnt = n_distinct(National.Database.Number)) 
+
+ggplot(monthly_sp_dat2, aes(x = as.numeric(Month.of.Observation), y = cnt)) +
+  # geom_line(aes(linetype = 'dashed') +
+  geom_smooth(se = T) +
+  # geom_point(size = 0.8) +
+  ylab("Monthly Strandings") + xlab("") + 
+  facet_wrap(~Cetacean.Common.Name, scales = 'free_y') +
+  plot_theme(strip.background = element_blank(),
+             panel.border = element_rect(fill = NA)) + 
+  scale_x_continuous(breaks = c(1,3,5,7,9,11), 
+                     labels = c('Jan', 'Mar', 'May', 'Jul', 'Sep', 'Nov'))
 
 # #HI by month per each species
 # #HELP COMPARE: should this be done per species per month per year, so it is monthly FI cases in a given year (here)? Or just per species per all time series months combined, so it is summed across years (as above in HI and all cases per species)?
@@ -483,13 +513,15 @@ write.csv(species, 'species.csv', row.names = F)
 species_year <- cetaceans %>%
   filter(sci_name != 'NA NA') %>%
   #filter(Findings.of.Human.Interaction == 'Y') %>%
-  group_by(Year.of.Observation, sci_name) %>%
+  group_by(Year.of.Observation, Cetacean.Common.Name) %>%
   summarize(cnt = n_distinct(National.Database.Number)) 
+
+species_year %>% filter(Cetacean.Common.Name == 'Humpback whale')
   
 species_year_mean <- cetaceans %>%
-  group_by(Year.of.Observation, sci_name) %>%
+  group_by(Year.of.Observation, Cetacean.Common.Name) %>%
   summarize(cnt = n_distinct(National.Database.Number)) %>%
-  group_by(sci_name) %>%
+  group_by(Cetacean.Common.Name) %>%
   summarize(mean = mean(cnt))
 
 species_figure <- species_year %>%

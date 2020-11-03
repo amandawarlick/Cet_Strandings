@@ -18,10 +18,27 @@ xcoord <- c(-123.99, -127.236)
 ycoord <- c(48.34, 42.07)
 zcoord <- c(0,0)
 #just salish?
-xcoord2 <- c(-123.73, -122.46)
-ycoord2 <- c(47.186, 42.07)
+# xcoord2 <- c(-123.73, -122.46)
+# ycoord2 <- c(47.186, 42.07)
 
-#chlorophyll
+#satellite data
+#chlorophyll 1: 1999-2002
+dataInfo <- rerddap::info('erdSAchlamday')
+
+parameter <- dataInfo$variable$variable_name #extracts the name from the metadata
+
+global <- dataInfo$alldata$NC_GLOBAL #start and end times
+tt <- global[ global$attribute_name %in% c('time_coverage_end','time_coverage_start'), "value", ]
+tcoord <- c(tt[2],"last")
+
+chl1 <- rxtracto_3D(dataInfo, parameter = parameter,
+                   tcoord = tcoord, zcoord = zcoord,
+                   xcoord = xcoord,ycoord=ycoord)
+
+# spatially average all the data within the box for each dataset  
+chl1$avg <- apply(chl1$chlorophyll, c(4),function(x) mean(x,na.rm=TRUE))
+
+#chlorolphyll 2: 2003-2019
 dataInfo <- rerddap::info('erdMWchlamday')
 
 parameter <- dataInfo$variable$variable_name #extracts the name from the metadata
@@ -30,13 +47,13 @@ global <- dataInfo$alldata$NC_GLOBAL #start and end times
 tt <- global[ global$attribute_name %in% c('time_coverage_end','time_coverage_start'), "value", ]
 tcoord <- c(tt[2],"last")
 
-chl <- rxtracto_3D(dataInfo, parameter = parameter,
+chl2 <- rxtracto_3D(dataInfo, parameter = parameter,
                       tcoord = tcoord, zcoord = zcoord,
                       xcoord = xcoord,ycoord=ycoord)
 
 
 # spatially average all the data within the box for each dataset  
-chl$avg <- apply(chl$chlorophyll, c(4),function(x) mean(x,na.rm=TRUE))
+chl2$avg <- apply(chl2$chlorophyll, c(4),function(x) mean(x,na.rm=TRUE))
 
 plot(as.Date(chl$time), scale(chl$avg), 
      type='b', bg="blue", pch=21, xlab="", cex=.7,
@@ -44,57 +61,68 @@ plot(as.Date(chl$time), scale(chl$avg),
   #   ylim=c(10,25),
      ylab="Chlorophyll", main=ttext)
 
-chl_data <- data.frame(date = chl$time, chl = chl$avg)
+chl1_data <- data.frame(date = chl1$time, chl1 = chl1$avg) %>%
+  transform(year = year(date)) %>%
+  filter(year < 2003 & year > 1998) %>%
+  rename(chl = chl1)
+
+chl2_data <- data.frame(date = chl2$time, chl2 = chl2$avg) %>%
+  transform(year = year(date)) %>%
+  filter(year > 2002 & year < 2020) %>%
+  rename(chl = chl2)
+
+chl_data <- bind_rows(chl1_data, chl2_data)
+
 write.csv(chl_data, file = 'chl_data.csv', row.names = F)
 
-### SST
-dataInfo <- rerddap::info('erdMWsstdmday') #about the same? add zcoord if using
-
-parameter <- dataInfo$variable$variable_name
-
-global <- dataInfo$alldata$NC_GLOBAL
-tt <- global[ global$attribute_name %in% c('time_coverage_end','time_coverage_start'), "value", ]
-tcoord <- c(tt[2],"last")
-
-sst <- rxtracto_3D(dataInfo,parameter=parameter,
-                             tcoord=tcoord, zcoord = zcoord,
-                             xcoord=xcoord,ycoord=ycoord)
-
-sst$avg <- apply(sst$sst, c(4),function(x) mean(x,na.rm=TRUE))
-
-plot(as.Date(sst$time), scale(sst$avg),
-     type='b', bg="blue", pch=21, xlab="", cex=.7,
-     xlim=as.Date(c("2002-01-01","2019-01-01")),
-     #   ylim=c(10,25),
-     ylab="sst")
-
-sst_data <- data.frame(date = sst$time, sst = sst$avg)
-write.csv(sst_data, file = 'sst_data.csv', row.names = F)
-
-#### SST salish?
-
-dataInfo <- rerddap::info('erdMWsstdmday') #about the same? add zcoord if using
-
-parameter <- dataInfo$variable$variable_name
-
-global <- dataInfo$alldata$NC_GLOBAL
-tt <- global[ global$attribute_name %in% c('time_coverage_end','time_coverage_start'), "value", ]
-tcoord <- c(tt[2],"last")
-
-sst2 <- rxtracto_3D(dataInfo,parameter=parameter,
-                   tcoord=tcoord, zcoord = zcoord,
-                   xcoord=xcoord2,ycoord=ycoord2)
-
-sst2$avg <- apply(sst2$sst, c(4),function(x) mean(x,na.rm=TRUE))
-
-plot(as.Date(sst2$time), scale(sst2$avg),
-     type='b', bg="blue", pch=21, xlab="", cex=.7,
-     xlim=as.Date(c("2002-01-01","2019-01-01")),
-     #   ylim=c(10,25),
-     ylab="sst")
-
-sst2_data <- data.frame(date = sst2$time, sst = sst2$avg)
-write.csv(sst2_data, file = 'sst2_data.csv', row.names = F)
+### SST -- more complete from CCIEA below
+# dataInfo <- rerddap::info('erdMWsstdmday') #about the same? add zcoord if using
+# 
+# parameter <- dataInfo$variable$variable_name
+# 
+# global <- dataInfo$alldata$NC_GLOBAL
+# tt <- global[ global$attribute_name %in% c('time_coverage_end','time_coverage_start'), "value", ]
+# tcoord <- c(tt[2],"last")
+# 
+# sst <- rxtracto_3D(dataInfo,parameter=parameter,
+#                              tcoord=tcoord, zcoord = zcoord,
+#                              xcoord=xcoord,ycoord=ycoord)
+# 
+# sst$avg <- apply(sst$sst, c(4),function(x) mean(x,na.rm=TRUE))
+# 
+# plot(as.Date(sst$time), scale(sst$avg),
+#      type='b', bg="blue", pch=21, xlab="", cex=.7,
+#      xlim=as.Date(c("2002-01-01","2019-01-01")),
+#      #   ylim=c(10,25),
+#      ylab="sst")
+# 
+# sst_data <- data.frame(date = sst$time, sst = sst$avg)
+# write.csv(sst_data, file = 'sst_data.csv', row.names = F)
+# 
+# #### SST salish?
+# 
+# dataInfo <- rerddap::info('erdMWsstdmday') #about the same? add zcoord if using
+# 
+# parameter <- dataInfo$variable$variable_name
+# 
+# global <- dataInfo$alldata$NC_GLOBAL
+# tt <- global[ global$attribute_name %in% c('time_coverage_end','time_coverage_start'), "value", ]
+# tcoord <- c(tt[2],"last")
+# 
+# sst2 <- rxtracto_3D(dataInfo,parameter=parameter,
+#                    tcoord=tcoord, zcoord = zcoord,
+#                    xcoord=xcoord2,ycoord=ycoord2)
+# 
+# sst2$avg <- apply(sst2$sst, c(4),function(x) mean(x,na.rm=TRUE))
+# 
+# plot(as.Date(sst2$time), scale(sst2$avg),
+#      type='b', bg="blue", pch=21, xlab="", cex=.7,
+#      xlim=as.Date(c("2002-01-01","2019-01-01")),
+#      #   ylim=c(10,25),
+#      ylab="sst")
+# 
+# sst2_data <- data.frame(date = sst2$time, sst = sst2$avg)
+# write.csv(sst2_data, file = 'sst2_data.csv', row.names = F)
 
 #prime prod -- all NAs from this source
 # dataInfo <- rerddap::info('erdMWpp3day')
@@ -179,4 +207,9 @@ copernicus_dat <- vwnd_data %>%
   merge(ssh_data, by = c('year', 'month')) 
 
 write.csv(copernicus_dat, file = 'copernicus_dat.csv', row.names = F)
+
+
+#upwelling and SST from CCIEA program 
+#https://www.integratedecosystemassessment.noaa.gov/regions/california-current/cc-indicator-climate-ocean-drivers
+
 
