@@ -1,0 +1,433 @@
+"Cetacean.Common.Name","Month.of.Observation","Year.of.Observation","cnt_all","mean_all","strand_anom_all"
+"Bairds beaked whale","JAN",2003,1,1,0
+"Bairds beaked whale","APR",2017,1,1,0
+"Bairds beaked whale","MAY",NA,NA,1,NA
+"Bairds beaked whale","AUG",NA,NA,1,NA
+"Bairds beaked whale","NOV",NA,NA,1,NA
+"Blainvilles beaked whale","OCT",2016,1,1,0
+"Bottlenose dolphin","JAN",2011,1,1,0
+"Bottlenose dolphin","JUN",2004,1,1,0
+"Bottlenose dolphin","JUL",2010,1,1,0
+"Cuviers beaked whale","JAN",NA,NA,1,NA
+"Cuviers beaked whale","MAR",NA,NA,1,NA
+"Cuviers beaked whale","APR",NA,NA,1,NA
+"Cuviers beaked whale","MAY",NA,NA,2,NA
+"Cuviers beaked whale","JUL",NA,NA,1,NA
+"Cuviers beaked whale","NOV",NA,NA,1,NA
+"Dalls porpoise","JAN",2000,2,1.25,0.75
+"Dalls porpoise","JAN",2005,1,1.25,-0.25
+"Dalls porpoise","JAN",2004,1,1.25,-0.25
+"Dalls porpoise","FEB",2005,1,1.4,-0.4
+"Dalls porpoise","FEB",2004,1,1.4,-0.4
+"Dalls porpoise","FEB",2003,1,1.4,-0.4
+"Dalls porpoise","FEB",2001,1,1.4,-0.4
+"Dalls porpoise","MAR",2000,1,2,-1
+"Dalls porpoise","MAR",2004,2,2,0
+"Dalls porpoise","MAR",2007,2,2,0
+"Dalls porpoise","APR",2000,4,1.33333333333333,2.66666666666667
+"Dalls porpoise","APR",2005,1,1.33333333333333,-0.333333333333333
+"Dalls porpoise","APR",2019,1,1.33333333333333,-0.333333333333333
+"Dalls porpoise","APR",2009,1,1.33333333333333,-0.333333333333333
+"Dalls porpoise","APR",2006,1,1.33333333333333,-0.333333333333333
+"Dalls porpoise","APR",2013,1,1.33333333333333,-0.333333333333333
+"Dalls porpoise","APR",2011,1,1.33333333333333,-0.333333333333333
+"Dalls porpoise","APR",2002,1,1.33333333333333,-0.333333333333333
+"Dalls porpoise","MAY",2001,1,1.7,-0.7
+"Dalls porpoise","MAY",2003,1,1.7,-0.7
+"Dalls porpoise","MAY",2019,1,1.7,-0.7
+"Dalls porpoise","MAY",2002,3,1.7,1.3
+"Dalls porpoise","MAY",2006,2,1.7,0.3
+"Dalls porpoise","MAY",2004,1,1.7,-0.7
+"Dalls porpoise","MAY",2017,1,1.7,-0.7
+"Dalls porpoise","MAY",2000,1,1.7,-0.7
+"Dalls porpoise","MAY",2005,2,1.7,0.3
+"Dalls porpoise","MAY",2011,1,1.7,-0.7
+"Dalls porpoise","JUN",2005,1,1.16666666666667,-0.166666666666667
+"Dalls porpoise","JUN",2011,1,1.16666666666667,-0.166666666666667
+"Dalls porpoise","JUN",2016,1,1.16666666666667,-0.166666666666667
+"Dalls porpoise","JUL",2015,2,1.44444444444444,0.555555555555556
+"Dalls porpoise","JUL",2004,3,1.44444444444444,1.55555555555556
+"Dalls porpoise","JUL",2003,1,1.44444444444444,-0.444444444444444
+"Dalls porpoise","AUG",2006,1,1.3,-0.3
+"Dalls porpoise","AUG",2005,1,1.3,-0.3
+"Dalls porpoise","AUG",2004,2,1.3,0.7
+"Dalls porpoise","AUG",2019,1,1.3,-0.3
+"Dalls porpoise","AUG",2010,1,1.3,-0.3
+"Dalls porpoise","SEP",2006,1,1.14285714285714,-0.142857142857143
+"Dalls porpoise","SEP",2005,1,1.14285714285714,-0.142857142857143
+"Dalls porpoise","SEP",2009,1,1.14285714285714,-0.142857142857143
+"Dalls porpoise","SEP",2002,1,1.14285714285714,-0.142857142857143
+"Dalls porpoise","SEP",2004,2,1.14285714285714,0.857142857142857
+"Dalls porpoise","SEP",2014,1,1.14285714285714,-0.142857142857143
+"Dalls porpoise","OCT",2004,1,1,0
+"Dalls porpoise","OCT",2001,1,1,0
+"Dalls porpoise","OCT",2007,1,1,0
+"Dalls porpoise","NOV",2005,2,1.28571428571429,0.714285714285714
+"Dalls porpoise","NOV",2003,1,1.28571428571429,-0.285714285714286
+"Dalls porpoise","NOV",2004,1,1.28571428571429,-0.285714285714286
+"Dalls porpoise","DEC",2009,1,1,0
+"Dalls porpoise","DEC",2014,1,1,0
+"Fin whale","JAN",NA,NA,1,NA
+"Fin whale","FEB",NA,NA,1,NA
+"Fin whale","MAR",NA,NA,1,NA
+"Fin whale","APR",2013,1,1,0
+"Fin whale","MAY",2006,1,1,0
+"Fin whale","MAY",2017,1,1,0
+"Fin whale","JUN",NA,NA,1,NA
+"Fin whale","AUG",2002,1,1,0
+"Fin whale","AUG",2009,1,1,0
+"Fin whale","SEP",NA,NA,1,NA
+"Fin whale","OCT",2002,1,1,0
+"Fin whale","NOV",2002,1,1,0
+"Fin whale","NOV",2006,1,1,0
+"Gray whale","JAN",2006,1,1.1,-0.1
+"Gray whale","JAN",2013,1,1.1,-0.1
+"Gray whale","JAN",2010,1,1.1,-0.1
+"Gray whale","JAN",2015,1,1.1,-0.1
+"Gray whale","FEB",2019,1,1.14285714285714,-0.142857142857143
+"Gray whale","FEB",2013,1,1.14285714285714,-0.142857142857143
+"Gray whale","MAR",2017,1,1,0
+"Gray whale","APR",2012,1,2.88888888888889,-1.88888888888889
+"Gray whale","APR",2016,2,2.88888888888889,-0.888888888888889
+"Gray whale","APR",2010,3,2.88888888888889,0.111111111111111
+"Gray whale","APR",2013,1,2.88888888888889,-1.88888888888889
+"Gray whale","APR",2008,1,2.88888888888889,-1.88888888888889
+"Gray whale","APR",2019,1,2.88888888888889,-1.88888888888889
+"Gray whale","APR",2009,3,2.88888888888889,0.111111111111111
+"Gray whale","APR",2007,1,2.88888888888889,-1.88888888888889
+"Gray whale","APR",2000,4,2.88888888888889,1.11111111111111
+"Gray whale","APR",2011,1,2.88888888888889,-1.88888888888889
+"Gray whale","APR",2005,1,2.88888888888889,-1.88888888888889
+"Gray whale","MAY",2015,1,3.625,-2.625
+"Gray whale","MAY",2018,2,3.625,-1.625
+"Gray whale","MAY",2000,4,3.625,0.375
+"Gray whale","MAY",2019,5,3.625,1.375
+"Gray whale","MAY",2005,3,3.625,-0.625
+"Gray whale","MAY",2017,1,3.625,-2.625
+"Gray whale","MAY",2008,1,3.625,-2.625
+"Gray whale","JUN",2000,4,2.92307692307692,1.07692307692308
+"Gray whale","JUN",2006,1,2.92307692307692,-1.92307692307692
+"Gray whale","JUN",2019,1,2.92307692307692,-1.92307692307692
+"Gray whale","JUN",2017,1,2.92307692307692,-1.92307692307692
+"Gray whale","JUN",2009,1,2.92307692307692,-1.92307692307692
+"Gray whale","JUN",2007,1,2.92307692307692,-1.92307692307692
+"Gray whale","JUN",2003,1,2.92307692307692,-1.92307692307692
+"Gray whale","JUN",2001,1,2.92307692307692,-1.92307692307692
+"Gray whale","JUN",2014,1,2.92307692307692,-1.92307692307692
+"Gray whale","JUL",2019,3,1.5,1.5
+"Gray whale","JUL",2005,1,1.5,-0.5
+"Gray whale","JUL",2010,1,1.5,-0.5
+"Gray whale","JUL",2011,1,1.5,-0.5
+"Gray whale","JUL",2006,2,1.5,0.5
+"Gray whale","JUL",2018,1,1.5,-0.5
+"Gray whale","JUL",2003,1,1.5,-0.5
+"Gray whale","AUG",2019,2,1.28571428571429,0.714285714285714
+"Gray whale","AUG",2017,1,1.28571428571429,-0.285714285714286
+"Gray whale","SEP",NA,NA,1,NA
+"Gray whale","OCT",NA,NA,2,NA
+"Gray whale","DEC",2006,1,1.14285714285714,-0.142857142857143
+"Gray whale","DEC",2005,1,1.14285714285714,-0.142857142857143
+"Harbor porpoise","JAN",2000,1,2.13333333333333,-1.13333333333333
+"Harbor porpoise","JAN",2016,1,2.13333333333333,-1.13333333333333
+"Harbor porpoise","JAN",2001,1,2.13333333333333,-1.13333333333333
+"Harbor porpoise","JAN",2019,2,2.13333333333333,-0.133333333333333
+"Harbor porpoise","JAN",2011,1,2.13333333333333,-1.13333333333333
+"Harbor porpoise","JAN",2014,4,2.13333333333333,1.86666666666667
+"Harbor porpoise","JAN",2013,1,2.13333333333333,-1.13333333333333
+"Harbor porpoise","JAN",2002,1,2.13333333333333,-1.13333333333333
+"Harbor porpoise","JAN",2010,2,2.13333333333333,-0.133333333333333
+"Harbor porpoise","JAN",2015,1,2.13333333333333,-1.13333333333333
+"Harbor porpoise","JAN",2007,2,2.13333333333333,-0.133333333333333
+"Harbor porpoise","FEB",2014,1,2.42857142857143,-1.42857142857143
+"Harbor porpoise","FEB",2017,2,2.42857142857143,-0.428571428571428
+"Harbor porpoise","FEB",2016,1,2.42857142857143,-1.42857142857143
+"Harbor porpoise","FEB",2011,2,2.42857142857143,-0.428571428571428
+"Harbor porpoise","FEB",2009,2,2.42857142857143,-0.428571428571428
+"Harbor porpoise","FEB",2004,1,2.42857142857143,-1.42857142857143
+"Harbor porpoise","FEB",2019,2,2.42857142857143,-0.428571428571428
+"Harbor porpoise","FEB",2006,1,2.42857142857143,-1.42857142857143
+"Harbor porpoise","FEB",2013,1,2.42857142857143,-1.42857142857143
+"Harbor porpoise","FEB",2007,1,2.42857142857143,-1.42857142857143
+"Harbor porpoise","MAR",2000,1,3.33333333333333,-2.33333333333333
+"Harbor porpoise","MAR",2016,2,3.33333333333333,-1.33333333333333
+"Harbor porpoise","MAR",2010,4,3.33333333333333,0.666666666666667
+"Harbor porpoise","MAR",2006,1,3.33333333333333,-2.33333333333333
+"Harbor porpoise","MAR",2011,1,3.33333333333333,-2.33333333333333
+"Harbor porpoise","MAR",2001,1,3.33333333333333,-2.33333333333333
+"Harbor porpoise","MAR",2015,1,3.33333333333333,-2.33333333333333
+"Harbor porpoise","MAR",2004,1,3.33333333333333,-2.33333333333333
+"Harbor porpoise","MAR",2009,1,3.33333333333333,-2.33333333333333
+"Harbor porpoise","MAR",2013,2,3.33333333333333,-1.33333333333333
+"Harbor porpoise","MAR",2002,1,3.33333333333333,-2.33333333333333
+"Harbor porpoise","MAR",2018,1,3.33333333333333,-2.33333333333333
+"Harbor porpoise","MAR",2003,1,3.33333333333333,-2.33333333333333
+"Harbor porpoise","MAR",2019,3,3.33333333333333,-0.333333333333333
+"Harbor porpoise","MAR",2012,2,3.33333333333333,-1.33333333333333
+"Harbor porpoise","APR",2007,2,4.3,-2.3
+"Harbor porpoise","APR",2003,1,4.3,-3.3
+"Harbor porpoise","APR",2019,2,4.3,-2.3
+"Harbor porpoise","APR",2018,3,4.3,-1.3
+"Harbor porpoise","APR",2014,1,4.3,-3.3
+"Harbor porpoise","APR",2013,1,4.3,-3.3
+"Harbor porpoise","APR",2016,2,4.3,-2.3
+"Harbor porpoise","APR",2015,1,4.3,-3.3
+"Harbor porpoise","APR",2004,2,4.3,-2.3
+"Harbor porpoise","APR",2012,5,4.3,0.7
+"Harbor porpoise","APR",2001,1,4.3,-3.3
+"Harbor porpoise","APR",2006,5,4.3,0.7
+"Harbor porpoise","APR",2002,1,4.3,-3.3
+"Harbor porpoise","APR",2009,2,4.3,-2.3
+"Harbor porpoise","APR",2005,2,4.3,-2.3
+"Harbor porpoise","APR",2000,1,4.3,-3.3
+"Harbor porpoise","APR",2008,3,4.3,-1.3
+"Harbor porpoise","APR",2011,2,4.3,-2.3
+"Harbor porpoise","APR",2017,3,4.3,-1.3
+"Harbor porpoise","MAY",2013,3,8.6,-5.6
+"Harbor porpoise","MAY",2006,3,8.6,-5.6
+"Harbor porpoise","MAY",2018,1,8.6,-7.6
+"Harbor porpoise","MAY",2012,18,8.6,9.4
+"Harbor porpoise","MAY",2016,3,8.6,-5.6
+"Harbor porpoise","MAY",2001,7,8.6,-1.6
+"Harbor porpoise","MAY",2014,12,8.6,3.4
+"Harbor porpoise","MAY",2011,3,8.6,-5.6
+"Harbor porpoise","MAY",2015,4,8.6,-4.6
+"Harbor porpoise","MAY",2019,4,8.6,-4.6
+"Harbor porpoise","MAY",2003,13,8.6,4.4
+"Harbor porpoise","MAY",2004,2,8.6,-6.6
+"Harbor porpoise","MAY",2017,3,8.6,-5.6
+"Harbor porpoise","MAY",2010,7,8.6,-1.6
+"Harbor porpoise","MAY",2005,6,8.6,-2.6
+"Harbor porpoise","MAY",2002,2,8.6,-6.6
+"Harbor porpoise","JUN",2019,4,5.66666666666667,-1.66666666666667
+"Harbor porpoise","JUN",2013,2,5.66666666666667,-3.66666666666667
+"Harbor porpoise","JUN",2018,1,5.66666666666667,-4.66666666666667
+"Harbor porpoise","JUN",2006,2,5.66666666666667,-3.66666666666667
+"Harbor porpoise","JUN",2016,1,5.66666666666667,-4.66666666666667
+"Harbor porpoise","JUN",2017,1,5.66666666666667,-4.66666666666667
+"Harbor porpoise","JUN",2010,1,5.66666666666667,-4.66666666666667
+"Harbor porpoise","JUN",2005,1,5.66666666666667,-4.66666666666667
+"Harbor porpoise","JUN",2007,1,5.66666666666667,-4.66666666666667
+"Harbor porpoise","JUN",2009,1,5.66666666666667,-4.66666666666667
+"Harbor porpoise","JUN",2015,1,5.66666666666667,-4.66666666666667
+"Harbor porpoise","JUN",2012,5,5.66666666666667,-0.666666666666667
+"Harbor porpoise","JUN",2002,2,5.66666666666667,-3.66666666666667
+"Harbor porpoise","JUN",2014,3,5.66666666666667,-2.66666666666667
+"Harbor porpoise","JUN",2011,2,5.66666666666667,-3.66666666666667
+"Harbor porpoise","JUL",2017,4,13.7368421052632,-9.73684210526316
+"Harbor porpoise","JUL",2007,1,13.7368421052632,-12.7368421052632
+"Harbor porpoise","JUL",2015,5,13.7368421052632,-8.73684210526316
+"Harbor porpoise","JUL",2005,4,13.7368421052632,-9.73684210526316
+"Harbor porpoise","JUL",2006,3,13.7368421052632,-10.7368421052632
+"Harbor porpoise","JUL",2011,7,13.7368421052632,-6.73684210526316
+"Harbor porpoise","JUL",2003,5,13.7368421052632,-8.73684210526316
+"Harbor porpoise","JUL",2014,5,13.7368421052632,-8.73684210526316
+"Harbor porpoise","JUL",2009,5,13.7368421052632,-8.73684210526316
+"Harbor porpoise","JUL",2010,2,13.7368421052632,-11.7368421052632
+"Harbor porpoise","JUL",2012,5,13.7368421052632,-8.73684210526316
+"Harbor porpoise","JUL",2004,2,13.7368421052632,-11.7368421052632
+"Harbor porpoise","JUL",2008,7,13.7368421052632,-6.73684210526316
+"Harbor porpoise","JUL",2001,2,13.7368421052632,-11.7368421052632
+"Harbor porpoise","JUL",2013,5,13.7368421052632,-8.73684210526316
+"Harbor porpoise","JUL",2016,4,13.7368421052632,-9.73684210526316
+"Harbor porpoise","JUL",2018,2,13.7368421052632,-11.7368421052632
+"Harbor porpoise","JUL",2019,4,13.7368421052632,-9.73684210526316
+"Harbor porpoise","AUG",2015,7,9.1,-2.1
+"Harbor porpoise","AUG",2007,3,9.1,-6.1
+"Harbor porpoise","AUG",2005,3,9.1,-6.1
+"Harbor porpoise","AUG",2018,11,9.1,1.9
+"Harbor porpoise","AUG",2000,2,9.1,-7.1
+"Harbor porpoise","AUG",2002,2,9.1,-7.1
+"Harbor porpoise","AUG",2006,9,9.1,-0.0999999999999996
+"Harbor porpoise","AUG",2003,1,9.1,-8.1
+"Harbor porpoise","AUG",2011,1,9.1,-8.1
+"Harbor porpoise","AUG",2013,3,9.1,-6.1
+"Harbor porpoise","AUG",2012,6,9.1,-3.1
+"Harbor porpoise","AUG",2014,6,9.1,-3.1
+"Harbor porpoise","AUG",2017,5,9.1,-4.1
+"Harbor porpoise","AUG",2004,1,9.1,-8.1
+"Harbor porpoise","AUG",2016,4,9.1,-5.1
+"Harbor porpoise","AUG",2001,1,9.1,-8.1
+"Harbor porpoise","AUG",2019,8,9.1,-1.1
+"Harbor porpoise","AUG",2010,4,9.1,-5.1
+"Harbor porpoise","AUG",2009,9,9.1,-0.0999999999999996
+"Harbor porpoise","SEP",2016,4,4.8125,-0.8125
+"Harbor porpoise","SEP",2012,6,4.8125,1.1875
+"Harbor porpoise","SEP",2009,5,4.8125,0.1875
+"Harbor porpoise","SEP",2014,5,4.8125,0.1875
+"Harbor porpoise","SEP",2004,1,4.8125,-3.8125
+"Harbor porpoise","SEP",2010,2,4.8125,-2.8125
+"Harbor porpoise","SEP",2011,4,4.8125,-0.8125
+"Harbor porpoise","SEP",2008,2,4.8125,-2.8125
+"Harbor porpoise","SEP",2006,5,4.8125,0.1875
+"Harbor porpoise","SEP",2015,3,4.8125,-1.8125
+"Harbor porpoise","SEP",2019,2,4.8125,-2.8125
+"Harbor porpoise","SEP",2017,3,4.8125,-1.8125
+"Harbor porpoise","SEP",2013,1,4.8125,-3.8125
+"Harbor porpoise","SEP",2018,1,4.8125,-3.8125
+"Harbor porpoise","OCT",2011,2,4.26666666666667,-2.26666666666667
+"Harbor porpoise","OCT",2012,4,4.26666666666667,-0.266666666666667
+"Harbor porpoise","OCT",2007,5,4.26666666666667,0.733333333333333
+"Harbor porpoise","OCT",2018,7,4.26666666666667,2.73333333333333
+"Harbor porpoise","OCT",2017,2,4.26666666666667,-2.26666666666667
+"Harbor porpoise","OCT",2009,4,4.26666666666667,-0.266666666666667
+"Harbor porpoise","OCT",2008,3,4.26666666666667,-1.26666666666667
+"Harbor porpoise","OCT",2016,5,4.26666666666667,0.733333333333333
+"Harbor porpoise","OCT",2015,5,4.26666666666667,0.733333333333333
+"Harbor porpoise","OCT",2014,1,4.26666666666667,-3.26666666666667
+"Harbor porpoise","OCT",2013,2,4.26666666666667,-2.26666666666667
+"Harbor porpoise","OCT",2019,3,4.26666666666667,-1.26666666666667
+"Harbor porpoise","OCT",2010,4,4.26666666666667,-0.266666666666667
+"Harbor porpoise","NOV",2012,6,2.33333333333333,3.66666666666667
+"Harbor porpoise","NOV",2003,1,2.33333333333333,-1.33333333333333
+"Harbor porpoise","NOV",2015,3,2.33333333333333,0.666666666666667
+"Harbor porpoise","NOV",2005,1,2.33333333333333,-1.33333333333333
+"Harbor porpoise","NOV",2017,3,2.33333333333333,0.666666666666667
+"Harbor porpoise","NOV",2013,2,2.33333333333333,-0.333333333333333
+"Harbor porpoise","NOV",2016,1,2.33333333333333,-1.33333333333333
+"Harbor porpoise","NOV",2010,1,2.33333333333333,-1.33333333333333
+"Harbor porpoise","NOV",2006,1,2.33333333333333,-1.33333333333333
+"Harbor porpoise","DEC",2014,1,2.38461538461538,-1.38461538461538
+"Harbor porpoise","DEC",2008,1,2.38461538461538,-1.38461538461538
+"Harbor porpoise","DEC",2017,1,2.38461538461538,-1.38461538461538
+"Harbor porpoise","DEC",2018,2,2.38461538461538,-0.384615384615385
+"Harbor porpoise","DEC",2010,1,2.38461538461538,-1.38461538461538
+"Harbor porpoise","DEC",2001,2,2.38461538461538,-0.384615384615385
+"Harbor porpoise","DEC",2013,3,2.38461538461538,0.615384615384615
+"Harbor porpoise","DEC",2015,2,2.38461538461538,-0.384615384615385
+"Harbor porpoise","DEC",2012,1,2.38461538461538,-1.38461538461538
+"Harbor porpoise","DEC",2016,4,2.38461538461538,1.61538461538462
+"Harbor porpoise",NA,2018,3,1.5,1.5
+"Harbor porpoise",NA,2011,1,1.5,-0.5
+"Humpback whale","JAN",NA,NA,1,NA
+"Humpback whale","FEB",NA,NA,1,NA
+"Humpback whale","MAR",2017,1,1,0
+"Humpback whale","APR",NA,NA,1,NA
+"Humpback whale","MAY",2013,1,1,0
+"Humpback whale","MAY",2019,1,1,0
+"Humpback whale","JUN",2016,1,1,0
+"Humpback whale","JUN",2008,1,1,0
+"Humpback whale","JUL",2008,1,1,0
+"Humpback whale","JUL",2017,1,1,0
+"Humpback whale","JUL",2004,1,1,0
+"Humpback whale","JUL",2018,1,1,0
+"Humpback whale","AUG",2016,1,1.22222222222222,-0.222222222222222
+"Humpback whale","AUG",2008,2,1.22222222222222,0.777777777777778
+"Humpback whale","SEP",2018,1,1.2,-0.2
+"Humpback whale","OCT",NA,NA,1,NA
+"Humpback whale","NOV",NA,NA,1.33333333333333,NA
+"Humpback whale","DEC",2015,1,1,0
+"Humpback whale",NA,2018,1,1,0
+"Hybrid","MAY",2011,1,1,0
+"Hybrid","DEC",2007,1,1,0
+"Killer whale","JAN",2013,1,1.33333333333333,-0.333333333333333
+"Killer whale","JAN",2016,1,1.33333333333333,-0.333333333333333
+"Killer whale","JAN",2002,2,1.33333333333333,0.666666666666667
+"Killer whale","FEB",NA,NA,1,NA
+"Killer whale","APR",NA,NA,1,NA
+"Killer whale","MAY",2016,1,1,0
+"Killer whale","JUN",2010,1,1,0
+"Killer whale","JUL",2018,1,1,0
+"Killer whale","JUL",2008,1,1,0
+"Killer whale","AUG",2015,1,1,0
+"Killer whale","SEP",2010,1,1,0
+"Killer whale","NOV",NA,NA,1,NA
+"Killer whale","DEC",NA,NA,1,NA
+"Long-beaked common dolphin","JAN",NA,NA,1,NA
+"Long-beaked common dolphin","MAR",2012,1,1.5,-0.5
+"Long-beaked common dolphin","SEP",2017,1,1,0
+"Long-beaked common dolphin","OCT",NA,NA,1,NA
+"Long-beaked common dolphin","NOV",NA,NA,1,NA
+"Long-beaked common dolphin","DEC",NA,NA,1,NA
+"Minke whale","JAN",NA,NA,1,NA
+"Minke whale","MAR",NA,NA,1,NA
+"Minke whale","MAY",NA,NA,1,NA
+"Minke whale","AUG",2006,1,1,0
+"Minke whale","SEP",2014,1,1,0
+"Northern right whale dolphin","JAN",NA,NA,1,NA
+"Northern right whale dolphin","FEB",NA,NA,1,NA
+"Northern right whale dolphin","APR",NA,NA,1,NA
+"Northern right whale dolphin","MAY",NA,NA,1,NA
+"Northern right whale dolphin","JUN",NA,NA,1,NA
+"Northern right whale dolphin","JUL",NA,NA,1,NA
+"Northern right whale dolphin","DEC",NA,NA,1,NA
+"Other","JAN",2010,1,1,0
+"Other","APR",NA,NA,1,NA
+"Other","JUL",2010,1,1,0
+"Other","AUG",2002,1,1,0
+"Other","SEP",2003,1,1,0
+"Other","NOV",NA,NA,1,NA
+"Other","DEC",2010,1,1,0
+"Pacific white-sided dolphin","JAN",NA,NA,1.5,NA
+"Pacific white-sided dolphin","FEB",NA,NA,1,NA
+"Pacific white-sided dolphin","MAR",2014,1,1.5,-0.5
+"Pacific white-sided dolphin","MAY",NA,NA,1.2,NA
+"Pacific white-sided dolphin","JUN",2018,1,1.4,-0.4
+"Pacific white-sided dolphin","JUN",2017,1,1.4,-0.4
+"Pacific white-sided dolphin","AUG",NA,NA,1,NA
+"Pacific white-sided dolphin","OCT",NA,NA,1,NA
+"Pacific white-sided dolphin","NOV",NA,NA,1,NA
+"Pacific white-sided dolphin","DEC",NA,NA,1,NA
+"Pygmy sperm whale","JAN",NA,NA,1,NA
+"Pygmy sperm whale","FEB",NA,NA,1,NA
+"Pygmy sperm whale","SEP",NA,NA,1,NA
+"Pygmy sperm whale","NOV",2005,1,1.5,-0.5
+"Rissos","MAR",2015,1,1,0
+"Rissos","APR",NA,NA,1,NA
+"Rissos","SEP",NA,NA,1,NA
+"Rissos","OCT",NA,NA,1,NA
+"Rissos","NOV",NA,NA,2,NA
+"Short-beaked common dolphin","JAN",NA,NA,1,NA
+"Short-beaked common dolphin","FEB",NA,NA,1,NA
+"Short-beaked common dolphin","MAR",NA,NA,1,NA
+"Short-beaked common dolphin","APR",NA,NA,1,NA
+"Short-beaked common dolphin","SEP",NA,NA,1,NA
+"Short-beaked common dolphin","OCT",NA,NA,1.33333333333333,NA
+"Short-beaked common dolphin","NOV",2014,1,1,0
+"Short-beaked common dolphin","DEC",NA,NA,1,NA
+"Sperm whale","JAN",NA,NA,1,NA
+"Sperm whale","FEB",2018,1,1.2,-0.2
+"Sperm whale","MAR",NA,NA,1.2,NA
+"Sperm whale","MAY",NA,NA,1,NA
+"Sperm whale","JUN",NA,NA,1,NA
+"Sperm whale","SEP",NA,NA,1,NA
+"Sperm whale","OCT",NA,NA,1,NA
+"Sperm whale","DEC",2012,1,1,0
+"Sperm whale",NA,2008,1,1,0
+"Stejnegers beaked whale","FEB",NA,NA,1,NA
+"Stejnegers beaked whale","MAR",NA,NA,1,NA
+"Stejnegers beaked whale","APR",NA,NA,1,NA
+"Stejnegers beaked whale","MAY",NA,NA,2,NA
+"Stejnegers beaked whale","JUN",NA,NA,1,NA
+"Striped dolphin","JAN",NA,NA,2,NA
+"Striped dolphin","FEB",NA,NA,2,NA
+"Striped dolphin","MAR",2014,1,2.2,-1.2
+"Striped dolphin","APR",NA,NA,1.33333333333333,NA
+"Striped dolphin","JUL",2012,1,1.5,-0.5
+"Striped dolphin","AUG",NA,NA,1,NA
+"Striped dolphin","SEP",NA,NA,1,NA
+"Striped dolphin","OCT",NA,NA,2,NA
+"Striped dolphin","NOV",NA,NA,1.8,NA
+"Striped dolphin","DEC",NA,NA,1.66666666666667,NA
+"Unidentified","JAN",2007,2,1.125,0.875
+"Unidentified","FEB",2012,1,1,0
+"Unidentified","MAR",NA,NA,1,NA
+"Unidentified","APR",2017,1,1.2,-0.2
+"Unidentified","MAY",2005,1,1.66666666666667,-0.666666666666667
+"Unidentified","MAY",2010,1,1.66666666666667,-0.666666666666667
+"Unidentified","MAY",2013,1,1.66666666666667,-0.666666666666667
+"Unidentified","MAY",2007,1,1.66666666666667,-0.666666666666667
+"Unidentified","MAY",2004,1,1.66666666666667,-0.666666666666667
+"Unidentified","JUN",2011,1,1.375,-0.375
+"Unidentified","JUN",2003,1,1.375,-0.375
+"Unidentified","JUL",NA,NA,1.57142857142857,NA
+"Unidentified","AUG",2004,1,1.125,-0.125
+"Unidentified","AUG",2015,1,1.125,-0.125
+"Unidentified","AUG",2007,1,1.125,-0.125
+"Unidentified","AUG",2017,1,1.125,-0.125
+"Unidentified","SEP",2004,2,1.16666666666667,0.833333333333333
+"Unidentified","SEP",2014,1,1.16666666666667,-0.166666666666667
+"Unidentified","SEP",2010,1,1.16666666666667,-0.166666666666667
+"Unidentified","OCT",2001,1,1,0
+"Unidentified","NOV",2005,1,1,0
+"Unidentified","DEC",2004,1,1,0
+"Unidentified",NA,2018,1,1,0

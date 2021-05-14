@@ -60,11 +60,11 @@ cetaceans <- read.csv(here::here('PNW Strands Manuscript', "cetacean_data_Cleani
 cetaceans$Age.Class <- factor(cetaceans$Age.Class,
           levels = c("Calf", "Yearling", "Subadult", "Adult", "Unid", "NA"))
 
-ocean <- read.csv("ocean_full_cet.csv", header = TRUE, na.strings = "NA", stringsAsFactors = FALSE) 
+# ocean <- read.csv("ocean_full_cet.csv", header = TRUE, na.strings = "NA", stringsAsFactors = FALSE) 
 
-fish <- read.csv("fish_full.csv", header = TRUE, na.strings = "NA", stringsAsFactors = FALSE) %>%
-  transform(Date = as.Date(Date, format = "%m/%d/%y")) #%>%
-  #dplyr::select(-c(CBA_North, CBA_South))
+# fish <- read.csv("fish_full.csv", header = TRUE, na.strings = "NA", stringsAsFactors = FALSE) %>%
+#   transform(Date = as.Date(Date, format = "%m/%d/%y")) #%>%
+#   #dplyr::select(-c(CBA_North, CBA_South))
 
 #Full data set
 cetaceans_ocean <- cetaceans %>%
@@ -113,9 +113,9 @@ month_table <- cetaceans %>%
 
 sum(is.na(cetaceans$National.Database.Number))
 
-write.csv(year_table, 'year_table_stephanie.csv')
-write.csv(tot_table, 'tot_table_stephanie.csv')
-write.csv(month_table, 'month_table_stephanie.csv')
+# write.csv(year_table, 'year_table_stephanie.csv')
+# write.csv(tot_table, 'tot_table_stephanie.csv')
+# write.csv(month_table, 'month_table_stephanie.csv')
 
 state <- cetaceans %>%
   group_by(State) %>%
@@ -331,9 +331,10 @@ monthly_mean_all <- cetaceans_ocean %>%
   #filter(Observation.Status == 'ALIVE' | Observation.Status == 'FRESH DEAD') %>%
   #filter(Water.Body != 'Inland_WA') %>%
   group_by(Month.of.Observation, Year.of.Observation, Cetacean.Common.Name) %>%
-  dplyr::summarize(cnt_all = n_distinct(National.Database.Number)) %>%
+  dplyr::summarize(cnt_all = n_distinct(National.Database.Number), .groups = 'keep') %>%
+    # dplyr::summarize(cnt_all = n()) %>%
   group_by(Cetacean.Common.Name, Month.of.Observation) %>%
-  dplyr::summarize(mean_all = mean(cnt_all))
+  dplyr::summarize(mean_all = mean(cnt_all), .groups = 'keep')
 
 #***Anomalies dataframe, monthly separate species
 monthly_anom <- cetaceans_ocean %>%
@@ -341,11 +342,37 @@ monthly_anom <- cetaceans_ocean %>%
   #filter(Water.Body != 'Inland_WA') %>%
   #filter(Cetacean.Common.Name != 'NA' | !is.na(Cetacean.Common.Name)) %>%
   group_by(Year.of.Observation, Month.of.Observation, Cetacean.Common.Name) %>%
-  dplyr::summarize(cnt_all = n_distinct(National.Database.Number)) %>%
+  dplyr::summarize(cnt_all = n_distinct(National.Database.Number), .groups = 'keep') %>%
+  # dplyr::summarize(cnt_all = n()) %>%
   merge(monthly_mean_all, by = c('Cetacean.Common.Name', 'Month.of.Observation'), all = T) %>%
-  transform(strand_anom_all = cnt_all - mean_all) %>%
-  merge(ocean, by = c('Year.of.Observation', 'Month.of.Observation'), all = T) #%>%
+  transform(strand_anom_all = cnt_all - mean_all) #%>%
+  # merge(ocean, by = c('Year.of.Observation', 'Month.of.Observation'), all = T) #%>%
   # merge(fish, by = c('Year.of.Observation', 'Month.of.Observation'), all = T)
+
+monthly_anom_inland <- cetaceans_ocean %>%
+  #filter(Observation.Status == 'ALIVE' | Observation.Status == 'FRESH DEAD') %>%
+  filter(Water.Body == 'Inland_WA') %>%
+  #filter(Cetacean.Common.Name != 'NA' | !is.na(Cetacean.Common.Name)) %>%
+  group_by(Year.of.Observation, Month.of.Observation, Cetacean.Common.Name) %>%
+  dplyr::summarize(cnt_all = n_distinct(National.Database.Number), .groups = 'keep') %>%
+  # dplyr::summarize(cnt_all = n()) %>%
+  merge(monthly_mean_all, by = c('Cetacean.Common.Name', 'Month.of.Observation'), all = T) %>%
+  transform(strand_anom_all = cnt_all - mean_all) #%>%
+  # merge(ocean, by = c('Year.of.Observation', 'Month.of.Observation'), all = T) #%>%
+  # merge(fish, by = c('Year.of.Observation', 'Month.of.Observation'), all = T)
+
+monthly_anom_OC <- cetaceans_ocean %>%
+  #filter(Observation.Status == 'ALIVE' | Observation.Status == 'FRESH DEAD') %>%
+  filter(Water.Body != 'Inland_WA') %>%
+  #filter(Cetacean.Common.Name != 'NA' | !is.na(Cetacean.Common.Name)) %>%
+  group_by(Year.of.Observation, Month.of.Observation, Cetacean.Common.Name) %>%
+  dplyr::summarize(cnt_all = n_distinct(National.Database.Number), .groups = 'keep') %>%
+  # dplyr::summarize(cnt_all = n()) %>%
+  merge(monthly_mean_all, by = c('Cetacean.Common.Name', 'Month.of.Observation'), all = T) %>%
+  transform(strand_anom_all = cnt_all - mean_all) #%>%
+  # merge(ocean, by = c('Year.of.Observation', 'Month.of.Observation'), all = T) #%>%
+  # merge(fish, by = c('Year.of.Observation', 'Month.of.Observation'), all = T)
+
 
 #Monthly separate species from above, melted, simplifying variables for plotting
 monthly_anom_melt <- monthly_anom %>%
@@ -471,6 +498,8 @@ write.csv(monthly_anom, "monthly_anom.csv", row.names = F)
 #setwd("~/Documents/SAFS/Courses/WIN_19/FSH507/StrandingsProject")
 setwd("~/Documents/Research/Cet_Strandings/PNW Strands Manuscript")
 write.csv(monthly_anom, "monthly_anom_cet.csv", row.names = F)
+write.csv(monthly_anom_inland, "monthly_anom_cet_inland.csv", row.names = F)
+write.csv(monthly_anom_OC, "monthly_anom_cet_OC.csv", row.names = F)
 
 #write.csv(monthly_anom_melt, "monthly_anom_melt.csv", row.names = F)
 
@@ -528,12 +557,12 @@ seas <- cetaceans_ocean %>%
 
 all_cnt <- cetaceans_ocean %>%
   group_by(Year.of.Observation) %>%
-  dplyr::summarize(cnt = n_distinct(National.Database.Number))
+  dplyr::summarize(cnt = n_distinct(National.Database.Number), .groups = 'keep')
 
 reg_HI <- cetaceans_ocean %>%
   filter(Findings.of.Human.Interaction == 'Y') %>%
   group_by(Year.of.Observation, Water.Body) %>%
-  dplyr::summarize(cnt = n_distinct(National.Database.Number)) 
+  dplyr::summarize(cnt = n_distinct(National.Database.Number), .groups = 'keep') 
 
 sp_HI <- cetaceans_ocean %>%
   filter(Findings.of.Human.Interaction == 'Y') %>%
@@ -541,7 +570,7 @@ sp_HI <- cetaceans_ocean %>%
            c('Harbor porpoise', 'Gray whale', 'Humpback whale', 'Striped dolphin', 
              'Dalls porpoise', 'Pacific white-sided dolphin')) %>%
   group_by(Year.of.Observation, Cetacean.Common.Name) %>%
-  dplyr::summarize(cnt = n_distinct(National.Database.Number)) %>%
+  dplyr::summarize(cnt = n_distinct(National.Database.Number), .groups = 'keep') %>%
   transform(Cetacean.Common.Name = factor(Cetacean.Common.Name, 
             levels = c('Harbor porpoise', 'Striped dolphin', 'Dalls porpoise', 
                        'Pacific white-sided dolphin', 'Gray whale', 'Humpback whale'),
@@ -553,7 +582,7 @@ spec_cnt <- cetaceans_ocean %>%
            c('Harbor porpoise', 'Gray whale', 'Humpback whale', 'Striped dolphin', 
              'Dalls porpoise', 'Pacific white-sided dolphin')) %>%
   group_by(Year.of.Observation, Cetacean.Common.Name) %>%
-  dplyr::summarize(cnt = n_distinct(National.Database.Number)) %>%
+  dplyr::summarize(cnt = n_distinct(National.Database.Number), .groups = 'keep') %>%
   # transform(grp = ifelse(Cetacean.Common.Name == 'Harbor porpoise', 1, 2)) %>%
   transform(Cetacean.Common.Name = factor(Cetacean.Common.Name, 
             levels = c('Harbor porpoise', 'Gray whale', 'Striped dolphin', 'Dalls porpoise', 

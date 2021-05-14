@@ -91,7 +91,7 @@ color_seas <- c("#a3d39c", "#e45f56", "#f6b61c", "#6ea3ec")
 
 setwd("~/Documents/Research/Cet_Strandings/PNW Strands Manuscript")
 
-cetaceans <- read.csv("cetacean_data_CleaningOuput10_25_20updated.csv", header = TRUE, na.strings = "", 
+cetaceans <- read.csv("cetacean_data_CleaningOuput5_13_21updated.csv", header = TRUE, na.strings = "", 
                       stringsAsFactors = FALSE) %>% 
   transform(Season = ifelse(Month.of.Observation %in% c('DEC', 'JAN', 'FEB'), 'Winter',
                         ifelse(Month.of.Observation %in% c('MAR', 'APR', 'MAY'), 'Spring',
@@ -126,18 +126,21 @@ cetaceans_mapping <- cetaceans %>%
             long_corr = as.numeric(long_corr),
             lat_corr = as.numeric(lat_corr)) 
 sum(is.na(cetaceans$long_corr))
+sum(is.na(cetaceans$Latitude))
 
 # weight_sp <- cetaceans %>%
 #   filter(Cetacean.Common.Name != 'Unidentified') %>%
 #    group_by(Cetacean.Common.Name) %>%
 #   dplyr::summarize(weight = n()/nrow(cetaceans))
 
-cetaceans_mapping_sp <- cetaceans_mapping %>% filter(sci_name != 'NA NA') 
+cetaceans_mapping_sp <- cetaceans_mapping %>% 
+  dplyr::select(-Additional.Remarks) %>%
+  filter(sci_name != 'NA NA') 
 #%>%
   #merge(weight_sp, by = 'Cetacean.Common.Name')
 
 test <- cetaceans_mapping_sp %>% group_by(sci_name) %>%
-  summarize(cnt = n_distinct(National.Database.Number))
+  dplyr::summarize(cnt = n_distinct(National.Database.Number))
 
 cetaceans_mapping_sp_small <- cetaceans_mapping_sp %>%
   merge(test, by = 'sci_name') %>%
@@ -146,11 +149,13 @@ cetaceans_mapping_sp_small <- cetaceans_mapping_sp %>%
 cetaceans_mapping_sp_smaller <- cetaceans_mapping_sp_small %>%
   filter(Cetacean.Common.Name %in% c('Harbor porpoise', 'Gray whale', 'Humpback whale', 'Striped dolphin', 'Dalls porpoise'))
 
-# cetaceans_mapping_HI <- cetaceans_mapping %>% 
-#   filter(Findings.of.Human.Interaction == 'Y')
+latlongs <- cetaceans_mapping_sp_small %>%
+  dplyr::select(Nmfs.Regional.Number, Field.Number, Affiliation, 
+                Locality.Detail, Latitude, Longitude, Observation.Date, Lat_error, Long_error,
+                lat_corr, long_corr)
 
 #state outline
-canada <- map_data("world", region = "Canada") %>%
+canada <- map_data(map = "world", region = "Canada") %>%
   filter(lat > 41.6 & lat < 52) %>%
   filter(long > -131 & long < -112) 
 
@@ -161,17 +166,36 @@ pnw_state_outline <- map_data("state", region = c("oregon", "washington")) %>%
 
 ```{r static maps}
 
-strands_species <- ggplot(pnw_state_outline) +
+#lat/long checking
+ggplot(pnw_state_outline) +
+geom_polygon(aes(x = long, y = lat, group = group), fill = "grey93", color = "grey50", size = 0.2) + 
+  coord_fixed(1, ylim = c(42.3, 49.15), xlim = c(-125, -121.8)) + 
+  geom_point(data = cetaceans_mapping_sp_small %>% 
+               filter(Cetacean.Common.Name == 'Harbor porpoise'),
+             # aes(x = long_corr, y = lat_corr), col = 'grey40', size = 0.05, alpha = 1)  +
+               aes(x = Longitude, y = Latitude), col = 'grey40', size = 0.05, alpha = 1)  +
+  facet_wrap(~ Cetacean.Common.Name, strip.position = "right") +
+  theme_classic() +
+   theme(plot.margin = unit(c(0, -5, 0, -5), "mm"),
+    axis.line = element_blank(),
+    strip.text = element_text(size = 8),
+    strip.background = element_blank(),
+    legend.title = element_blank(),
+    legend.text = element_text(size = 16),
+    panel.border = element_rect(colour = "black", fill = NA, size = 1)) +
+  scale_color_manual(values = c("black", "red"))
+
+ggplot(pnw_state_outline) +
 geom_polygon(aes(x = long, y = lat, group = group), fill = "grey93", color = "grey50", size = 0.2) + 
   coord_fixed(1, ylim = c(42.3, 49.15), xlim = c(-125, -121.8)) + 
   geom_point(data = cetaceans_mapping_sp_small,
-             aes(x = long_corr, y = lat_corr), col = 'grey40', size = 0.05, alpha = 1)  +
-  # geom_density2d(data = cetaceans_mapping_sp_small %>% filter(Findings.of.Human.Interaction == 'Y'), aes(x = long_corr, y = lat_corr, col = 'HI cases'), bins = 3, size = .5) +
+             # aes(x = long_corr, y = lat_corr), col = 'grey40', size = 0.05, alpha = 1)  +
+                 aes(x = Longitude, y = Latitude), col = 'grey40', size = 0.05, alpha = 1)  +
   geom_density2d(data = cetaceans_mapping_sp_small, 
-                 aes(x = long_corr, y = lat_corr), col = 'black', bins = 3, size = .5) +  
+                 aes(x = Longitude, y = Latitude), col = 'black', bins = 3, size = .5) +  
   #scale_alpha(range = c(0, 0.1), guide = FALSE) +
   xlab("") + ylab("") +
-  facet_wrap(~ Cetacean.Common.Name, strip.position = "right") +
+  # facet_wrap(~ Cetacean.Common.Name, strip.position = "right") +
   theme_classic() +
    theme(plot.margin = unit(c(0, -5, 0, -5), "mm"),
     axis.line = element_blank(),
@@ -209,16 +233,20 @@ ggsave(file = 'strands_species.png', strands_species, device = 'png', height = 8
 # 
 # ggsave(file = 'strands_species_seas1.png', strands_species_seas1, device = 'png', height = 8.5, width = 11, units = 'in', dpi = 1000)
 
-strands_species_seas_all <- ggplot(pnw_state_outline) +
+ggplot(pnw_state_outline) +
 geom_polygon(aes(x = long, y = lat, group = group), fill = "grey93", color = "grey50", size = 0.2) + 
   coord_fixed(1, ylim = c(42.3, 49.15), xlim = c(-125, -121.8)) + 
-  geom_point(data = cetaceans_mapping_sp_smaller,
-           aes(x = long_corr, y = lat_corr), col = 'grey40', size = 1, alpha = 1)  +
-  geom_density2d(data = cetaceans_mapping_sp_smaller,
-aes(x = long_corr, y = lat_corr), col = 'black', bins = 3, size = .5) +  
-  #scale_alpha(range = c(0, 0.1), guide = FALSE) +
+  geom_point(data = cetaceans_mapping_sp_smaller %>% filter(Cetacean.Common.Name == 'Harbor porpoise'),
+           aes(x = Longitude, y = Latitude), col = 'grey40', size = 0.3, alpha = 1)  +
+  geom_density2d(data = cetaceans_mapping_sp_smaller, 
+                 # contour_var="ndensity",
+                 # position = 'identity',
+aes(x = Longitude, y = Latitude), col = 'darkred', bins = 3, size = 1) +
+  # stat_density2d(data = cetaceans_mapping_sp_smaller,
+  #                aes(x = Longitude, y = Latitude, fill = stat(level)), geom="polygon") +
+scale_alpha(range = c(0, 0.1), guide = FALSE) +
   xlab("") + ylab("") +
-  facet_grid(Cetacean.Common.Name ~ Season) +
+  # facet_grid(Cetacean.Common.Name ~ Season) +
   theme_classic() +
    theme(plot.margin = unit(c(0, -5, 0, -5), "mm"),
     axis.line = element_blank(),
@@ -484,12 +512,18 @@ hp_data <- read.csv("HP_data_CleaningOuput10_25_20updated.csv", header = TRUE, n
 hp_map <- hp_data %>% 
   filter(Cetacean.Common.Name == 'Harbor porpoise' & State == 'WA') %>%
   filter(HI %in% c('Confirmed', 'Probable', 'Possible')) %>%
-  dplyr::select(Cetacean.Common.Name, County, Region, HI, State, Latitude, Longitude, lat_corr, long_corr, Water.Body, Body.of.Water, Year.of.Observation, Age.Class, Sex, Findings.of.Human.Interaction, Month.of.Observation)
+  dplyr::select(Cetacean.Common.Name, County, Region, HI, State, Latitude, Longitude, lat_corr, long_corr, Water.Body, Body.of.Water, Year.of.Observation, Age.Class, Sex, Findings.of.Human.Interaction, Month.of.Observation) %>%
+   transform(Season = 
+        ifelse(Month.of.Observation == 'DEC' | Month.of.Observation == 'JAN' | Month.of.Observation == 'FEB', 'Winter', 
+        ifelse(Month.of.Observation == 'MAR' | Month.of.Observation == 'APR' | Month.of.Observation == 'MAY', 'Spring', 
+        ifelse(Month.of.Observation == 'JUN' | Month.of.Observation == 'JUL' | Month.of.Observation == 'AUG', 'Summer', 'Fall'))))
 
+write.csv(hp_map, 'hp_map_forDebbie.csv')
+
+#hp HI
 ggplot(pnw_state_outline) +
 geom_polygon(aes(x = long, y = lat, group = group), fill = "grey93", color = "grey50", size = 0.2) +
   coord_fixed(1, ylim = c(45.8, 49.15), xlim = c(-125, -121.8)) +
-  # geom_point(data = hp_map, aes(x = Longitude, y = Latitude), color = 'grey50', size = 0.2, alpha = 0.8)  +
   geom_point(data = hp_map, aes(x = Longitude, y = Latitude, color = HI), size = 0.8, alpha = 0.8)  +
   geom_density2d(data = hp_map, aes(x = Longitude, y = Latitude), col = "black", bins = 3) +
   xlab("") + ylab("") +
@@ -509,18 +543,68 @@ geom_polygon(aes(x = long, y = lat, group = group), fill = "grey93", color = "gr
     panel.border = element_rect(colour = "black", fill = NA, size = 1))  #+ 
   # scale_color_manual(values = c('red', 'orange', 'green'))
 
-
-hp_yr <- ggplot(pnw_state_outline) +
+#by season and type
+ggplot(pnw_state_outline) +
 geom_polygon(aes(x = long, y = lat, group = group), fill = "grey93", color = "grey50", size = 0.2) +
-  coord_fixed(1, ylim = c(42.3, 49.15), xlim = c(-125, -121.8)) +
-  geom_point(data = hp_map, aes(x = long_corr, y = lat_corr, group = Year.of.Observation, frame = Year.of.Observation, cumulative = F), color = 'grey50', size = 0.2, alpha = 0.8)  +
+  coord_fixed(1, ylim = c(45.8, 49.15), xlim = c(-125, -121.8)) +
+  geom_point(data = hp_map, aes(x = Longitude, y = Latitude, color = HI), size = 1, alpha = 0.8)  +
+  # geom_density2d(data = hp_map, aes(x = Longitude, y = Latitude), col = "black", bins = 3) +
+  xlab("") + ylab("") +
+  facet_wrap(~Season) +
+  #theme_classic() +
+  theme(
+    # plot.margin = unit(c(0, 0, 0, 0), "mm"),
+        # plot.margin = unit(c(10, -10, 0, -10), "mm"),
+    axis.line = element_blank(), 
+    axis.ticks = element_blank(),
+    axis.text = element_blank(),
+    plot.background = element_rect(), 
+    panel.background = element_rect(fill = 'white'), 
+    # legend.text = element_text(size = 20, face = 'bold'),
+    # plot.title = element_text(size = 20, face = "bold", hjust = 0.5),
+    strip.background = element_blank(),
+    legend.key = element_blank(),
+    legend.position = 'bottom', legend.title = element_blank(),
+    panel.border = element_rect(colour = "black", fill = NA, size = 1))  + 
+  scale_color_manual(values = color3)
+
+#by season - all HI combined
+ggplot(pnw_state_outline) +
+geom_polygon(aes(x = long, y = lat, group = group), fill = "grey93", color = "grey50", size = 0.2) +
+  coord_fixed(1, ylim = c(45.8, 49.15), xlim = c(-125, -121.8)) +
+  geom_point(data = hp_map, aes(x = Longitude, y = Latitude), color = 'red', size = 1, alpha = 0.8)  +
+  # geom_density2d(data = hp_map, aes(x = Longitude, y = Latitude), col = "black", bins = 3) +
+  xlab("") + ylab("") +
+  facet_wrap(~Season) +
+  #theme_classic() +
+  theme(
+    # plot.margin = unit(c(0, 0, 0, 0), "mm"),
+        # plot.margin = unit(c(10, -10, 0, -10), "mm"),
+    axis.line = element_blank(), 
+    axis.ticks = element_blank(),
+    axis.text = element_blank(),
+    plot.background = element_rect(), 
+    panel.background = element_rect(fill = 'white'), 
+    # legend.text = element_text(size = 20, face = 'bold'),
+    # plot.title = element_text(size = 20, face = "bold", hjust = 0.5),
+    strip.background = element_blank(),
+    legend.key = element_blank(),
+    legend.position = 'bottom', legend.title = element_blank(),
+    panel.border = element_rect(colour = "black", fill = NA, size = 1))  + 
+  scale_color_manual(values = color3)
+
+#by year
+ggplot(pnw_state_outline) +
+geom_polygon(aes(x = long, y = lat, group = group), fill = "grey93", color = "grey50", size = 0.2) +
+  coord_fixed(1, ylim = c(45.8, 49.15), xlim = c(-125, -121.8)) +
+  geom_point(data = hp_map, aes(x = long_corr, y = lat_corr), color = 'red', size = 1, alpha = 0.8)  +
 # geom_density2d(data = hp_map %>%
 #                  filter(Findings.of.Human.Interaction == 'Y'), aes(x = long_corr, y = lat_corr, group = Year.of.Observation, frame = Year.of.Observation, cumulative = F, col = 'HI Cases'), bins = 4) +
-  geom_density2d(data = hp_map, aes(x = long_corr, y = lat_corr, group = Year.of.Observation, frame = Year.of.Observation, cumulative = F), col = "black", bins = 3) +
+  # geom_density2d(data = hp_map, aes(x = long_corr, y = lat_corr, group = Year.of.Observation, frame = Year.of.Observation, cumulative = F), col = "red", bins = 3) +
   #scale_fill_gradient(low = "yellow", high = "red", guide = FALSE) +
   #scale_alpha(range = c(0, 0.1), guide = FALSE) +
   xlab("") + ylab("") + facet_wrap(~Year.of.Observation) +
-  #theme_classic() +
+  theme_classic() +
   theme(
     plot.margin = unit(c(10, -10, 0, -10), "mm"),
     axis.line = element_blank(), 
@@ -531,59 +615,7 @@ geom_polygon(aes(x = long, y = lat, group = group), fill = "grey93", color = "gr
     strip.background = element_blank(),
     legend.position = 'top', legend.title = element_blank(),
     panel.border = element_rect(colour = "black", fill = NA, size = 1)) + 
-  scale_color_manual(values = c("black", "red")) 
-
-#all HI
-
-hp_HI_map <- hp_map %>%
-  filter(Findings.of.Human.Interaction == 'Y' & State == 'WA')
-
-hp_HI <- ggplot(pnw_state_outline) +
-geom_polygon(aes(x = long, y = lat, group = group), fill = "grey93", color = "grey50", size = 0.2) +
-  coord_fixed(1, ylim = c(45.3, 49.15), xlim = c(-125, -121.8)) +
-  geom_point(data = hp_HI_map, aes(x = long_corr, y = lat_corr), color = 'grey50', size = 0.2, alpha = 0.8)  +
-# geom_density2d(data = hp_HI_map, aes(x = long_corr, y = lat_corr, col = 'HI Cases'), bins = 4) +
-  geom_density2d(data = hp_HI_map, aes(x = long_corr, y = lat_corr), col = "black", bins = 3) +
-  scale_fill_gradient(low = "yellow", high = "red", guide = FALSE) +
-  scale_alpha(range = c(0, 0.1), guide = FALSE) +
-  xlab("") + ylab("")  +
-  #theme_classic() +
-  theme(
-    plot.margin = unit(c(10, -10, 0, -10), "mm"),
-    axis.line = element_blank(), 
-    axis.ticks = element_blank(),
-    axis.text = element_blank(),
-    legend.text = element_text(size = 20, face = 'bold'),
-    plot.title = element_text(size = 20, face = "bold", hjust = 0.5),
-    strip.background = element_blank(),
-    legend.position = 'top', 
-    legend.title = element_blank(),
-    panel.border = element_rect(colour = "black", fill = NA, size = 1)) + 
-  scale_color_manual(values = color6)
-
-hp_HI_yr <- ggplot(pnw_state_outline) +
-geom_polygon(aes(x = long, y = lat, group = group), fill = "grey93", color = "grey50", size = 0.2) +
-  coord_fixed(1, ylim = c(42.3, 49.15), xlim = c(-125, -121.8)) +
-  geom_point(data = hp_HI_map, aes(x = long_corr, y = lat_corr, group = Year.of.Observation, frame = Year.of.Observation, cumulative = F), color = 'grey50', size = 0.2, alpha = 0.8)  +
-# geom_density2d(data = hp_HI_map %>%
-#                  filter(Findings.of.Human.Interaction == 'Y'), aes(x = long_corr, y = lat_corr, group = Year.of.Observation, frame = Year.of.Observation, cumulative = F, col = 'HI Cases'), bins = 4) +
-  geom_density2d(data = hp_HI_map, aes(x = long_corr, y = lat_corr, group = Year.of.Observation, frame = Year.of.Observation, cumulative = F), col = "black", bins = 3) +
-  #scale_fill_gradient(low = "yellow", high = "red", guide = FALSE) +
-  #scale_alpha(range = c(0, 0.1), guide = FALSE) +
-  xlab("") + ylab("") + facet_wrap(~Year.of.Observation) +
-  #theme_classic() +
-  theme(
-    plot.margin = unit(c(10, -10, 0, -10), "mm"),
-    axis.line = element_blank(), 
-    axis.ticks = element_blank(),
-    axis.text = element_blank(),
-    legend.text = element_text(size = 20, face = 'bold'),
-    plot.title = element_text(size = 20, face = "bold", hjust = 0.5),
-    strip.background = element_blank(),
-    legend.position = 'top', legend.title = element_blank(),
-    panel.border = element_rect(colour = "black", fill = NA, size = 1)) + 
-  scale_color_manual(values = c("black", "red"))
-
+  scale_color_manual(values = color3)
 
 ```
 

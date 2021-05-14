@@ -24,7 +24,7 @@ case <- function(x)
 # data <- read.csv("OR_WA_Cetacean_all_NEW.csv", header = TRUE, na.strings = "", stringsAsFactors = FALSE)
 
 # update from Stephanie, sent in email October 11 2020, includes 2019 data
-data <- read.csv("Cetacean_stranding_data_2000-2019_FINAL_10-11-20.csv", header = TRUE, na.strings = "", stringsAsFactors = FALSE)
+data <- read.csv("Cetacean_stranding_data_2000-2019_FINAL.csv", header = TRUE, na.strings = "", stringsAsFactors = FALSE)
 
 cetacean_data <- data %>%
   # rename(City = City...from.strandings.table) %>%
@@ -129,7 +129,7 @@ cetacean_data <- cetacean_data %>%
 
 #California data
 
-write.csv(cetacean_data, file = "~/Documents/Research/Cet_Strandings/PNW Strands Manuscript/cetacean_data_CleaningOuput10_25_20updated.csv", row.names = F)
+write.csv(cetacean_data, file = "~/Documents/Research/Cet_Strandings/PNW Strands Manuscript/cetacean_data_CleaningOuput5_13_21updated.csv", row.names = F)
 
 
 
